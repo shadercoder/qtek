@@ -626,10 +626,16 @@ define('core/cache',[], function(){
 
     Cache.prototype = {
 
-        use : function( contextId ){
+        use : function( contextId, documentSchema ){
 
             if( ! this._caches.hasOwnProperty( contextId ) ){
                 this._caches[ contextId ] = {};
+
+                if( documentSchema){
+                    for(var name in documentSchema){
+                        this._caches[contextId][ name ] = documentSchema[name];
+                    }   
+                }
             }
             this._contextId = contextId;
 
@@ -11409,6 +11415,745 @@ define('2d/scene',['require','./node'], function(require){
 
     return Scene;
 } );
+define('core/vector3',['require','glmatrix'], function(require){
+
+    var glMatrix = require("glmatrix");
+    var vec3 = glMatrix.vec3;
+
+    var Vector3 = function(x, y, z){
+        
+        x = x || 0;
+        y = y || 0;
+        z = z || 0;
+        
+        return Object.create(Vector3Proto, {
+
+            x : {
+                configurable : false,
+                set : function(value){
+                    this._array[0] = value;
+                    this._dirty = true;
+                },
+                get : function(){
+                    return this._array[0];
+                }
+            },
+            y : {
+                configurable : false,
+                set : function(value){
+                    this._array[1] = value;
+                    this._dirty = true;
+                },
+                get : function(){
+                    return this._array[1];
+                }
+            },
+            z : {
+                configurable : false,
+                set : function(value){
+                    this._array[2] = value;
+                    this._dirty = true;
+                },
+                get : function(){
+                    return this._array[2];
+                }
+            },
+
+            _array :{
+                writable : false,
+                configurable : false,
+                value : vec3.fromValues(x, y, z)
+            },
+            _dirty : {
+                configurable : false,
+                value : true
+            }
+        })
+
+    }
+
+    var Vector3Proto = {
+
+        constructor : Vector3,
+
+        add : function(b){
+            vec3.add( this._array, this._array, b._array );
+            return this;
+        },
+
+        set : function(x, y, z){
+            this.x = x;
+            this.y = y;
+            this.z = z;
+        },
+
+        clone : function(){
+            return new Vector3( this.x, this.y, this.z );
+        },
+
+        copy : function(b){
+            vec3.copy( this._array, b._array );
+            return this;
+        },
+
+        cross : function(out, b){
+            vec3.cross(out._array, this._array, b._array);
+            return this;
+        },
+
+        dist : function(b){
+            return vec3.dist(this._array, b._array);
+        },
+
+        distance : function(b){
+            return vec3.distance(this._array, b._array);
+        },
+
+        div : function(b){
+            vec3.div(this._array, this._array, b._array);
+            return this;
+        },
+
+        divide : function(b){
+            return vec3.divide(this._array, this._array, b._array);
+        },
+
+        dot : function(b){
+            return vec3.dot(this._array, b._array);
+        },
+
+        len : function(){
+            return vec3.len(this._array);
+        },
+
+        length : function(){
+            return vec3.length(this._array);
+        },
+        /**
+         * Perform linear interpolation between a and b
+         */
+        lerp : function(a, b, t){
+            vec3.lerp(this._array, a._array, b._array, t);
+            return this;
+        },
+
+        mul : function(b){
+            vec3.mul(this._array, this._array, b._array);
+            return this;
+        },
+
+        multiply : function(b){
+            vec3.multiply(this._array, this._array, b._array);
+            return this;
+        },
+
+        negate : function(){
+            vec3.negate(this._array, this._array);
+            return this;
+        },
+
+        normalize : function(){
+            vec3.normalize(this._array, this._array);
+            return this;
+        },
+
+        random : function(scale){
+            vec3.random(this._array, scale);
+            return this;
+        },
+
+        scale : function(s){
+            vec3.scale(this._array, this._array, s);
+            return this;
+        },
+        /**
+         * add b by a scaled factor
+         */
+        scaleAndAdd : function(b, s){
+            vec3.scaleAndAdd(this._array, this._array, b._array, s);
+            return this;
+        },
+
+        sqrDist : function(b){
+            return vec3.sqrDist(this._array, b._array);
+        },
+
+        squaredDistance : function(b){
+            return vec3.squaredDistance(this._array, b._array);
+        },
+
+        sqrLen : function(){
+            return vec3.sqrLen(this._array);
+        },
+
+        squaredLength : function(){
+            return vec3.squaredLength(this._array);
+        },
+
+        sub : function(b){
+            vec3.sub(this._array, b._array);
+            return this;
+        },
+
+        substract : function(b){
+            vec3.substract(this._array, b._array);
+            return this;
+        },
+
+        transformMat3 : function(m){
+            vec3.transformMat3(this._array, this._array, m._array);
+            return this;
+        },
+
+        transformMat4 : function(m){
+            vec3.transformMat4(this._array, this._array, m._array);
+            return this;
+        },
+
+        transformQuat : function(q){
+            vec3.transformQuat(this._array, this._array, q._array);
+            return this;
+        },     
+        /**
+         * Set euler angle from queternion
+         */
+        setEulerFromQuaternion : function(q){
+            // var sqx = q.x * q.x;
+            // var sqy = q.y * q.y;
+            // var sqz = q.z * q.z;
+            // var sqw = q.w * q.w;
+            // this.x = Math.atan2( 2 * ( q.y * q.z + q.x * q.w ), ( -sqx - sqy + sqz + sqw ) );
+            // this.y = Math.asin( -2 * ( q.x * q.z - q.y * q.w ) );
+            // this.z = Math.atan2( 2 * ( q.x * q.y + q.z * q.w ), ( sqx - sqy - sqz + sqw ) );
+
+            // return this;
+        },
+
+        toString : function(){
+            return "[" + Array.prototype.join.call(this._array, ",") + "]";
+        },
+    }
+
+
+    function clamp( x ) {
+        return Math.min( Math.max( x, -1 ), 1 );
+    }
+
+    return Vector3;
+
+} );
+define('core/quaternion',['require','glmatrix'], function(require){
+
+    var glMatrix = require("glmatrix");
+    var quat = glMatrix.quat;
+
+    var Quaternion = function(x, y, z, w){
+
+        x = x || 0;
+        y = y || 0;
+        z = z || 0;
+        w = w || 1;
+                
+        return Object.create(QuaternionProto, {
+
+            x : {
+                configurable : false,
+                set : function(value){
+                    this._array[0] = value;
+                    this._dirty = true;
+                },
+                get : function(){
+                    return this._array[0];
+                }
+            },
+            y : {
+                configurable : false,
+                set : function(value){
+                    this._array[1] = value;
+                    this._dirty = true;
+                },
+                get : function(){
+                    return this._array[1];
+                }
+            },
+            z : {
+                configurable : false,
+                set : function(value){
+                    this._array[2] = value;
+                    this._dirty = true;
+                },
+                get : function(){
+                    return this._array[2];
+                }
+            },
+            w : {
+                configurable : false,
+                set : function(value){
+                    this._array[2] = value;
+                    this._dirty = true;
+                },
+                get : function(){
+                    return this._array[2];
+                }
+            },
+
+            _array :{
+                writable : false,
+                configurable : false,
+                value : quat.fromValues(x, y, z, w)
+            },
+            _dirty : {
+                configurable : false,
+                value : false
+            }
+        })
+
+    }
+
+    var QuaternionProto = {
+
+        constructor : Quaternion,
+
+        add : function(b){
+            quat.add( this._array, this._array, b._array );
+            return this;
+        },
+
+        calculateW : function(){
+            quat.calculateW(this._array, this._array);
+        },
+
+        set : function(x, y, z, w){
+            this.x = x;
+            this.y = y;
+            this.z = z;
+            this.w = w;
+        },
+
+        clone : function(){
+            return new Quaternion( this.x, this.y, this.z, this.w );
+        },
+
+        /**
+         * Calculates the conjugate of a quat If the quaternion is normalized, 
+         * this function is faster than quat.inverse and produces the same result.
+         */
+        conjugate : function(){
+            quat.conjugate(this._array, this._array);
+            return this;
+        },
+
+        copy : function(b){
+            quat.copy( this._array, b._array );
+            return this;
+        },
+
+        dot : function(b){
+            return quat.dot(this._array, b._array);
+        },
+
+        fromMat3 : function(m){
+            quat.fromMat3(this._array, m._array);
+            return this;
+        },
+
+        fromMat4 : (function(){
+            var mat3 = glMatrix.mat3;
+            var m3 = mat3.create();
+            return function(m){
+                mat3.fromMat4(m3, m._array);
+                // Not like mat4, mat3 in glmatrix seems to be row-based
+                mat3.transpose(m3, m3);
+                quat.fromMat3(this._array, m3);
+                return this;
+            }
+        })(),
+
+        identity : function(){
+            quat.identity(this._array);
+            return this;
+        },
+
+        invert : function(){
+            quat.invert(this._array, this._array);
+            return this;
+        },
+
+        len : function(){
+            return quat.len(this._array);
+        },
+
+        length : function(){
+            return quat.length(this._array);
+        },
+
+        /**
+         * Perform linear interpolation between a and b
+         */
+        lerp : function(a, b, t){
+            quat.lerp(this._array, a._array, b._array, t);
+            return this;
+        },
+
+        mul : function(b){
+            quat.mul(this._array, this._array, b._array);
+            return this;
+        },
+
+        multiply : function(b){
+            quat.multiply(this._array, this._array, b._array);
+            return this;
+        },
+
+        normalize : function(){
+            quat.normalize(this._array, this._array);
+            return this;
+        },
+
+        rotateX : function(rad){
+            quat.rotateX(this._array, this._array, rad);
+        },
+
+        rotateY : function(rad){
+            quat.rotateY(this._array, this._array, rad);
+        },
+
+        rotateZ : function(rad){
+            quat.rotateZ(this._array, this._array, rad);
+        },
+
+        setAxisAngle : function(axis /*Vector3*/, rad){
+            quat.setAxisAngle(this._array, axis._array, rad);
+        },
+
+        sqrLen : function(){
+            return quat.sqrLen(this._array);
+        },
+
+        squaredLength : function(){
+            return quat.squaredLength(this._array);
+        },
+        /**
+         * Set quaternion from euler angle
+         */
+        setFromEuler : function(v){
+            
+        },
+
+        toString : function(){
+            return "[" + Array.prototype.join.call(this._array, ",") + "]";
+        }
+    }
+
+    return Quaternion;
+} );
+define('core/matrix4',['require','glmatrix'], function(require){
+
+    var glMatrix = require("glmatrix");
+    var mat4 = glMatrix.mat4;
+    var vec3 = glMatrix.vec3;
+    var mat3 = glMatrix.mat3;
+    var quat = glMatrix.quat;
+
+    function makeProperty(n){
+        return {
+            configurable : false,
+            set : function(value){
+                this._array[n] = value;
+                this._dirty = true;
+            },
+            get : function(){
+                return this._array[n];
+            }
+        }
+    }
+    var Matrix4 = function(){
+
+        return Object.create(Matrix4Proto, {
+
+            m00 : makeProperty(0),
+            m01 : makeProperty(1),
+            m02 : makeProperty(2),
+            m03 : makeProperty(3),
+            m10 : makeProperty(4),
+            m11 : makeProperty(5),
+            m12 : makeProperty(6),
+            m13 : makeProperty(7),
+            m20 : makeProperty(8),
+            m21 : makeProperty(9),
+            m22 : makeProperty(10),
+            m23 : makeProperty(11),
+            m30 : makeProperty(12),
+            m31 : makeProperty(13),
+            m32 : makeProperty(14),
+            m33 : makeProperty(15),
+            
+            _array : {
+                writable : false,
+                configurable : false,
+                value : mat4.create()
+            }
+        })
+    };
+
+    var Matrix4Proto = {
+
+        constructor : Matrix4,
+
+        adjoint : function(){
+            mat4.adjoint(this._array, this._array);
+            return this;
+        },
+        clone : function(){
+            return (new Matrix4()).copy(this);
+        },
+        copy : function(b){
+            mat4.copy(this._array, b._array);
+            return this;
+        },
+        determinant : function(){
+            return mat4.determinant(this._array);
+        },
+        fromQuat : function(q){
+            mat4.fromQuat(this._array, q._array);
+            return this;
+        },
+        fromRotationTranslation : function(q, v){
+            mat4.fromRotationTranslation(this._array, q._array, v._array);
+            return this;
+        },
+        frustum : function(left, right, bottom, top, near, far){
+            mat4.frustum(this._array, left, right, bottom, top, near, far);
+            return this;
+        },
+        identity : function(){
+            mat4.identity(this._array);
+            return this;
+        },
+        invert : function(){
+            mat4.invert(this._array, this._array);
+            return this;
+        },
+        lookAt : function(eye, center, up){
+            mat4.lookAt(this._array, eye._array, center._array, up._array);
+            return this;
+        },
+        mul : function(b){
+            mat4.mul(this._array, this._array, b._array);
+            return this;
+        },
+        mulLeft : function(b){
+            mat4.mul(this._array, b._array, this._array);
+            return this;
+        },
+        multiply : function(b){
+            mat4.multiply(this._array, this._array, b._array);
+            return this;
+        },
+        // Apply left multiply
+        multiplyLeft : function(b){
+            mat4.multiply(this._array, b._array, this._array);
+            return this;
+        },
+        ortho : function(left, right, bottom, top, near, far){
+            mat4.ortho(this._array, left, right, bottom, top, near, far);
+            return this;
+        },
+        perspective : function(fovy, aspect, near, far){
+            mat4.perspective(this._array, fovy, aspect, near, far);
+            return this;
+        },
+        rotate : function(rad, axis /*Vector3*/){
+            mat4.rotate(this._array, this._array, rad, axis._array);
+            return this;
+        },
+        rotateX : function(rad){
+            mat4.rotateX(this._array, this._array, rad);
+            return this;
+        },
+        rotateY : function(rad){
+            mat4.rotateY(this._array, this._array, rad);
+            return this;
+        },
+        rotateZ : function(rad){
+            mat4.rotateZ(this._array, this._array, rad);
+            return this;
+        },
+        scale : function(v){
+            mat4.scale(this._array, this._array, v._array);
+            return this;
+        },
+        translate : function(v){
+            mat4.translate(this._array, this._array, v._array);
+            return this;
+        },
+        transpose : function(){
+            mat4.transpose(this._array, this._array);
+            return this;
+        },
+
+        // Static method
+        // Decompose a matrix to SRT
+        // http://msdn.microsoft.com/en-us/library/microsoft.xna.framework.matrix.decompose.aspx
+        decomposeMatrix : (function(){
+
+            var x = vec3.create();
+            var y = vec3.create();
+            var z = vec3.create();
+
+            var m3 = mat3.create();
+            
+            return function( scale, rotation, position ){
+
+                var el = this._array;
+                vec3.set(x, el[0], el[1], el[2]);
+                vec3.set(y, el[4], el[5], el[6]);
+                vec3.set(z, el[8], el[9], el[10]);
+
+                scale.x = vec3.length(x);
+                scale.y = vec3.length(y);
+                scale.z = vec3.length(z);
+
+                position.set(el[12], el[13], el[14]);
+
+                mat3.fromMat4(m3, el);
+                // Not like mat4, mat3 in glmatrix seems to be row-based
+                mat3.transpose(m3, m3);
+
+                m3[0] /= scale.x;
+                m3[1] /= scale.x;
+                m3[2] /= scale.x;
+
+                m3[3] /= scale.y;
+                m3[4] /= scale.y;
+                m3[5] /= scale.y;
+
+                m3[6] /= scale.z;
+                m3[7] /= scale.z;
+                m3[8] /= scale.z;
+
+                quat.fromMat3(rotation._array, m3);
+                rotation.normalize();
+            }
+        })(),
+
+        toString : function(){
+            return "[" + Array.prototype.join.call(this._array, ",") + "]";
+        }
+    }
+
+    return Matrix4;
+});
+define('core/matrix3',['require','glmatrix'], function(require){
+
+    var glMatrix = require("glmatrix");
+    var mat3 = glMatrix.mat3;
+
+    function makeProperty(n){
+        return {
+            configurable : false,
+            set : function(value){
+                this._array[n] = value;
+                this._dirty = true;
+            },
+            get : function(){
+                return this._array[n];
+            }
+        }
+    }
+
+    var Matrix3 = function(){
+
+        return Object.create(Matrix3Proto, {
+
+            m00 : makeProperty(0),
+            m01 : makeProperty(1),
+            m02 : makeProperty(2),
+            m10 : makeProperty(3),
+            m11 : makeProperty(4),
+            m12 : makeProperty(5),
+            m20 : makeProperty(6),
+            m21 : makeProperty(7),
+            m22 : makeProperty(8),
+            
+            _array : {
+                writable : false,
+                configurable : false,
+                value : mat3.create()
+            }
+        })
+    };
+
+    var Matrix3Proto = {
+
+        constructor : Matrix3,
+
+        adjoint : function(){
+            mat3.adjoint(this._array, this._array);
+            return this;
+        },
+        clone : function(){
+            return (new Matrix3()).copy(this);
+        },
+        copy : function(b){
+            mat3.copy(this._array, b._array);
+            return this;
+        },
+        determinant : function(){
+            return mat3.determinant(this._array);
+        },
+        fromMat2d : function(a){
+            return mat3.fromMat2d(this._array, a._array);
+        },
+        fromMat4 : function(a){
+            return mat3.fromMat4(this._array, a._array);
+        },
+        fromQuat : function(q){
+            mat3.fromQuat(this._array, q._array);
+            return this;
+        },
+        identity : function(){
+            mat3.identity(this._array);
+            return this;
+        },
+        invert : function(){
+            mat3.invert(this._array, this._array);
+            return this;
+        },
+        mul : function(b){
+            mat3.mul(this._array, this._array, b._array);
+            return this;
+        },
+        mulLeft : function(b){
+            mat3.mul(this._array, b._array, this._array);
+            return this;
+        },
+        multiply : function(b){
+            mat3.multiply(this._array, this._array, b._array);
+            return this;
+        },
+        multiplyLeft : function(b){
+            mat3.multiply(this._array, b._array, this._array);
+            return this;
+        },
+        /**
+         * Calculates a 3x3 normal matrix (transpose inverse) from the 4x4 matrix
+         */
+        normalFromMat4 : function(a){
+            mat3.normalFromMat4(this._array, a._array);
+            return a;
+        },
+        transpose : function(){
+            mat3.transpose(this._array, this._array);
+            return this;
+        },
+        toString : function(){
+            return "[" + Array.prototype.join.call(this._array, ",") + "]";
+        }
+    }
+
+    return Matrix3;
+});
 define('util/util',['require'], function(require){
 
 	return {
@@ -11422,14 +12167,13 @@ define('util/util',['require'], function(require){
 		})()
 	}
 } );
-define('3d/node',['require','core/base','glmatrix','util/util','_'], function(require){
+define('3d/node',['require','core/base','core/vector3','core/quaternion','core/matrix4','core/matrix3','util/util','_'], function(require){
     
     var Base = require("core/base");
-    var glMatrix = require("glmatrix");
-    var vec3 = glMatrix.vec3;
-    var quat = glMatrix.quat;
-    var mat3 = glMatrix.mat3;
-    var mat4 = glMatrix.mat4;
+    var Vector3 = require("core/vector3");
+    var Quaternion = require("core/quaternion");
+    var Matrix4 = require("core/matrix4");
+    var Matrix3 = require("core/matrix3");
     var util = require("util/util");
     var _ = require("_");
 
@@ -11441,168 +12185,28 @@ define('3d/node',['require','core/base','glmatrix','util/util','_'], function(re
 
             visible : true,
 
-            position : vec3.create(),
-            // Euler rotate
-            rotation : vec3.create(),
-            eulerOrder : ["X", "Y", "Z"],
+            position : new Vector3(),
 
-            scale : vec3.fromValues(1, 1, 1),
+            rotation : new Quaternion(),
 
-            up : vec3.fromValues(0, 1, 0),
+            scale : new Vector3(1, 1, 1),
 
-            quaternion : quat.create(),
-            useQuaternion : false,
+            up : new Vector3(0, 1, 0),
+
+            // Euler angles
+            // https://en.wikipedia.org/wiki/Rotation_matrix
+            eulerAngle : new Vector3(),
+            useEuler : false,
 
             children : [],
 
             parent : null,
 
-            worldMatrix : mat4.create(),
-            matrix : mat4.create(),
+            worldMatrix : new Matrix4(),
+            matrix : new Matrix4(),
 
-            autoUpdate : true
         }
     }, {
-        x : function(value){
-            if( arguments.length === 0 ){
-                return this.position[0];
-            }
-            this.position[0] = value;
-            this.dirty("matrix");
-            return this;
-        },
-        y : function(value){
-            if( arguments.length === 0 ){
-                return this.position[1];
-            }
-            this.position[1] = value;
-            this.dirty("matrix");
-            return this;
-        },
-        z : function(value){
-            if( arguments.length === 0 ){
-                return this.position[2];
-            }
-            this.position[2] = value;
-            this.dirty("matrix");
-            return this;
-        },
-        // https://en.wikipedia.org/wiki/Rotation_matrix
-        roll : function(value){
-            if( arguments.length === 0 ){
-                return this.rotation[0];
-            }
-            this.rotation[0] = value;
-            this.dirty("matrix");
-            return this;
-        },
-        pitch: function(value){
-            if( arguments.length === 0 ){
-                return this.rotation[1];
-            }
-            this.rotation[1] = value;
-            this.dirty("matrix");
-            return this;
-        },
-        yaw :function(value){
-            if( arguments.length === 0 ){
-                return this.rotation[2];
-            }
-            this.rotation[2] = value;
-            this.dirty("matrix");
-            return this;
-        },
-
-        lookAt : (function(){
-            var lookAtMat4 = mat4.create();
-            return function( target ){
-                mat4.lookAt( lookAtMat4, target, this.position, this.up );
-
-                this.updateFromLookAtMatrix( lookAtMat4 );
-            }
-        })(),
-
-        updateFromLookAtMatrix : (function(){
-            var lookAtMat3 = mat3.create();
-            return function( lookAtMat4 ){
-                if( this.useQuaternion ){
-                    mat3.fromMat4( lookAtMat3, lookAtMat4 );
-                    quat.fromMat3( this.quaternion, lookAtMat3 );
-                }else{
-                    // Euler rotation from matrix decomposition
-                    // http://nghiaho.com/?page_id=846
-                    // Code is from three.js
-                    function clamp( x ) {
-                        return Math.min( Math.max( x, -1 ), 1 );
-                    }
-                    var mat = lookAtMat4;
-                    var m11 = mat[0], m12 = mat[1], m13 = mat[2];
-                    var m21 = mat[4], m22 = mat[5], m23 = mat[6];
-                    var m31 = mat[8], m32 = mat[9], m33 = mat[10];
-
-                    var x,y,z;
-                    var order = this.eulerOrder.join("");
-
-                    if ( order === 'XYZ' ) {
-                        y = Math.asin( clamp( m13 ) );
-                        if ( Math.abs( m13 ) < 0.99999 ) {
-                            x = Math.atan2( - m23, m33 );
-                            z = Math.atan2( - m12, m11 );
-                        } else {
-                            x = Math.atan2( m32, m22 );
-                            z = 0;
-                        }
-                    } else if ( order === 'YXZ' ) {
-                        x = Math.asin( - clamp( m23 ) );
-                        if ( Math.abs( m23 ) < 0.99999 ) {
-                            y = Math.atan2( m13, m33 );
-                            z = Math.atan2( m21, m22 );
-                        } else {
-                            y = Math.atan2( - m31, m11 );
-                            z = 0;
-                        }
-                    } else if ( order === 'ZXY' ) {
-                        x = Math.asin( clamp( m32 ) );
-                        if ( Math.abs( m32 ) < 0.99999 ) {
-                            y = Math.atan2( - m31, m33 );
-                            z = Math.atan2( - m12, m22 );
-                        } else {
-                            y = 0;
-                            z = Math.atan2( m21, m11 );
-                        }
-                    } else if ( order === 'ZYX' ) {
-                        y = Math.asin( - clamp( m31 ) );
-                        if ( Math.abs( m31 ) < 0.99999 ) {
-                            x = Math.atan2( m32, m33 );
-                            z = Math.atan2( m21, m11 );
-                        } else {
-                            x = 0;
-                            z = Math.atan2( - m12, m22 );
-                        }
-                    } else if ( order === 'YZX' ) {
-                        z = Math.asin( clamp( m21 ) );
-                        if ( Math.abs( m21 ) < 0.99999 ) {
-                            x = Math.atan2( - m23, m22 );
-                            y = Math.atan2( - m31, m11 );
-                        } else {
-                            x = 0;
-                            y = Math.atan2( m13, m33 );
-                        }
-                    } else if ( order === 'XZY' ) {
-                        z = Math.asin( - clamp( m12 ) );
-                        if ( Math.abs( m12 ) < 0.99999 ) {
-                            x = Math.atan2( m32, m22 );
-                            y = Math.atan2( m13, m11 );
-                        } else {
-                            x = Math.atan2( - m23, m33 );
-                            y = 0;
-                        }
-                    }
-                    vec3.set( this.rotation, x, y, z );
-                }
-                this.dirty("matrix");
-            }
-        })(),
 
         add : function( node ){
             if( this.children.indexOf( node ) >= 0 ){
@@ -11627,44 +12231,56 @@ define('3d/node',['require','core/base','glmatrix','util/util','_'], function(re
             }
         },
 
-        updateMatrix : (function(){
-            
-            var quatMat4 = mat4.create();
-
-            return function(){
-                var m = this.matrix;
-
-                mat4.identity( m );
-
-                // Transform order, scale->rotation->position
-                mat4.translate( m, m, this.position );
-
-                if( this.useQuaternion ){
-                    mat4.fromQuat( quatMat4, this.quaternion);
-                    mat4.multiply( m, m, quatMat4 );
-                }else{
-                    for(var i = 0; i<3; i++){
-                        var axis = this.eulerOrder[i].toUpperCase();
-                        var rotationOrder = ["X", "Y", "Z"];
-                        var idx = rotationOrder.indexOf(axis);
-                        mat4['rotate'+axis]( m, m, this.rotation[idx] );
-                    }
-                }
-
-                mat4.scale( m, m, this.scale );
+        lookAt : (function(){
+            var m = new Matrix4();
+            return function( target ){
+                m.lookAt(this.position, target, this.up ).invert();
+                this.updateFromLookAtMatrix( m );
             }
         })(),
 
+        updateFromLookAtMatrix : (function(){
+
+            var lookAtMat3 = new Matrix3();
+            var scaleVector = new Vector3();
+            return function(m){
+                
+                m.decomposeMatrix(scaleVector, this.rotation, this.position);
+
+                if( ! this.useEuler){
+                    this.eulerAngle.setEulerFromQuaternion(this.rotation);
+                }
+            }
+        })(),
+
+        updateMatrix : function(){
+            var m = this.matrix;
+
+            m.identity();
+
+            if( this.useEuler ){
+                this.rotation.identity();
+                this.rotation.rotateX( this.eulerAngle.x );
+                this.rotation.rotateY( this.eulerAngle.y );
+                this.rotation.rotateZ( this.eulerAngle.z );
+            }
+            // Transform order, scale->rotation->position
+            m.fromRotationTranslation(this.rotation, this.position);
+
+            m.scale(this.scale);
+        },
+
+        decomposeMatrix : function(){
+            this.matrix.decomposeMatrix( this.scale, this.rotation, this.position );
+        },
+
         updateWorldMatrix : function(  ){
 
-            if( this.isDirty('matrix') || this.autoUpdate ){
-                this.updateMatrix();
-                this.fresh('matrix');
-            }
+            this.updateMatrix();
             if( this.parent ){
-                mat4.multiply( this.worldMatrix, this.parent.worldMatrix, this.matrix );
+                this.worldMatrix.copy(this.parent.worldMatrix).multiply(this.matrix);
             }else{
-                mat4.copy( this.worldMatrix, this.matrix );
+                this.worldMatrix.copy(this.matrix);
             }
         },
         
@@ -11696,22 +12312,30 @@ define('3d/node',['require','core/base','glmatrix','util/util','_'], function(re
             // [1]  [5]  [9]   [13]
             // [2]  [6]  [10]  [14]
             // [3]  [7]  [11]  [15]
-            return vec3.fromValues( m[12], m[13], m[14])
-        }
+            return new Vector3(m[12], m[13], m[14]);
+        },
+
+        rotateAround : (function(){
+            var v = new Vector3();
+            var rotateMat = new Matrix4();
+            return function(point, axis, angle){
+                v.copy(point).substract(this.position);
+
+            }
+        })()
     });
-    
+
+
     return Node;
 });
-define('3d/camera',['require','./node','glmatrix'], function(require){
+define('3d/camera',['require','./node','core/matrix4'], function(require){
 
     var Node = require("./node");
-    var glMatrix = require('glmatrix');
-    var mat4 = glMatrix.mat4;
-    var vec3 = glMatrix.vec3;
+    var Matrix4 = require("core/matrix4");
 
     var Camera = Node.derive(function() {
         return {
-            projectionMatrix : mat4.create(),
+            projectionMatrix : new Matrix4(),
         }
     }, function(){
         this.update();
@@ -11722,29 +12346,17 @@ define('3d/camera',['require','./node','glmatrix'], function(require){
             Node.prototype.update.call( this, _gl );
             
             this.updateProjectionMatrix();
-        },
-
-        lookAt : ( function() {
-            var lookAtMat4 = mat4.create();
-            return function( target ){
-                mat4.lookAt( lookAtMat4, this.position, target, this.up );
-                
-                this.updateFromLookAtMatrix( lookAtMat4 );
-            }
-        } )()
+        }
     });
 
     return Camera;
 } );
-define('3d/camera/orthographic',['require','../camera','glmatrix'], function(require){
+define('3d/camera/orthographic',['require','../camera'], function(require){
 
-    var Camera = require('../camera'),
-        glMatrix = require('glmatrix'),
-        mat4 = glMatrix.mat4;
+    var Camera = require('../camera');
 
     var Orthographic = Camera.derive( function(){
         return {
-
             left : -1,
             right : 1,
             near : 0,
@@ -11755,12 +12367,15 @@ define('3d/camera/orthographic',['require','../camera','glmatrix'], function(req
     }, {
         
         updateProjectionMatrix : function(){
-            mat4.ortho( this.projectionMatrix, this.left, this.right, this.bottom, this.top, this.near, this.far );
+            this.projectionMatrix.ortho(this.left, this.right, this.bottom, this.top, this.near, this.far);
         }
     });
 
     return Orthographic;
 } );
+;
+define("3d/compositor", function(){});
+
 define('3d/compositor/graph/graph',['require','core/base','_'], function( require ){
 
     var Base = require("core/base");
@@ -11818,11 +12433,15 @@ define('3d/compositor/graph/graph',['require','core/base','_'], function( requir
 
         findPin : function( info ){
             var node;
-            for( var i = 0; i < this._nodes.length; i++){
-                var tmp = this._nodes[i];
-                if( tmp.name === info.node ){
-                    node = tmp;
+            if( typeof(info.node) === 'string'){
+                for( var i = 0; i < this._nodes.length; i++){
+                    var tmp = this._nodes[i];
+                    if( tmp.name === info.node ){
+                        node = tmp;
+                    }
                 }
+            }else{
+                node = info.node;
             }
             if( node ){
                 if( node.outputs[info.pin] ){
@@ -11949,8 +12568,6 @@ define('3d/geometry',['require','core/base','util/util','glmatrix','_'], functio
                  }
             },
 
-            _verticesNumber : 0,
-
             useFaces : true,
             // Face is list of triangles, each face
             // is an array of the vertex indices of triangle
@@ -11960,6 +12577,10 @@ define('3d/geometry',['require','core/base','util/util','glmatrix','_'], functio
 
             //Max Value of Uint16, i.e. 0xfff
             chunkSize : 65535,
+
+            _enabledAttributes : null,
+
+            _verticesNumber : 0,
 
             // Save the normal type, can have face normal or vertex normal
             // Normally vertex normal is more smooth
@@ -11990,6 +12611,8 @@ define('3d/geometry',['require','core/base','util/util','glmatrix','_'], functio
             for ( var contextId in this.cache._caches ) {
                 this.cache._caches[ contextId ][ "dirty_"+field ] = true;
             }
+
+            this._enabledAttributes = null;
         },
 
         getVerticesNumber : function() {
@@ -11998,8 +12621,14 @@ define('3d/geometry',['require','core/base','util/util','glmatrix','_'], functio
         },
 
         getEnabledAttributes : function(){
+            // Cache
+            if( this._enabledAttributes){
+                return this._enabledAttributes;
+            }
+
             var result = {};
             var verticesNumber = this.getVerticesNumber();
+
             for(var name in this.attributes){
                 var attrib = this.attributes[name];
                 if( attrib.value &&
@@ -12009,14 +12638,17 @@ define('3d/geometry',['require','core/base','util/util','glmatrix','_'], functio
                     }
                 }
             }
+
+            this._enabledAttributes = result;
+
             return result;
         },
 
         getDirtyAttributes : function( ){
 
             var result = {};
-            var verticesNumber = this.getVerticesNumber();
             var attributes = this.getEnabledAttributes();
+            
             var noDirtyAttributes = true;
             for(var name in attributes ){
                 var attrib = attributes[name];
@@ -12037,7 +12669,8 @@ define('3d/geometry',['require','core/base','util/util','glmatrix','_'], functio
 
         getBufferChunks : function( _gl ) {
 
-            this.cache.use(_gl.__GUID__ + "_dirty");
+            this.cache.use(_gl.__GUID__ );
+
             var isDirty = this.cache.getContext();
             var dirtyAttributes = this.getDirtyAttributes();
 
@@ -12051,7 +12684,6 @@ define('3d/geometry',['require','core/base','util/util','glmatrix','_'], functio
                     isDirty[ "dirty_"+name ] = false ;
                 }
             }
-            this.cache.use(_gl.__GUID__+"_buffers");
             return this.cache.get("chunks");
         },
 
@@ -12286,8 +12918,6 @@ define('3d/geometry',['require','core/base','util/util','glmatrix','_'], functio
         },
 
         _updateBuffer : function( _gl, dirtyAttributes, isFacesDirty ) {
-
-            this.cache.use(_gl.__GUID__ + "_buffers");
 
             var chunks = this.cache.get("chunks");
             if( ! chunks){
@@ -12612,6 +13242,7 @@ define('3d/geometry',['require','core/base','util/util','glmatrix','_'], functio
             var positions = this.attributes.position.value;
             var normals = this.attributes.normal.value;
 
+            matrix = matrix._array;
             for ( var i = 0; i < positions.length; i++) {
                 vec3.transformMat4( positions[i], positions[i], matrix );
             }
@@ -12828,16 +13459,17 @@ define('3d/shader',['require','core/base','glmatrix','util/util','_'], function(
 			this.update();
 		},
 		setFragment : function(str){
-			this.fragment = str;
+			this.fragment = str;_caches
 			this.update();
 		},
 		bind : function( _gl ){
 
-			this.cache.use( _gl.__GUID__ + "_program" );
+			this.cache.use( _gl.__GUID__ , {
+				"locations" : {},
+				"attriblocations" : {}
+			} );
 
 			if( this.cache.get("dirty") || this.cache.miss("program") ){
-				// clean the uniform and attribute location cache
-				this.cache.clearContext();
 				
 				this._buildProgram( _gl, this._vertexProcessed, this._fragmentProcessed );
 			
@@ -12848,7 +13480,12 @@ define('3d/shader',['require','core/base','glmatrix','util/util','_'], function(
 		},
 		// Overwrite the dirty method
 		dirty : function(){
-			this.cache.clearAll();
+			for( var contextId in this.cache._caches){
+				var context = this.cache._caches[contextId];
+				context["dirty"] = true;
+				context["locations"] = {};
+				context["attriblocations"] = {};
+			}
 		},
 
 		update : function( force ){
@@ -12932,12 +13569,10 @@ define('3d/shader',['require','core/base','glmatrix','util/util','_'], function(
 
 		setUniform : function( _gl, type, symbol, value ){
 
-			this.cache.use( _gl.__GUID__ + "_program" );
 			var program = this.cache.get("program");			
 
-			this.cache.use( _gl.__GUID__ + "_uniformlocation");
-
-			var location = this.cache.get( symbol );
+			var locationsMap = this.cache.get( "locations" );
+			var location = locationsMap[symbol];
 			// Uniform is not existed in the shader
 			if( location === null){
 				return;
@@ -12947,10 +13582,10 @@ define('3d/shader',['require','core/base','glmatrix','util/util','_'], function(
 				// Unform location is a WebGLUniformLocation Object
 				// If the uniform not exist, it will return null
 				if( location === null  ){
-					this.cache.put( symbol, null );
+					locationsMap[symbol] = null;
 					return;
 				}
-				this.cache.put( symbol, location );
+				locationsMap[symbol] = location;
 			}
 			switch( type ){
 				case '1i':
@@ -13045,11 +13680,9 @@ define('3d/shader',['require','core/base','glmatrix','util/util','_'], function(
 		 */
 		enableAttributes : function( _gl, attribList ){
 			
-			this.cache.use( _gl.__GUID__ + "_program" );
 			var program = this.cache.get("program");
 
-			this.cache.use( _gl.__GUID__ + "_attriblocation");
-			var locationsMap = this.cache.getContext();
+			var locationsMap = this.cache.get("attriblocations");
 
 			if( typeof(attribList) === "string"){
 				attribList = Array.prototype.slice.call(arguments, 1);
@@ -13107,23 +13740,19 @@ define('3d/shader',['require','core/base','glmatrix','util/util','_'], function(
 					break;
 			}
 
-			this.cache.use( _gl.__GUID__ + "_program" );
 			var program = this.cache.get("program");			
 
-			this.cache.use( _gl.__GUID__ + "_attriblocation");
+			var locationsMap = this.cache.get("attriblocations");
+			var location = locationsMap[symbol];
 
-			var location = this.cache.get( symbol );
-
-			if( this.cache.miss(symbol) ){
+			if( typeof(location) === "undefined" ){
 				location = _gl.getAttribLocation( program, symbol );
 				// Attrib location is a number from 0 to ...
 				if( location === -1){
 					return;
 				}
-				this.cache.put( symbol, location );
+				locationsMap[symbol] = location;
 			}
-
-			this.cache.use( _gl.__GUID__ + "_attribenabled" );
 
 			_gl.vertexAttribPointer( location, size, glType, false, 0, 0 );
 		},
@@ -13326,8 +13955,6 @@ define('3d/shader',['require','core/base','glmatrix','util/util','_'], function(
 
 		_buildProgram : function(_gl, vertexShaderString, fragmentShaderString){
 
-			this.cache.use( _gl.__GUID__ + "_program" );
-
 			if( this.cache.get("program") ){
 				_gl.deleteProgram( this.cache.get("program") );
 			}
@@ -13414,7 +14041,7 @@ define('3d/shader',['require','core/base','glmatrix','util/util','_'], function(
 	Shader.source = function( name ){
 		var shaderStr = _source[name];
 		if( ! shaderStr ){
-			console.warn( 'Shader "' + name + '" not existed in library');
+			console.error( 'Shader "' + name + '" not existed in library');
 			return;
 		}
 		return shaderStr;
@@ -13519,8 +14146,9 @@ define('3d/texture',['require','core/base','_'], function(require){
 			// Use of none-power of two texture
 			// http://www.khronos.org/webgl/wiki/WebGL_and_OpenGL_Differences
 			
-			var isPowerOfTwo = this.isPowerOfTwo( this.image || {width : this.width, height:this.height} );
-			if( ! isPowerOfTwo || ! this.generateMipmaps ){
+			var isPowerOfTwo = this.isPowerOfTwo();
+
+			if( ! isPowerOfTwo || ! this.generateMipmaps || this.format === 'DEPTH_COMPONENT' ){
 				// none-power of two flag
 				this.NPOT = true;
 				// Save the original value for restore
@@ -13556,13 +14184,10 @@ define('3d/texture',['require','core/base','_'], function(require){
 					this.wrapT = this._wrapTOriginal;
 				}
 			}
-		},
 
-		isPowerOfTwo : function(image){
-			var width = image.width,
-				height = image.height;
-			return ( width & (width-1) ) === 0 &&
-					( height & (height-1) ) === 0;
+			if( this.format === "DEPTH_COMPONENT"){
+				this.generateMipmaps = false;
+			}
 		},
 
 		nextHighestPowerOfTwo : function(x) {
@@ -13576,7 +14201,11 @@ define('3d/texture',['require','core/base','_'], function(require){
 		dispose : function( _gl ){
 			this.cache.use(_gl.__GUID__);
 			_gl.deleteTexture( this.cache.get("webgl_texture") );
-		}
+		},
+
+		isRenderable : function(){},
+		
+		isPowerOfTwo : function(){},
 	} )
 
 	return Texture;
@@ -13625,7 +14254,7 @@ define('3d/texture/texture2d',['require','../texture'], function(require){
 
             if( this.image ){
                 // After image is loaded
-                if( this.image.width )
+                if( this.image.complete )
                     _gl.texImage2D( _gl.TEXTURE_2D, 0, glFormat, glFormat, glType, this.image );
             }
             // Can be used as a blank texture when writing render to texture(RTT)
@@ -13633,7 +14262,7 @@ define('3d/texture/texture2d',['require','../texture'], function(require){
                 _gl.texImage2D( _gl.TEXTURE_2D, 0, glFormat, this.width, this.height, 0, glFormat, glType, this.pixels);
             }           
         
-            if( ! this.NPOT && this.generateMipmaps  ){
+            if( ! this.NPOT && this.generateMipmaps ){
                 _gl.generateMipmap( _gl.TEXTURE_2D );
             }
             
@@ -13641,6 +14270,26 @@ define('3d/texture/texture2d',['require','../texture'], function(require){
 
         },
         
+        isPowerOfTwo : function(){
+            if( this.image ){
+                var width = this.image.width,
+                    height = this.image.height;   
+            }else{
+                var width = this.width,
+                    height = this.height;
+            }
+            return ( width & (width-1) ) === 0 &&
+                    ( height & (height-1) ) === 0;
+        },
+
+        isRenderable : function(){
+            if( this.image ){
+                return this.image.complete;
+            }else{
+                return this.width && this.height;
+            }
+        },
+
         bind : function( _gl ){
             _gl.bindTexture( _gl.TEXTURE_2D, this.getWebGLTexture(_gl) );
         },
@@ -13694,8 +14343,8 @@ define('3d/texture/texturecube',['require','../texture','_'], function(require){
 
 			this.beforeUpdate( _gl );
 
-			var glFormat = _gl[ this.format.upperCase() ],
-				glType = _gl[ this.type.upperCase() ];
+			var glFormat = _gl[ this.format.toUpperCase() ],
+				glType = _gl[ this.type.toUpperCase() ];
 
 			_gl.texParameteri( _gl.TEXTURE_CUBE_MAP, _gl.TEXTURE_WRAP_S, _gl[ this.wrapS.toUpperCase() ] );
 			_gl.texParameteri( _gl.TEXTURE_CUBE_MAP, _gl.TEXTURE_WRAP_T, _gl[ this.wrapT.toUpperCase() ] );
@@ -13737,14 +14386,34 @@ define('3d/texture/texturecube',['require','../texture','_'], function(require){
 			_gl.bindTexture( _gl.TEXTURE_CUBE_MAP, null );
 		},
 		// Overwrite the isPowerOfTwo method
-		isPowerOfTwo : function( image){
-			return isPowerOfTwo( image.px.width ) &&
-					isPowerOfTwo( image.px.height );
+		isPowerOfTwo : function(){
+			if( this.image.px ){
+				return isPowerOfTwo( this.image.px.width ) &&
+						isPowerOfTwo( this.image.px.height );
+            }else{
+            	return isPowerOfTwo( this.width ) &&
+						isPowerOfTwo( this.height );
+            }
+
 			function isPowerOfTwo( value ){
 				return value & (value-1) === 0
 			}
+		},
+		isRenderable : function(){
+			if( this.image.px ){
+				return this.image.px.complete &&
+						this.image.nx.complete &&
+						this.image.py.complete &&
+						this.image.ny.complete &&
+						this.image.pz.complete &&
+						this.image.nz.complete;
+			}else{
+				return this.width && this.height;
+			}
 		}
-	})
+	});
+
+	return TextureCube;
 } );
 define('3d/material',['require','core/base','./shader','util/util','./texture','./texture/texture2d','./texture/texturecube','_'], function(require){
 
@@ -13802,6 +14471,7 @@ define('3d/material',['require','core/base','./shader','util/util','./texture','
         bind : function( _gl ){
 
             var slot = 0;
+
             // Set uniforms
             _.each( this.uniforms, function( uniform, symbol ){
                 // Only set the none-semantic uniform
@@ -13816,8 +14486,12 @@ define('3d/material',['require','core/base','./shader','util/util','./texture','
                     uniform.value.instanceof( Texture) ){
                 
                     var texture = uniform.value;
+                    // Maybe texture is not loaded yet;
+                    if( ! texture.isRenderable() ){
+                        return;
+                    }
 
-                    _gl.activeTexture( _gl['TEXTURE' + slot] );
+                    _gl.activeTexture( _gl.TEXTURE0 + slot );
                     texture.bind( _gl );
 
                     this.shader.setUniform( _gl, '1i', symbol, slot );
@@ -13835,7 +14509,12 @@ define('3d/material',['require','core/base','./shader','util/util','./texture','
                         var res = [];
                         for( var i = 0; i < uniform.value.length; i++){
                             var texture = uniform.value[i];
-                            _gl.activeTexture( _gl['TEXTURE'+slot] );
+                            // Maybe texture is not loaded yet;
+                            if( ! texture.isRenderable() ){
+                                continue;
+                            }
+
+                            _gl.activeTexture( _gl.TEXTURE0 + slot );
                             texture.bind(_gl);
 
                             res.push(slot++);
@@ -13925,9 +14604,10 @@ define('3d/mesh',['require','./node','_'], function(require){
             var geometry = this.geometry;
 
             var glDrawMode = _gl[ this.mode.toUpperCase() ];
-
+            
             //Draw each chunk
             var chunks = geometry.getBufferChunks( _gl );
+            
 
             for( var c = 0; c < chunks.length; c++){
                 currentDrawID = _gl.__GUID__ + "_" + geometry.__GUID__ + "_" + c;
@@ -14336,11 +15016,15 @@ define('text',['module'], function (module) {
 
 define('text!3d/compositor/shaders/vertex.essl',[],function () { return 'uniform mat4 worldViewProjection : WORLDVIEWPROJECTION;\n\nattribute vec3 position : POSITION;\nattribute vec2 texcoord : TEXCOORD_0;\n\nvarying vec2 v_Texcoord;\n\nvoid main(){\n\n    v_Texcoord = texcoord;\n    gl_Position = worldViewProjection * vec4(position, 1.0);\n}';});
 
-define('text!3d/compositor/shaders/coloradjust.essl',[],function () { return '@export buildin.pp.coloradjust.fragment\n\nvarying vec2 v_Texcoord;\nuniform sampler2D texture;\n\nuniform float brightness : 0.0;\nuniform float contrast : 1.0;\nuniform float exposure : 0.0;\nuniform float gamma : 1.0;\nuniform float saturation : 1.0;\n\n// Values from "Graphics Shaders: Theory and Practice" by Bailey and Cunningham\nconst vec3 w = vec3(0.2125, 0.7154, 0.0721);\n\nvoid main()\n{\n    vec4 tex = texture2D( texture, v_Texcoord);\n\n    // brightness\n    vec3 color = clamp( tex.rgb + vec3(brightness), 0.0, 1.0);\n    // contrast\n    color = clamp( (color-vec3(0.5))*contrast+vec3(0.5), 0.0, 1.0);\n    // exposure\n    color = clamp( color * pow(2.0, exposure), 0.0, 1.0);\n    // gamma\n    color = clamp( pow(color, vec3(gamma)), 0.0, 1.0);\n    // saturation\n    float luminance = dot( color, w );\n    color = mix(vec3(luminance), color, saturation);\n    \n    gl_FragColor = vec4(color, 1.0);\n}\n\n@end';});
+define('text!3d/compositor/shaders/coloradjust.essl',[],function () { return '@export buildin.compositor.coloradjust\n\nvarying vec2 v_Texcoord;\nuniform sampler2D texture;\n\nuniform float brightness : 0.0;\nuniform float contrast : 1.0;\nuniform float exposure : 0.0;\nuniform float gamma : 1.0;\nuniform float saturation : 1.0;\n\n// Values from "Graphics Shaders: Theory and Practice" by Bailey and Cunningham\nconst vec3 w = vec3(0.2125, 0.7154, 0.0721);\n\nvoid main()\n{\n    vec4 tex = texture2D( texture, v_Texcoord);\n\n    // brightness\n    vec3 color = clamp( tex.rgb + vec3(brightness), 0.0, 1.0);\n    // contrast\n    color = clamp( (color-vec3(0.5))*contrast+vec3(0.5), 0.0, 1.0);\n    // exposure\n    color = clamp( color * pow(2.0, exposure), 0.0, 1.0);\n    // gamma\n    color = clamp( pow(color, vec3(gamma)), 0.0, 1.0);\n    // saturation\n    float luminance = dot( color, w );\n    color = mix(vec3(luminance), color, saturation);\n    \n    gl_FragColor = vec4(color, 1.0);\n}\n\n@end';});
 
-define('text!3d/compositor/shaders/blur.essl',[],function () { return '/**\n *  http://www.gamerendering.com/2008/10/11/gaussian-blur-filter-shader/\n */\n\n@export buildin.pp.gaussian_blur_v.fragment\n\nuniform sampler2D texture; // the texture with the scene you want to blur\nvarying vec2 v_Texcoord;\n \nuniform float blurSize : 3.0; \nuniform float imageWidth : 512.0;\n\nvoid main(void)\n{\n   vec4 sum = vec4(0.0);\n \n   // blur in y (vertical)\n   // take nine samples, with the distance blurSize between them\n   sum += texture2D(texture, vec2(v_Texcoord.x - 4.0*blurSize/imageWidth, v_Texcoord.y)) * 0.05;\n   sum += texture2D(texture, vec2(v_Texcoord.x - 3.0*blurSize/imageWidth, v_Texcoord.y)) * 0.09;\n   sum += texture2D(texture, vec2(v_Texcoord.x - 2.0*blurSize/imageWidth, v_Texcoord.y)) * 0.12;\n   sum += texture2D(texture, vec2(v_Texcoord.x - blurSize/imageWidth, v_Texcoord.y)) * 0.15;\n   sum += texture2D(texture, vec2(v_Texcoord.x, v_Texcoord.y)) * 0.16;\n   sum += texture2D(texture, vec2(v_Texcoord.x + blurSize/imageWidth, v_Texcoord.y)) * 0.15;\n   sum += texture2D(texture, vec2(v_Texcoord.x + 2.0*blurSize/imageWidth, v_Texcoord.y)) * 0.12;\n   sum += texture2D(texture, vec2(v_Texcoord.x + 3.0*blurSize/imageWidth, v_Texcoord.y)) * 0.09;\n   sum += texture2D(texture, vec2(v_Texcoord.x + 4.0*blurSize/imageWidth, v_Texcoord.y)) * 0.05;\n \n   gl_FragColor = sum;\n}\n\n@end\n\n@export buildin.pp.gaussian_blur_h.fragment\n\nuniform sampler2D texture; // this should hold the texture rendered by the horizontal blur pass\nvarying vec2 v_Texcoord;\n \nuniform float blurSize : 3.0;\nuniform float imageHeight : 512.0;\n \nvoid main(void)\n{\n   vec4 sum = vec4(0.0);\n \n   // blur in y (vertical)\n   // take nine samples, with the distance blurSize between them\n   sum += texture2D(texture, vec2(v_Texcoord.x, v_Texcoord.y - 4.0*blurSize/imageHeight)) * 0.05;\n   sum += texture2D(texture, vec2(v_Texcoord.x, v_Texcoord.y - 3.0*blurSize/imageHeight)) * 0.09;\n   sum += texture2D(texture, vec2(v_Texcoord.x, v_Texcoord.y - 2.0*blurSize/imageHeight)) * 0.12;\n   sum += texture2D(texture, vec2(v_Texcoord.x, v_Texcoord.y - blurSize/imageHeight)) * 0.15;\n   sum += texture2D(texture, vec2(v_Texcoord.x, v_Texcoord.y)) * 0.16;\n   sum += texture2D(texture, vec2(v_Texcoord.x, v_Texcoord.y + blurSize/imageHeight)) * 0.15;\n   sum += texture2D(texture, vec2(v_Texcoord.x, v_Texcoord.y + 2.0*blurSize/imageHeight)) * 0.12;\n   sum += texture2D(texture, vec2(v_Texcoord.x, v_Texcoord.y + 3.0*blurSize/imageHeight)) * 0.09;\n   sum += texture2D(texture, vec2(v_Texcoord.x, v_Texcoord.y + 4.0*blurSize/imageHeight)) * 0.05;\n \n   gl_FragColor = sum;\n}\n\n@end\n\n@export buildin.pp.box_blur.fragment\n\nuniform sampler2D texture;\nvarying vec2 v_Texcoord;\n\nuniform float blurSize : 3.0;\nuniform float imageWidth : 512.0;\nuniform float imageHeight : 512.0;\n\nvoid main(void){\n\n   vec4 tex = texture2D(texture, v_Texcoord);\n   float offsetX = blurSize / imageWidth;\n   float offsetY = blurSize / imageHeight;\n   tex += texture2D(texture, v_Texcoord + vec2(offsetX, 0.0) );\n   tex += texture2D(texture, v_Texcoord + vec2(offsetX, offsetY) );\n   tex += texture2D(texture, v_Texcoord + vec2(-offsetX, offsetY) );\n   tex += texture2D(texture, v_Texcoord + vec2(0.0, offsetY) );\n   tex += texture2D(texture, v_Texcoord + vec2(-offsetX, 0.0) );\n   tex += texture2D(texture, v_Texcoord + vec2(-offsetX, -offsetY) );\n   tex += texture2D(texture, v_Texcoord + vec2(offsetX, -offsetY) );\n   tex += texture2D(texture, v_Texcoord + vec2(0.0, -offsetY) );\n\n   tex /= 9.0;\n   return tex;\n}\n\n@end\n\n// http://www.slideshare.net/DICEStudio/five-rendering-ideas-from-battlefield-3-need-for-speed-the-run\n\n@export buildin.pp.hexagonal_blur_1.fragment\n\n@end\n\n@export buildin.pp_hexagonal_blur_2.fragment';});
+define('text!3d/compositor/shaders/blur.essl',[],function () { return '/**\n *  http://www.gamerendering.com/2008/10/11/gaussian-blur-filter-shader/\n */\n\n@export buildin.compositor.gaussian_blur_v\n\nuniform sampler2D texture; // the texture with the scene you want to blur\nvarying vec2 v_Texcoord;\n \nuniform float blurSize : 3.0; \nuniform float imageWidth : 512.0;\n\nvoid main(void)\n{\n   vec4 sum = vec4(0.0);\n \n   // blur in y (vertical)\n   // take nine samples, with the distance blurSize between them\n   sum += texture2D(texture, vec2(v_Texcoord.x - 4.0*blurSize/imageWidth, v_Texcoord.y)) * 0.05;\n   sum += texture2D(texture, vec2(v_Texcoord.x - 3.0*blurSize/imageWidth, v_Texcoord.y)) * 0.09;\n   sum += texture2D(texture, vec2(v_Texcoord.x - 2.0*blurSize/imageWidth, v_Texcoord.y)) * 0.12;\n   sum += texture2D(texture, vec2(v_Texcoord.x - blurSize/imageWidth, v_Texcoord.y)) * 0.15;\n   sum += texture2D(texture, vec2(v_Texcoord.x, v_Texcoord.y)) * 0.16;\n   sum += texture2D(texture, vec2(v_Texcoord.x + blurSize/imageWidth, v_Texcoord.y)) * 0.15;\n   sum += texture2D(texture, vec2(v_Texcoord.x + 2.0*blurSize/imageWidth, v_Texcoord.y)) * 0.12;\n   sum += texture2D(texture, vec2(v_Texcoord.x + 3.0*blurSize/imageWidth, v_Texcoord.y)) * 0.09;\n   sum += texture2D(texture, vec2(v_Texcoord.x + 4.0*blurSize/imageWidth, v_Texcoord.y)) * 0.05;\n \n   gl_FragColor = sum;\n}\n\n@end\n\n@export buildin.compositor.gaussian_blur_h\n\nuniform sampler2D texture; // this should hold the texture rendered by the horizontal blur pass\nvarying vec2 v_Texcoord;\n \nuniform float blurSize : 3.0;\nuniform float imageHeight : 512.0;\n \nvoid main(void)\n{\n   vec4 sum = vec4(0.0);\n \n   // blur in y (vertical)\n   // take nine samples, with the distance blurSize between them\n   sum += texture2D(texture, vec2(v_Texcoord.x, v_Texcoord.y - 4.0*blurSize/imageHeight)) * 0.05;\n   sum += texture2D(texture, vec2(v_Texcoord.x, v_Texcoord.y - 3.0*blurSize/imageHeight)) * 0.09;\n   sum += texture2D(texture, vec2(v_Texcoord.x, v_Texcoord.y - 2.0*blurSize/imageHeight)) * 0.12;\n   sum += texture2D(texture, vec2(v_Texcoord.x, v_Texcoord.y - blurSize/imageHeight)) * 0.15;\n   sum += texture2D(texture, vec2(v_Texcoord.x, v_Texcoord.y)) * 0.16;\n   sum += texture2D(texture, vec2(v_Texcoord.x, v_Texcoord.y + blurSize/imageHeight)) * 0.15;\n   sum += texture2D(texture, vec2(v_Texcoord.x, v_Texcoord.y + 2.0*blurSize/imageHeight)) * 0.12;\n   sum += texture2D(texture, vec2(v_Texcoord.x, v_Texcoord.y + 3.0*blurSize/imageHeight)) * 0.09;\n   sum += texture2D(texture, vec2(v_Texcoord.x, v_Texcoord.y + 4.0*blurSize/imageHeight)) * 0.05;\n \n   gl_FragColor = sum;\n}\n\n@end\n\n@export buildin.compositor.box_blur\n\nuniform sampler2D texture;\nvarying vec2 v_Texcoord;\n\nuniform float blurSize : 3.0;\nuniform float imageWidth : 512.0;\nuniform float imageHeight : 512.0;\n\nvoid main(void){\n\n   vec4 tex = texture2D(texture, v_Texcoord);\n   float offsetX = blurSize / imageWidth;\n   float offsetY = blurSize / imageHeight;\n   tex += texture2D(texture, v_Texcoord + vec2(offsetX, 0.0) );\n   tex += texture2D(texture, v_Texcoord + vec2(offsetX, offsetY) );\n   tex += texture2D(texture, v_Texcoord + vec2(-offsetX, offsetY) );\n   tex += texture2D(texture, v_Texcoord + vec2(0.0, offsetY) );\n   tex += texture2D(texture, v_Texcoord + vec2(-offsetX, 0.0) );\n   tex += texture2D(texture, v_Texcoord + vec2(-offsetX, -offsetY) );\n   tex += texture2D(texture, v_Texcoord + vec2(offsetX, -offsetY) );\n   tex += texture2D(texture, v_Texcoord + vec2(0.0, -offsetY) );\n\n   tex /= 9.0;\n   return tex;\n}\n\n@end\n\n// http://www.slideshare.net/DICEStudio/five-rendering-ideas-from-battlefield-3-need-for-speed-the-run\n\n@export buildin.compositor.hexagonal_blur_1\n\n@end\n\n@export buildin.compositor_hexagonal_blur_2';});
 
-define('3d/compositor/pass',['require','core/base','../scene','../camera/orthographic','../geometry/plane','../shader','../material','../mesh','../scene','text!./shaders/vertex.essl','text!./shaders/coloradjust.essl','text!./shaders/blur.essl'], function(require){
+define('text!3d/compositor/shaders/grayscale.essl',[],function () { return '\n@export buildin.compositor.grayscale\n\nvarying vec2 v_Texcoord;\n\nuniform sampler2D texture;\n\nconst vec3 w = vec3(0.2125, 0.7154, 0.0721);\n\nvoid main()\n{\n    vec4 tex = texture2D( texture, v_Texcoord );\n    float luminance = dot(tex.rgb, w);\n\n    gl_FragColor = vec4(vec3(luminance), tex.a);\n}\n\n@end';});
+
+define('text!3d/compositor/shaders/lineardepth.essl',[],function () { return '@export buildin.compositor.linear_depth\n\nuniform sampler2D texture;\nuniform float near : 0.1;\nuniform float far : 1000.0;\n\nvarying vec2 v_Texcoord;\n\nvoid main(){\n\n    float z = texture2D(texture, v_Texcoord).x;\n\n    float q = far / (far - near);\n    float depth = near * q /( q - z);\n\n    gl_FragColor = vec4( vec3(depth), 1.0);\n}\n\n@end';});
+
+define('3d/compositor/pass',['require','core/base','../scene','../camera/orthographic','../geometry/plane','../shader','../material','../mesh','../scene','text!./shaders/vertex.essl','../texture','text!./shaders/coloradjust.essl','text!./shaders/blur.essl','text!./shaders/grayscale.essl','text!./shaders/lineardepth.essl'], function(require){
 
     var Base = require("core/base");
     var Scene = require("../scene");
@@ -14351,6 +15035,7 @@ define('3d/compositor/pass',['require','core/base','../scene','../camera/orthogr
     var Mesh = require('../mesh');
     var Scene = require('../scene');
     var vertexShaderString = require("text!./shaders/vertex.essl");
+    var Texture = require('../texture');
 
     var planeGeo = new Plane();
     var mesh = new Mesh({
@@ -14366,7 +15051,7 @@ define('3d/compositor/pass',['require','core/base','../scene','../camera/orthogr
             // Fragment shader string
             fragment : "",
 
-            output : null,
+            outputs : null,
 
             _material : null
 
@@ -14398,9 +15083,16 @@ define('3d/compositor/pass',['require','core/base','../scene','../camera/orthogr
 
         bind : function( renderer, frameBuffer ){
             
-            if( this.output ){
-
-                frameBuffer.attach( renderer.gl, this.output );
+            if( this.outputs ){
+                if( this.outputs.instanceof &&
+                    this.outputs.instanceof(Texture) ){
+                    frameBuffer.attach( renderer.gl, this.outputs )
+                }else{
+                    for( var attachment in this.outputs){
+                        var texture = this.outputs[attachment];
+                        frameBuffer.attach( renderer.gl, texture, attachment );
+                    }   
+                }
                 frameBuffer.bind( renderer );
             }
         },
@@ -14416,7 +15108,9 @@ define('3d/compositor/pass',['require','core/base','../scene','../camera/orthogr
             if( frameBuffer ){
                 this.bind( renderer, frameBuffer );
             }
-            renderer.render( scene, camera );
+
+            renderer.render( scene, camera, true );
+
             if( frameBuffer ){
                 this.unbind( renderer, frameBuffer );
             }
@@ -14426,6 +15120,8 @@ define('3d/compositor/pass',['require','core/base','../scene','../camera/orthogr
     // Some build in shaders
     Shader.import( require('text!./shaders/coloradjust.essl') );
     Shader.import( require('text!./shaders/blur.essl') );
+    Shader.import( require('text!./shaders/grayscale.essl') );
+    Shader.import( require('text!./shaders/lineardepth.essl') );
 
     return Pass;
 } );
@@ -14547,8 +15243,15 @@ define('3d/framebuffer',['require','core/base','./texture/texture2d','./texture/
             // http://blog.tojicode.com/2012/07/using-webgldepthtexture.html
             attachment = attachment || 'COLOR_ATTACHMENT0';
             if( attachment === 'DEPTH_ATTACHMENT' ){
-                if( ! _gl.getExtension("WEBKIT_WEBGL_depth_texture") ||
-                    _gl.getExtension("MOZ_WEBGL_depth_texture") ){
+
+                var extension = this._depthTextureExtension;
+                if( typeof(extension) === "undefined"){
+                    extension = _gl.getExtension("WEBKIT_WEBGL_depth_texture") ||
+                                _gl.getExtension("MOZ_WEBGL_depth_texture")
+                }
+                this._depthTextureExtension = extension;
+                
+                if( !extension ){
                     console.error( " Depth texture is not supported by browser ");
                     return;
                 }
@@ -14561,17 +15264,13 @@ define('3d/framebuffer',['require','core/base','./texture/texture2d','./texture/
             }
 
             this._attachedTextures[ attachment ] = texture;
-
+            
             _gl.framebufferTexture2D( _gl.FRAMEBUFFER, _gl[ attachment ], _gl[ target ], texture.getWebGLTexture( _gl ), 0)
 
             _gl.bindFramebuffer( _gl.FRAMEBUFFER, null);
         },
 
         detach : function(){},
-
-        detachDepth : function(){
-            this.cache.put("depth_texture", false);
-        },
 
         dispose : function( _gl ){
 
@@ -14663,7 +15362,7 @@ define('3d/compositor/graph/texturepool',['require','../../texture/texture2d'], 
              }
     outputs : {
                 diffuse : {
-                    attach : "COLOR_ATTACHMENT0"
+                    attachment : "COLOR_ATTACHMENT0"
                     parameters : {
                         format : "RGBA",
                         width : 512,
@@ -14675,6 +15374,7 @@ define('3d/compositor/graph/texturepool',['require','../../texture/texture2d'], 
    }
  * Multiple outputs is reserved for MRT support
  *
+ * TODO blending 
  */
 define('3d/compositor/graph/node',['require','core/base','../pass','../../framebuffer','text!../shaders/vertex.essl','../../shader','./texturepool'], function( require ){
 
@@ -14698,16 +15398,16 @@ define('3d/compositor/graph/node',['require','core/base','../pass','../../frameb
             
             outputs : null,
             // Example:
-            // {
+            // inputName : {
             //  node : [Node],
             //  pin : 'xxxx'    
             // }
             _inputLinks : {},
             // Example:
-            // {
+            // outputName : [{
             //  node : [Node],
             //  pin : 'xxxx'    
-            // }
+            // }]
             _outputLinks : {},
 
             _textures : {},
@@ -14728,21 +15428,36 @@ define('3d/compositor/graph/node',['require','core/base','../pass','../../frameb
         }
     }, {
 
-        render : function( renderer, texture ){
+        render : function( renderer ){
 
             for( var inputName in this._inputLinks ){
                 var link = this._inputLinks[inputName];
                 var inputTexture = link.node.getOutput( renderer, link.pin );
                 this.pass.setUniform( inputName, inputTexture );
             }
-
-            if( texture ){
-                this.pass.output = texture;
-                this.pass.render( renderer, frameBuffer );
-            }else{
+            // Output
+            if( ! this.outputs){
+                this.pass.outputs = null;
                 this.pass.render( renderer );
             }
+            else{
+                this.pass.outputs = {};
 
+                for( var name in this.outputs){
+
+                    var outputInfo = this.outputs[name];
+
+                    var texture = texturePool.get( outputInfo.parameters );
+                    this._textures[name] = texture;
+
+                    var attachment = outputInfo.attachment || 'COLOR_ATTACHMENT0';
+                    this.pass.outputs[ attachment ] = texture;
+
+                }
+
+                this.pass.render( renderer, frameBuffer );
+            }
+            
             for( var inputName in this._inputLinks ){
                 var link = this._inputLinks[inputName];
                 link.node.removeReference( link.pin );
@@ -14751,6 +15466,12 @@ define('3d/compositor/graph/node',['require','core/base','../pass','../../frameb
 
         setParameter : function( name, value ){
             this.pass.setUniform( name, value );
+        },
+
+        setParameters : function(obj){
+            for(var name in obj){
+                this.setParameter(name, obj[name]);
+            }
         },
 
         getOutput : function( renderer, name ){
@@ -14762,12 +15483,10 @@ define('3d/compositor/graph/node',['require','core/base','../pass','../../frameb
                 // Already been rendered in this frame
                 return this._textures[name];
             }
-            var texture = texturePool.get( outputInfo.parameters );
-            this._textures[name] = texture;
 
-            this.render( renderer, texture );
+            this.render( renderer );
             
-            return texture;
+            return this._textures[name];
         },
 
         removeReference : function( name ){
@@ -14813,27 +15532,44 @@ define('3d/compositor/graph/node',['require','core/base','../pass','../../frameb
 /**
  * @export{class} SceneNode
  */
-define('3d/compositor/graph/scenenode',['require','./node','../pass','../../framebuffer'], function( require ){
+define('3d/compositor/graph/scenenode',['require','./node','../pass','../../framebuffer','./texturepool'], function( require ){
 
     var Node = require("./node");
     var Pass = require("../pass");
     var FrameBuffer = require("../../framebuffer");
+    var texturePool = require("./texturepool");
 
     var frameBuffer = new FrameBuffer();
 
     var SceneNode = Node.derive( function(){
         return {
             scene : null,
-            camera : null
+            camera : null,
+            material : null
         }
     }, {
         render : function( renderer, texture ){
-            if( texture ){
-                frameBuffer.attach( renderer.gl, texture );
-                frameBuffer.bind( renderer )
-            }
-            renderer.render( this.scene, this.camera );
-            if( texture ){
+
+            if( ! this.outputs){
+                renderer.render( this.scene, this.camera );
+            }else{
+                for( var name in this.outputs){
+                    var outputInfo = this.outputs[name];
+                    var texture = texturePool.get( outputInfo.parameters );
+                    this._textures[name] = texture;
+
+                    var attachment = outputInfo.attachment || 'COLOR_ATTACHMENT0';
+
+                    frameBuffer.attach( renderer.gl, texture, attachment);
+                }
+                frameBuffer.bind( renderer );
+
+                if( this.material ){
+                    this.scene.material = this.material;
+                }
+                renderer.render( this.scene, this.camera );
+                this.scene.material = null;
+
                 frameBuffer.unbind( renderer );
             }
         }
@@ -14968,7 +15704,7 @@ define('3d/renderer',['require','core/base','_','glmatrix','util/util','./light'
         render : function( scene, camera, silent ) {
             
             var _gl = this.gl;
-
+            
             if( ! silent){
                 // Render plugin like shadow mapping must set the silent true
                 this.trigger("beforerender", scene, camera);
@@ -15112,10 +15848,10 @@ define('3d/renderer',['require','core/base','_','glmatrix','util/util','./light'
         renderQueue : function( queue, camera, globalMaterial, silent ){
 
             // Calculate view and projection matrix
-            mat4.invert( matrices['VIEW'],  camera.worldMatrix );
-            mat4.copy( matrices['PROJECTION'], camera.projectionMatrix );
-            mat4.multiply( matrices['VIEWPROJECTION'], camera.projectionMatrix, matrices['VIEW'] );
-            mat4.copy( matrices['VIEWINVERSE'], camera.worldMatrix );
+            mat4.invert( matrices['VIEW'],  camera.worldMatrix._array );
+            mat4.copy( matrices['PROJECTION'], camera.projectionMatrix._array );
+            mat4.multiply( matrices['VIEWPROJECTION'], camera.projectionMatrix._array, matrices['VIEW'] );
+            mat4.copy( matrices['VIEWINVERSE'], camera.worldMatrix._array );
             mat4.invert( matrices['PROJECTIONINVERSE'], matrices['PROJECTION'] );
             mat4.invert( matrices['VIEWPROJECTIONINVERSE'], matrices['VIEWPROJECTION'] );
 
@@ -15167,7 +15903,7 @@ define('3d/renderer',['require','core/base','_','glmatrix','util/util','./light'
                     customBlend( _gl );
                 }
 
-                var worldM = object.worldMatrix;
+                var worldM = object.worldMatrix._array;
 
                 // All matrices ralated to world matrix will be updated on demand;
                 if ( shader.semantics.hasOwnProperty('WORLD') ||
@@ -15349,6 +16085,223 @@ define('core/request',['require'], function(require){
         put : put
     }
 } );
+;
+define("core/vector2", function(){});
+
+define('core/vector4',['require','glmatrix'], function(require){
+
+    var glMatrix = require("glmatrix");
+    var vec4 = glMatrix.vec4;
+
+    var Vector4 = function(x, y, z, w){
+        
+        x = x || 0;
+        y = y || 0;
+        z = z || 0;
+        w = w || 0;
+
+        return Object.create(Vector4Proto, {
+
+            x : {
+                configurable : false,
+                set : function(value){
+                    this._array[0] = value;
+                    this._dirty = true;
+                },
+                get : function(){
+                    return this._array[0];
+                }
+            },
+            y : {
+                configurable : false,
+                set : function(value){
+                    this._array[1] = value;
+                    this._dirty = true;
+                },
+                get : function(){
+                    return this._array[1];
+                }
+            },
+            z : {
+                configurable : false,
+                set : function(value){
+                    this._array[2] = value;
+                    this._dirty = true;
+                },
+                get : function(){
+                    return this._array[2];
+                }
+            },
+            w : {
+                configurable : false,
+                set : function(value){
+                    this._array[2] = value;
+                    this._dirty = true;
+                },
+                get : function(){
+                    return this._array[2];
+                }
+            },
+
+            _array :{
+                writable : false,
+                configurable : false,
+                value : vec4.fromValues(x, y, z, w)
+            },
+            _dirty : {
+                configurable : false,
+                value : false
+            }
+        })
+
+    }
+
+    var Vector4Proto = {
+
+        constructor : Vector4,
+
+        add : function(b){
+            vec4.add( this._array, this._array, b._array );
+            return this;
+        },
+
+        set : function(x, y, z, w){
+            this.x = x;
+            this.y = y;
+            this.z = z;
+            this.w = w;
+        },
+
+        clone : function(){
+            return new Vector4( this.x, this.y, this.z, this.w);
+        },
+
+        copy : function(b){
+            vec4.copy( this._array, b._array );
+            return this;
+        },
+
+        cross : function(out, b){
+            vec4.cross(out._array, this._array, b._array);
+            return this;
+        },
+
+        dist : function(b){
+            return vec4.dist(this._array, b._array);
+        },
+
+        distance : function(b){
+            return vec4.distance(this._array, b._array);
+        },
+
+        div : function(b){
+            vec4.div(this._array, this._array, b._array);
+            return this;
+        },
+
+        divide : function(b){
+            return vec4.divide(this._array, this._array, b._array);
+        },
+
+        dot : function(b){
+            return vec4.dot(this._array, b._array);
+        },
+
+        len : function(){
+            return vec4.len(this._array);
+        },
+
+        length : function(){
+            return vec4.length(this._array);
+        },
+        /**
+         * Perform linear interpolation between a and b
+         */
+        lerp : function(a, b, t){
+            vec4.lerp(this._array, a._array, b._array, t);
+            return this;
+        },
+
+        mul : function(b){
+            vec4.mul(this._array, this._array, b._array);
+            return this;
+        },
+
+        multiply : function(b){
+            vec4.multiply(this._array, this._array, b._array);
+            return this;
+        },
+
+        negate : function(){
+            vec4.negate(this._array, this._array);
+            return this;
+        },
+
+        normalize : function(){
+            vec4.normalize(this._array, this._array);
+            return this;
+        },
+
+        random : function(scale){
+            vec4.random(this._array, scale);
+            return this;
+        },
+
+        scale : function(s){
+            vec4.scale(this._array, this._array, s);
+            return this;
+        },
+        /**
+         * add b by a scaled factor
+         */
+        scaleAndAdd : function(b, s){
+            vec4.scaleAndAdd(this._array, this._array, b._array, s);
+            return this;
+        },
+
+        sqrDist : function(b){
+            return vec4.sqrDist(this._array, b._array);
+        },
+
+        squaredDistance : function(b){
+            return vec4.squaredDistance(this._array, b._array);
+        },
+
+        sqrLen : function(){
+            return vec4.sqrLen(this._array);
+        },
+
+        squaredLength : function(){
+            return vec4.squaredLength(this._array);
+        },
+
+        sub : function(b){
+            vec4.sub(this._array, b._array);
+            return this;
+        },
+
+        substract : function(b){
+            vec4.substract(this._array, b._array);
+            return this;
+        },
+
+        transformMat4 : function(m){
+            vec4.transformMat4(this._array, this._array, m._array);
+            return this;
+        },
+
+        transformQuat : function(q){
+            vec4.transformQuat(this._array, this._array, q._array);
+            return this;
+        },     
+
+        toString : function(){
+            return "[" + Array.prototype.join.call(this._array, ",") + "]";
+        }
+    }
+
+    return Vector4;
+} );
 define('util/color',['require'], function(require){
 
 	
@@ -15356,7 +16309,7 @@ define('util/color',['require'], function(require){
 define('util/xmlparser',['require'], function(require){
 
 });
-define('src/qtekimage.js',['require','2d/camera','2d/node','2d/renderable/arc','2d/renderable/circle','2d/renderable/image','2d/renderable/line','2d/renderable/path','2d/renderable/polygon','2d/renderable/rectangle','2d/renderable/roundedrectangle','2d/renderable/sector','2d/renderable/text','2d/renderable/textbox','2d/renderer','2d/scene','2d/style','2d/util','3d/camera','3d/camera/orthographic','3d/compositor/graph/graph','3d/compositor/graph/node','3d/compositor/graph/scenenode','3d/compositor/graph/texturepool','3d/compositor/pass','3d/framebuffer','3d/geometry','3d/geometry/plane','3d/light','3d/material','3d/mesh','3d/node','3d/renderer','3d/scene','3d/shader','3d/texture','3d/texture/texture2d','core/base','core/cache','core/event','core/mixin/derive','core/mixin/dirty','core/mixin/notifier','core/request','text','util/color','util/util','util/xmlparser','glmatrix'], function(require){
+define('src/qtekimage.js',['require','2d/camera','2d/node','2d/renderable/arc','2d/renderable/circle','2d/renderable/image','2d/renderable/line','2d/renderable/path','2d/renderable/polygon','2d/renderable/rectangle','2d/renderable/roundedrectangle','2d/renderable/sector','2d/renderable/text','2d/renderable/textbox','2d/renderer','2d/scene','2d/style','2d/util','3d/camera','3d/camera/orthographic','3d/compositor','3d/compositor/graph/graph','3d/compositor/graph/node','3d/compositor/graph/scenenode','3d/compositor/graph/texturepool','3d/compositor/pass','3d/framebuffer','3d/geometry','3d/geometry/plane','3d/light','3d/material','3d/mesh','3d/node','3d/renderer','3d/scene','3d/shader','3d/texture','3d/texture/texture2d','core/base','core/cache','core/event','core/matrix3','core/matrix4','core/mixin/derive','core/mixin/dirty','core/mixin/notifier','core/quaternion','core/request','core/vector2','core/vector3','core/vector4','text','util/color','util/util','util/xmlparser','glmatrix'], function(require){
     
     var exportsObject =  {
     "2d": {
@@ -15386,6 +16339,7 @@ define('src/qtekimage.js',['require','2d/camera','2d/node','2d/renderable/arc','
             "Orthographic": require('3d/camera/orthographic'),
             // "Perspective": require('3d/camera/perspective')
         },
+        "Compositor": require('3d/compositor'),
         "compositor": {
             "graph": {
                 "Graph": require('3d/compositor/graph/graph'),
@@ -15434,12 +16388,18 @@ define('src/qtekimage.js',['require','2d/camera','2d/node','2d/renderable/arc','
         "Base": require('core/base'),
         "Cache": require('core/cache'),
         "Event": require('core/event'),
+        "Matrix3": require('core/matrix3'),
+        "Matrix4": require('core/matrix4'),
         "mixin": {
             "derive": require('core/mixin/derive'),
             "Dirty": require('core/mixin/dirty'),
             "notifier": require('core/mixin/notifier')
         },
-        "requester": require('core/request')
+        "Quaternion": require('core/quaternion'),
+        "requester": require('core/request'),
+        "Vector2": require('core/vector2'),
+        "Vector3": require('core/vector3'),
+        "Vector4": require('core/vector4')
     },
     // "loader": {
         // "three": {

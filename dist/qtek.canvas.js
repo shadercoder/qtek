@@ -626,10 +626,16 @@ define('core/cache',[], function(){
 
     Cache.prototype = {
 
-        use : function( contextId ){
+        use : function( contextId, documentSchema ){
 
             if( ! this._caches.hasOwnProperty( contextId ) ){
                 this._caches[ contextId ] = {};
+
+                if( documentSchema){
+                    for(var name in documentSchema){
+                        this._caches[contextId][ name ] = documentSchema[name];
+                    }   
+                }
             }
             this._contextId = contextId;
 
@@ -11434,6 +11440,211 @@ define('core/event',['require','./base'], function(require){
         }
     }
 } );
+define('core/quaternion',['require','glmatrix'], function(require){
+
+    var glMatrix = require("glmatrix");
+    var quat = glMatrix.quat;
+
+    var Quaternion = function(x, y, z, w){
+
+        x = x || 0;
+        y = y || 0;
+        z = z || 0;
+        w = w || 1;
+                
+        return Object.create(QuaternionProto, {
+
+            x : {
+                configurable : false,
+                set : function(value){
+                    this._array[0] = value;
+                    this._dirty = true;
+                },
+                get : function(){
+                    return this._array[0];
+                }
+            },
+            y : {
+                configurable : false,
+                set : function(value){
+                    this._array[1] = value;
+                    this._dirty = true;
+                },
+                get : function(){
+                    return this._array[1];
+                }
+            },
+            z : {
+                configurable : false,
+                set : function(value){
+                    this._array[2] = value;
+                    this._dirty = true;
+                },
+                get : function(){
+                    return this._array[2];
+                }
+            },
+            w : {
+                configurable : false,
+                set : function(value){
+                    this._array[2] = value;
+                    this._dirty = true;
+                },
+                get : function(){
+                    return this._array[2];
+                }
+            },
+
+            _array :{
+                writable : false,
+                configurable : false,
+                value : quat.fromValues(x, y, z, w)
+            },
+            _dirty : {
+                configurable : false,
+                value : false
+            }
+        })
+
+    }
+
+    var QuaternionProto = {
+
+        constructor : Quaternion,
+
+        add : function(b){
+            quat.add( this._array, this._array, b._array );
+            return this;
+        },
+
+        calculateW : function(){
+            quat.calculateW(this._array, this._array);
+        },
+
+        set : function(x, y, z, w){
+            this.x = x;
+            this.y = y;
+            this.z = z;
+            this.w = w;
+        },
+
+        clone : function(){
+            return new Quaternion( this.x, this.y, this.z, this.w );
+        },
+
+        /**
+         * Calculates the conjugate of a quat If the quaternion is normalized, 
+         * this function is faster than quat.inverse and produces the same result.
+         */
+        conjugate : function(){
+            quat.conjugate(this._array, this._array);
+            return this;
+        },
+
+        copy : function(b){
+            quat.copy( this._array, b._array );
+            return this;
+        },
+
+        dot : function(b){
+            return quat.dot(this._array, b._array);
+        },
+
+        fromMat3 : function(m){
+            quat.fromMat3(this._array, m._array);
+            return this;
+        },
+
+        fromMat4 : (function(){
+            var mat3 = glMatrix.mat3;
+            var m3 = mat3.create();
+            return function(m){
+                mat3.fromMat4(m3, m._array);
+                // Not like mat4, mat3 in glmatrix seems to be row-based
+                mat3.transpose(m3, m3);
+                quat.fromMat3(this._array, m3);
+                return this;
+            }
+        })(),
+
+        identity : function(){
+            quat.identity(this._array);
+            return this;
+        },
+
+        invert : function(){
+            quat.invert(this._array, this._array);
+            return this;
+        },
+
+        len : function(){
+            return quat.len(this._array);
+        },
+
+        length : function(){
+            return quat.length(this._array);
+        },
+
+        /**
+         * Perform linear interpolation between a and b
+         */
+        lerp : function(a, b, t){
+            quat.lerp(this._array, a._array, b._array, t);
+            return this;
+        },
+
+        mul : function(b){
+            quat.mul(this._array, this._array, b._array);
+            return this;
+        },
+
+        multiply : function(b){
+            quat.multiply(this._array, this._array, b._array);
+            return this;
+        },
+
+        normalize : function(){
+            quat.normalize(this._array, this._array);
+            return this;
+        },
+
+        rotateX : function(rad){
+            quat.rotateX(this._array, this._array, rad);
+        },
+
+        rotateY : function(rad){
+            quat.rotateY(this._array, this._array, rad);
+        },
+
+        rotateZ : function(rad){
+            quat.rotateZ(this._array, this._array, rad);
+        },
+
+        setAxisAngle : function(axis /*Vector3*/, rad){
+            quat.setAxisAngle(this._array, axis._array, rad);
+        },
+
+        sqrLen : function(){
+            return quat.sqrLen(this._array);
+        },
+
+        squaredLength : function(){
+            return quat.squaredLength(this._array);
+        },
+        /**
+         * Set quaternion from euler angle
+         */
+        setFromEuler : function(v){
+            
+        },
+
+        toString : function(){
+            return "[" + Array.prototype.join.call(this._array, ",") + "]";
+        }
+    }
+
+    return Quaternion;
+} );
 /**
  *  @export{object} requester
  */
@@ -11479,6 +11690,9 @@ define('core/request',['require'], function(require){
         put : put
     }
 } );
+;
+define("core/vector2", function(){});
+
 /**
  * @license RequireJS text 2.0.5 Copyright (c) 2010-2012, The Dojo Foundation All Rights Reserved.
  * Available via the MIT or new BSD license.
@@ -11832,7 +12046,7 @@ define('util/util',['require'], function(require){
 define('util/xmlparser',['require'], function(require){
 
 });
-define('src/qtek2d.js',['require','2d/camera','2d/node','2d/renderable/arc','2d/renderable/circle','2d/renderable/image','2d/renderable/line','2d/renderable/path','2d/renderable/polygon','2d/renderable/rectangle','2d/renderable/roundedrectangle','2d/renderable/sector','2d/renderable/text','2d/renderable/textbox','2d/renderer','2d/scene','2d/style','2d/util','core/base','core/cache','core/event','core/mixin/derive','core/mixin/dirty','core/mixin/notifier','core/request','text','util/color','util/util','util/xmlparser','glmatrix'], function(require){
+define('src/qtek2d.js',['require','2d/camera','2d/node','2d/renderable/arc','2d/renderable/circle','2d/renderable/image','2d/renderable/line','2d/renderable/path','2d/renderable/polygon','2d/renderable/rectangle','2d/renderable/roundedrectangle','2d/renderable/sector','2d/renderable/text','2d/renderable/textbox','2d/renderer','2d/scene','2d/style','2d/util','core/base','core/cache','core/event','core/mixin/derive','core/mixin/dirty','core/mixin/notifier','core/quaternion','core/request','core/vector2','text','util/color','util/util','util/xmlparser','glmatrix'], function(require){
     
     var exportsObject =  {
     "2d": {
@@ -11860,12 +12074,18 @@ define('src/qtek2d.js',['require','2d/camera','2d/node','2d/renderable/arc','2d/
         "Base": require('core/base'),
         "Cache": require('core/cache'),
         "Event": require('core/event'),
+        // "Matrix3": require('core/matrix3'),
+        // "Matrix4": require('core/matrix4'),
         "mixin": {
             "derive": require('core/mixin/derive'),
             "Dirty": require('core/mixin/dirty'),
             "notifier": require('core/mixin/notifier')
         },
-        "requester": require('core/request')
+        "Quaternion": require('core/quaternion'),
+        "requester": require('core/request'),
+        "Vector2": require('core/vector2'),
+        // "Vector3": require('core/vector3'),
+        // "Vector4": require('core/vector4')
     },
     "loader": {
         // "three": {
