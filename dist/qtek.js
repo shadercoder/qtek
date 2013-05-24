@@ -11464,6 +11464,8 @@ define('core/vector3',['require','glmatrix'], function(require){
                 configurable : false,
                 value : vec3.fromValues(x, y, z)
             },
+            // Dirty flag is used by the Node to determine
+            // if the matrix is updated to latest
             _dirty : {
                 configurable : false,
                 value : true
@@ -11478,13 +11480,16 @@ define('core/vector3',['require','glmatrix'], function(require){
 
         add : function(b){
             vec3.add( this._array, this._array, b._array );
+            this._dirty = true;
             return this;
         },
 
         set : function(x, y, z){
-            this.x = x;
-            this.y = y;
-            this.z = z;
+            this._array[0] = x;
+            this._array[1] = y;
+            this._array[2] = z;
+            this._dirty = true;
+            return this;
         },
 
         clone : function(){
@@ -11493,6 +11498,7 @@ define('core/vector3',['require','glmatrix'], function(require){
 
         copy : function(b){
             vec3.copy( this._array, b._array );
+            this._dirty = true;
             return this;
         },
 
@@ -11511,11 +11517,14 @@ define('core/vector3',['require','glmatrix'], function(require){
 
         div : function(b){
             vec3.div(this._array, this._array, b._array);
+            this._dirty = true;
             return this;
         },
 
         divide : function(b){
-            return vec3.divide(this._array, this._array, b._array);
+            vec3.divide(this._array, this._array, b._array);
+            this._dirty = true;
+            return this;
         },
 
         dot : function(b){
@@ -11534,36 +11543,43 @@ define('core/vector3',['require','glmatrix'], function(require){
          */
         lerp : function(a, b, t){
             vec3.lerp(this._array, a._array, b._array, t);
+            this._dirty = true;
             return this;
         },
 
         mul : function(b){
             vec3.mul(this._array, this._array, b._array);
+            this._dirty = true;
             return this;
         },
 
         multiply : function(b){
             vec3.multiply(this._array, this._array, b._array);
+            this._dirty = true;
             return this;
         },
 
         negate : function(){
             vec3.negate(this._array, this._array);
+            this._dirty = true;
             return this;
         },
 
         normalize : function(){
             vec3.normalize(this._array, this._array);
+            this._dirty = true;
             return this;
         },
 
         random : function(scale){
             vec3.random(this._array, scale);
+            this._dirty = true;
             return this;
         },
 
         scale : function(s){
             vec3.scale(this._array, this._array, s);
+            this._dirty = true;
             return this;
         },
         /**
@@ -11571,6 +11587,7 @@ define('core/vector3',['require','glmatrix'], function(require){
          */
         scaleAndAdd : function(b, s){
             vec3.scaleAndAdd(this._array, this._array, b._array, s);
+            this._dirty = true;
             return this;
         },
 
@@ -11591,27 +11608,32 @@ define('core/vector3',['require','glmatrix'], function(require){
         },
 
         sub : function(b){
-            vec3.sub(this._array, b._array);
+            vec3.sub(this._array, this._array, b._array);
+            this._dirty = true;
             return this;
         },
 
-        substract : function(b){
-            vec3.substract(this._array, b._array);
+        subtract : function(b){
+            vec3.subtract(this._array, this._array, b._array);
+            this._dirty = true;
             return this;
         },
 
         transformMat3 : function(m){
             vec3.transformMat3(this._array, this._array, m._array);
+            this._dirty = true;
             return this;
         },
 
         transformMat4 : function(m){
             vec3.transformMat4(this._array, this._array, m._array);
+            this._dirty = true;
             return this;
         },
 
         transformQuat : function(q){
             vec3.transformQuat(this._array, this._array, q._array);
+            this._dirty = true;
             return this;
         },     
         /**
@@ -11716,18 +11738,23 @@ define('core/quaternion',['require','glmatrix'], function(require){
 
         add : function(b){
             quat.add( this._array, this._array, b._array );
+            this._dirty = true;
             return this;
         },
 
         calculateW : function(){
             quat.calculateW(this._array, this._array);
+            this._dirty = true;
+            return this;
         },
 
         set : function(x, y, z, w){
-            this.x = x;
-            this.y = y;
-            this.z = z;
-            this.w = w;
+            this._array[0] = x;
+            this._array[1] = y;
+            this._array[2] = z;
+            this._array[3] = w;
+            this._dirty = true;
+            return this;
         },
 
         clone : function(){
@@ -11740,11 +11767,13 @@ define('core/quaternion',['require','glmatrix'], function(require){
          */
         conjugate : function(){
             quat.conjugate(this._array, this._array);
+            this._dirty = true;
             return this;
         },
 
         copy : function(b){
             quat.copy( this._array, b._array );
+            this._dirty = true;
             return this;
         },
 
@@ -11754,6 +11783,7 @@ define('core/quaternion',['require','glmatrix'], function(require){
 
         fromMat3 : function(m){
             quat.fromMat3(this._array, m._array);
+            this._dirty = true;
             return this;
         },
 
@@ -11765,17 +11795,20 @@ define('core/quaternion',['require','glmatrix'], function(require){
                 // Not like mat4, mat3 in glmatrix seems to be row-based
                 mat3.transpose(m3, m3);
                 quat.fromMat3(this._array, m3);
+                this._dirty = true;
                 return this;
             }
         })(),
 
         identity : function(){
             quat.identity(this._array);
+            this._dirty = true;
             return this;
         },
 
         invert : function(){
             quat.invert(this._array, this._array);
+            this._dirty = true;
             return this;
         },
 
@@ -11792,38 +11825,50 @@ define('core/quaternion',['require','glmatrix'], function(require){
          */
         lerp : function(a, b, t){
             quat.lerp(this._array, a._array, b._array, t);
+            this._dirty = true;
             return this;
         },
 
         mul : function(b){
             quat.mul(this._array, this._array, b._array);
+            this._dirty = true;
             return this;
         },
 
         multiply : function(b){
             quat.multiply(this._array, this._array, b._array);
+            this._dirty = true;
             return this;
         },
 
         normalize : function(){
             quat.normalize(this._array, this._array);
+            this._dirty = true;
             return this;
         },
 
         rotateX : function(rad){
-            quat.rotateX(this._array, this._array, rad);
+            quat.rotateX(this._array, this._array, rad); 
+            this._dirty = true;
+            return this;
         },
 
         rotateY : function(rad){
             quat.rotateY(this._array, this._array, rad);
+            this._dirty = true;
+            return this;
         },
 
         rotateZ : function(rad){
             quat.rotateZ(this._array, this._array, rad);
+            this._dirty = true;
+            return this;
         },
 
         setAxisAngle : function(axis /*Vector3*/, rad){
             quat.setAxisAngle(this._array, axis._array, rad);
+            this._dirty = true;
+            return this;
         },
 
         sqrLen : function(){
@@ -11990,6 +12035,10 @@ define('core/matrix4',['require','glmatrix'], function(require){
         transpose : function(){
             mat4.transpose(this._array, this._array);
             return this;
+        },
+
+        rotateAround : function(point, axis, angle){
+            console.warn("TODO");
         },
 
         // Static method
@@ -12231,29 +12280,16 @@ define('3d/node',['require','core/base','core/vector3','core/quaternion','core/m
             }
         },
 
-        lookAt : (function(){
-            var m = new Matrix4();
-            return function( target ){
-                m.lookAt(this.position, target, this.up ).invert();
-                this.updateFromLookAtMatrix( m );
-            }
-        })(),
-
-        updateFromLookAtMatrix : (function(){
-
-            var lookAtMat3 = new Matrix3();
-            var scaleVector = new Vector3();
-            return function(m){
-                
-                m.decomposeMatrix(scaleVector, this.rotation, this.position);
-
-                if( ! this.useEuler){
-                    this.eulerAngle.setEulerFromQuaternion(this.rotation);
-                }
-            }
-        })(),
-
         updateMatrix : function(){
+            // TODO 
+            // use defineSetter to set dirty when the position, rotation, scale is changed ??
+            if( ! this.position._dirty &&
+                ! this.rotation._dirty &&
+                ! this.eulerAngle._dirty &&
+                ! this.scale._dirty){
+                return;
+            }
+
             var m = this.matrix;
 
             m.identity();
@@ -12268,10 +12304,18 @@ define('3d/node',['require','core/base','core/vector3','core/quaternion','core/m
             m.fromRotationTranslation(this.rotation, this.position);
 
             m.scale(this.scale);
+
+            this.rotation._dirty = false;
+            this.scale._dirty = false;
+            this.position._dirty = false;
+            this.eulerAngle._dirty = false;
         },
 
         decomposeMatrix : function(){
             this.matrix.decomposeMatrix( this.scale, this.rotation, this.position );
+            if( ! this.useEuler){
+                this.eulerAngle.setEulerFromQuaternion(this.rotation);
+            }
         },
 
         updateWorldMatrix : function(  ){
@@ -12306,23 +12350,63 @@ define('3d/node',['require','core/base','core/vector3','core/quaternion','core/m
 
         getWorldPosition : function(){
             
-            var m = this.worldMatrix;
+            var m = this.worldMatrix._array;
 
-            // [0]  [4]  [8]   [12]
-            // [1]  [5]  [9]   [13]
-            // [2]  [6]  [10]  [14]
-            // [3]  [7]  [11]  [15]
             return new Vector3(m[12], m[13], m[14]);
         },
 
+        translate : function(v){
+            this.updateMatrix();
+            this.translate(v);
+            this.decomposeMatrix();
+        },
+
+        rotate : function(angle, axis){
+            this.updateMatrix();
+            this.matrix.rotate(angle, axis);
+            this.decomposeMatrix();
+        },
+        // http://docs.unity3d.com/Documentation/ScriptReference/Transform.RotateAround.html
         rotateAround : (function(){
+            
             var v = new Vector3();
-            var rotateMat = new Matrix4();
+            var RTMatrix = new Matrix4();
+
             return function(point, axis, angle){
-                v.copy(point).substract(this.position);
+
+                v.copy(this.position).subtract(point);
+
+                this.matrix.identity();
+                // parent joint
+                this.matrix.translate(point);
+                this.matrix.rotate(angle, axis);
+
+                // Transform self
+                if( this.useEuler ){
+                    this.rotation.identity();
+                    this.rotation.rotateX( this.eulerAngle.x );
+                    this.rotation.rotateY( this.eulerAngle.y );
+                    this.rotation.rotateZ( this.eulerAngle.z );
+                }
+                RTMatrix.fromRotationTranslation(this.rotation, v);
+                this.matrix.multiply(RTMatrix);
+                this.matrix.scale(this.scale);
+                
+                this.decomposeMatrix();
+            }
+        })(),
+
+        lookAt : (function(){
+            var m = new Matrix4();
+            var scaleVector = new Vector3();
+            return function( target ){
+                m.lookAt(this.position, target, this.up ).invert();
+
+                m.decomposeMatrix(scaleVector, this.rotation, this.position);
 
             }
         })()
+
     });
 
 
@@ -16097,13 +16181,12 @@ define('3d/light/spot',['require','../light','../shader','core/vector3'], functi
 /**
  * @export{class} FirstPersonControl
  */
-define('3d/plugin/firstpersoncontrol',['require','core/base','core/vector3','glmatrix'], function(require){
+define('3d/plugin/firstpersoncontrol',['require','core/base','core/vector3','core/matrix4','core/quaternion'], function(require){
 
     var Base = require("core/base");
     var Vector3 = require("core/vector3");
-    var glMatrix = require("glmatrix");
-    var vec3 = glMatrix.vec3;
-    var mat4 = glMatrix.mat4;
+    var Matrix4 = require("core/matrix4");
+    var Quaternion = require("core/quaternion");
 
     var FirstPersonControl = Base.derive(function(){
         return {
@@ -16113,18 +16196,14 @@ define('3d/plugin/firstpersoncontrol',['require','core/base','core/vector3','glm
             sensitivity : 1,
             speed : 0.4,
 
-            _offsetPitch : 0,
-            _offsetRoll : 0,
-
             _moveForward : false,
             _moveBackward : false,
             _moveLeft : false,
-            _moveRight : false
-        }
-    }, function(){
-        this._offsetPitch = this.camera.rotation.y * 180 / Math.PI;
-        this._offsetRoll = this.camera.rotation.x * 180 / Math.PI;
+            _moveRight : false,
 
+            _offsetPitch : 0,
+            _offsetRoll : 0
+        }
     }, {
         enable : function(){
             this.camera.on("beforeupdate", this._beforeUpdateCamera, this);
@@ -16174,28 +16253,41 @@ define('3d/plugin/firstpersoncontrol',['require','core/base','core/vector3','glm
             el.requestPointerLock();
         },
 
-        _beforeUpdateCamera : function(){
-            this.camera.roll(this._offsetRoll * Math.PI / 180);
-            this.camera.pitch(this._offsetPitch * Math.PI / 180);
+        _beforeUpdateCamera : (function(){
 
-            var position = this.camera.position,
-                xAxis = this._getXAxis(true),
-                zAxis = this._getZAxis(true);
+            var rotateQuat = new Quaternion();
+            
+            return function(){
 
-            if( this._moveForward){
-                // Opposite direction of z
-                position.scaleAndAdd(zAxis, -this.speed);
+                var position = this.camera.position,
+                    xAxis = this._getXAxis(true),
+                    zAxis = this._getZAxis(true),
+                    yAxis = this._getYAxis(true);
+
+                if( this._moveForward){
+                    // Opposite direction of z
+                    position.scaleAndAdd(zAxis, -this.speed);
+                }
+                if( this._moveBackward){
+                    position.scaleAndAdd(zAxis, this.speed);
+                }
+                if( this._moveLeft){
+                    position.scaleAndAdd(xAxis, -this.speed/2);
+                }
+                if( this._moveRight){
+                    position.scaleAndAdd(xAxis, this.speed/2);
+                }
+
+                var camera = this.camera;
+
+                camera.rotateAround( camera.position, camera.up, -this._offsetPitch * Math.PI / 180);
+
+                camera.rotateAround( camera.position, xAxis, -this._offsetRoll * Math.PI / 180);
+
+                this._offsetRoll = this._offsetPitch = 0;
             }
-            if( this._moveBackward){
-                position.scaleAndAdd(zAxis, this.speed);
-            }
-            if( this._moveLeft){
-                position.scaleAndAdd(xAxis, -this.speed/2);
-            }
-            if( this._moveRight){
-                position.scaleAndAdd(xAxis, this.speed/2);
-            }
-        },
+
+        })(),
 
         _lockChange : function(){
             if( document.pointerlockElement === this.canvas ||
@@ -16216,8 +16308,9 @@ define('3d/plugin/firstpersoncontrol',['require','core/base','core/vector3','glm
                     e.mozMovementY ||
                     e.webkitMovementY || 0;
 
-            this._offsetPitch -= dx * this.sensitivity / 10;
-            this._offsetRoll -= dy * this.sensitivity / 10;
+            this._offsetPitch += dx * this.sensitivity / 10;
+            this._offsetRoll += dy * this.sensitivity / 10;
+            
         },
 
         _keyDown : function(e){
@@ -16265,7 +16358,7 @@ define('3d/plugin/firstpersoncontrol',['require','core/base','core/vector3','glm
         _getXAxis : (function(){
             var axis = new Vector3();
             return function( normalize ){
-                var m = this.camera.matrix;
+                var m = this.camera.matrix._array;
                 axis.set(m[0], m[1], m[2]);
                 if( normalize ){
                     axis.normalize();
@@ -16277,10 +16370,22 @@ define('3d/plugin/firstpersoncontrol',['require','core/base','core/vector3','glm
         _getZAxis : (function(){
             var axis = new Vector3();
             return function( normalize ){
-                var m = this.camera.matrix;
+                var m = this.camera.matrix._array;
                 axis.set(m[8], m[9], m[10]);
                 if( normalize ){
                     axis.normalize()
+                }
+                return axis;
+            }
+        })(),
+
+        _getYAxis : (function(){
+             var axis = new Vector3();
+            return function( normalize ){
+                var m = this.camera.matrix._array;
+                axis.set(m[4], m[5], m[6]);
+                if( normalize ){
+                    axis.normalize();
                 }
                 return axis;
             }
@@ -16300,7 +16405,7 @@ define('3d/plugin/firstpersoncontrol',['require','core/base','core/vector3','glm
 } );
 define('text!3d/shader/source/basic.essl',[],function () { return '@export buildin.basic.vertex\n\nuniform mat4 worldViewProjection : WORLDVIEWPROJECTION;\n\nuniform vec2 uvRepeat : [1.0, 1.0];\n\nattribute vec3 position : POSITION;\nattribute vec2 texcoord : TEXCOORD_0;\nattribute vec3 normal : NORMAL;\n\nattribute vec3 barycentric;\n\nvarying vec2 v_Texcoord;\nvarying vec3 v_Barycentric;\n\nvoid main(){\n\n    gl_Position = worldViewProjection * vec4( position, 1.0 );\n\n    v_Texcoord = texcoord * uvRepeat;\n    v_Barycentric = barycentric;\n}\n\n@end\n\n\n\n\n@export buildin.basic.fragment\n\nvarying vec2 v_Texcoord;\nuniform sampler2D diffuseMap;\nuniform vec3 color : [1.0, 1.0, 1.0];\nuniform float alpha : 1.0;\n\n// Uniforms for wireframe\nuniform float lineWidth : 0.0;\nuniform vec3 lineColor : [0.0, 0.0, 0.0];\nvarying vec3 v_Barycentric;\n\n@import buildin.util.edge_factor\n\nvoid main(){\n\n    gl_FragColor = vec4(color, alpha);\n    \n    #ifdef DIFFUSEMAP_ENABLED\n        vec4 tex = texture2D( diffuseMap, v_Texcoord );\n        gl_FragColor.rgb *= tex.rgb;\n    #endif\n    \n    if( lineWidth > 0.01){\n        gl_FragColor.xyz = gl_FragColor.xyz * mix(lineColor, vec3(1.0), edgeFactor(lineWidth));\n    }\n}\n\n@end';});
 
-define('text!3d/shader/source/lambert.essl',[],function () { return '/**\n * http://en.wikipedia.org/wiki/Lambertian_reflectance\n */\n\n@export buildin.lambert.vertex\n\nuniform mat4 worldViewProjection : WORLDVIEWPROJECTION;\nuniform mat4 worldInverseTranspose : WORLDINVERSETRANSPOSE;\nuniform mat4 world : WORLD;\n\nuniform vec2 uvRepeat : [1.0, 1.0];\n\nattribute vec3 position : POSITION;\nattribute vec2 texcoord : TEXCOORD_0;\nattribute vec3 normal : NORMAL;\n\nattribute vec3 barycentric;\n\nvarying vec2 v_Texcoord;\nvarying vec3 v_Normal;\nvarying vec3 v_WorldPosition;\nvarying vec3 v_Barycentric;\n\nvoid main(){\n\n    gl_Position = worldViewProjection * vec4( position, 1.0 );\n\n    v_Texcoord = texcoord * uvRepeat;\n    v_Normal = normalize( ( worldInverseTranspose * vec4(normal, 0.0) ).xyz );\n    v_WorldPosition = ( world * vec4( position, 1.0) ).xyz;\n\n    v_Barycentric = barycentric;\n}\n\n@end\n\n\n\n\n@export buildin.lambert.fragment\n\nvarying vec2 v_Texcoord;\nvarying vec3 v_Normal;\nvarying vec3 v_WorldPosition;\n\nuniform sampler2D diffuseMap;\n\nuniform vec3 color : [1.0, 1.0, 1.0];\nuniform float alpha : 1.0;\n\n// Uniforms for wireframe\nuniform float lineWidth : 0.0;\nuniform vec3 lineColor : [0.0, 0.0, 0.0];\nvarying vec3 v_Barycentric;\n\n#ifdef AMBIENT_LIGHT_NUMBER\n@import buildin.header.ambient_light\n#endif\n#ifdef POINT_LIGHT_NUMBER\n@import buildin.header.point_light\n#endif\n#ifdef DIRECTIONAL_LIGHT_NUMBER\n@import buildin.header.directional_light\n#endif\n#ifdef SPOT_LIGHT_NUMBER\n@import buildin.header.spot_light\n#endif\n\n#extension GL_OES_standard_derivatives : enable\n// Import util functions and uniforms needed\n@import buildin.util.calculate_attenuation\n\n@import buildin.util.edge_factor\n\n@import buildin.plugin.compute_shadow_map\n\nvoid main(){\n    \n    gl_FragColor = vec4(color, alpha);\n\n    #ifdef DIFFUSEMAP_ENABLED\n        vec4 tex = texture2D( diffuseMap, v_Texcoord );\n        // http://freesdk.crydev.net/display/SDKDOC3/Specular+Maps\n        gl_FragColor.rgb *= tex.rgb;\n    #endif\n\n    vec3 diffuseColor = vec3(0.0, 0.0, 0.0);\n    \n    #ifdef AMBIENT_LIGHT_NUMBER\n        for(int i = 0; i < AMBIENT_LIGHT_NUMBER; i++){\n            diffuseColor += ambientLightColor[i];\n        }\n    #endif\n    // Compute point light color\n    #ifdef POINT_LIGHT_NUMBER\n        #if defined(POINT_LIGHT_SHADOWMAP_NUMBER)\n            float shadowFallOffs[POINT_LIGHT_NUMBER];\n            if( shadowEnabled ){\n                computeShadowFallOfPointLights( v_WorldPosition, shadowFallOffs );\n            }\n        #endif\n        for(int i = 0; i < POINT_LIGHT_NUMBER; i++){\n\n            vec3 lightPosition = pointLightPosition[i];\n            vec3 lightColor = pointLightColor[i];\n            float range = pointLightRange[i];\n\n            vec3 lightDirection = lightPosition - v_WorldPosition;\n\n            // Calculate point light attenuation\n            float dist = length(lightDirection);\n            float attenuation = calculateAttenuation(dist, range);\n\n            // Normalize vectors\n            lightDirection /= dist;\n\n            float ndl = dot( v_Normal, lightDirection );\n\n            float shadowFallOff = 1.0;\n            #if defined(POINT_LIGHT_SHADOWMAP_NUMBER)\n                if( shadowEnabled ){\n                    shadowFallOff = shadowFallOffs[i];\n                }\n            #endif\n\n            diffuseColor += lightColor * clamp(ndl, 0.0, 1.0) * attenuation * shadowFallOff;\n        }\n    #endif\n    #ifdef DIRECTIONAL_LIGHT_NUMBER\n        #if defined(DIRECTIONAL_LIGHT_SHADOWMAP_NUMBER)\n            float shadowFallOffs[DIRECTIONAL_LIGHT_NUMBER];\n            if( shadowEnabled ){\n                computeShadowFallOfDirectionalLights( v_WorldPosition, shadowFallOffs );\n            }\n        #endif\n        for(int i = 0; i < DIRECTIONAL_LIGHT_NUMBER; i++){\n            vec3 lightDirection = -directionalLightDirection[i];\n            vec3 lightColor = directionalLightColor[i];\n            \n            float ndl = dot( v_Normal, normalize( lightDirection ) );\n\n            float shadowFallOff = 1.0;\n            #if defined(DIRECTIONAL_LIGHT_SHADOWMAP_NUMBER)\n                if( shadowEnabled ){\n                    shadowFallOff = shadowFallOffs[i];\n                }\n            #endif\n\n            diffuseColor += lightColor * clamp(ndl, 0.0, 1.0) * shadowFallOff;\n        }\n    #endif\n    \n    #ifdef SPOT_LIGHT_NUMBER\n        #if defined(SPOT_LIGHT_SHADOWMAP_NUMBER)\n            float shadowFallOffs[SPOT_LIGHT_NUMBER];\n            if( shadowEnabled ){\n                computeShadowFallOfSpotLights( v_WorldPosition, shadowFallOffs );\n            }\n        #endif\n        for(int i = 0; i < SPOT_LIGHT_NUMBER; i++){\n            vec3 lightPosition = -spotLightPosition[i];\n            vec3 spotLightDirection = normalize( spotLightDirection[i] );\n            vec3 lightColor = spotLightColor[i];\n            float range = spotLightRange[i];\n            float umbraAngleCosine = spotLightUmbraAngleCosine[i];\n            float penumbraAngleCosine = spotLightPenumbraAngleCosine[i];\n            float falloffFactor = spotLightFalloffFactor[i];\n\n            vec3 lightDirection = lightPosition - v_WorldPosition;\n            // Calculate attenuation\n            float dist = length(lightDirection);\n            float attenuation = calculateAttenuation(dist, range); \n\n            // Normalize light direction\n            lightDirection /= dist;\n            // Calculate spot light fall off\n            float lightDirectCosine = dot(spotLightDirection, lightDirection);\n\n            float falloff;\n            if( lightDirectCosine < penumbraAngleCosine ){\n                falloff = 1.0;\n            }else if( lightDirectCosine > umbraAngleCosine ){\n                falloff = 0.0;\n            }else{\n                falloff = (lightDirectCosine-umbraAngleCosine)/(penumbraAngleCosine-umbraAngleCosine);\n                falloff = pow(falloff, falloffFactor);\n            }\n\n            float ndl = dot( v_Normal, lightDirection );\n            ndl = clamp(ndl, 0.0, 1.0);\n\n            float shadowFallOff = 1.0;\n            #if defined(SPOT_LIGHT_SHADOWMAP_NUMBER)\n                if( shadowEnabled ){\n                    shadowFallOff = shadowFallOffs[i];\n                }\n            #endif\n\n            diffuseColor += lightColor * ndl * attenuation * (1.0-falloff) * shadowFallOff;\n\n        }\n    #endif\n\n    gl_FragColor.xyz *= diffuseColor;\n    if( lineWidth > 0.01){\n        gl_FragColor.xyz = gl_FragColor.xyz * mix(lineColor, vec3(1.0), edgeFactor(lineWidth));\n    }\n\n}\n\n@end';});
+define('text!3d/shader/source/lambert.essl',[],function () { return '/**\n * http://en.wikipedia.org/wiki/Lambertian_reflectance\n */\n\n@export buildin.lambert.vertex\n\nuniform mat4 worldViewProjection : WORLDVIEWPROJECTION;\nuniform mat4 worldInverseTranspose : WORLDINVERSETRANSPOSE;\nuniform mat4 world : WORLD;\n\nuniform vec2 uvRepeat : [1.0, 1.0];\n\nattribute vec3 position : POSITION;\nattribute vec2 texcoord : TEXCOORD_0;\nattribute vec3 normal : NORMAL;\n\nattribute vec3 barycentric;\n\nvarying vec2 v_Texcoord;\nvarying vec3 v_Normal;\nvarying vec3 v_WorldPosition;\nvarying vec3 v_Barycentric;\n\nvoid main(){\n\n    gl_Position = worldViewProjection * vec4( position, 1.0 );\n\n    v_Texcoord = texcoord * uvRepeat;\n    v_Normal = normalize( ( worldInverseTranspose * vec4(normal, 0.0) ).xyz );\n    v_WorldPosition = ( world * vec4( position, 1.0) ).xyz;\n\n    v_Barycentric = barycentric;\n}\n\n@end\n\n\n\n\n@export buildin.lambert.fragment\n\nvarying vec2 v_Texcoord;\nvarying vec3 v_Normal;\nvarying vec3 v_WorldPosition;\n\nuniform sampler2D diffuseMap;\n\nuniform vec3 color : [1.0, 1.0, 1.0];\nuniform float alpha : 1.0;\n\n// Uniforms for wireframe\nuniform float lineWidth : 0.0;\nuniform vec3 lineColor : [0.0, 0.0, 0.0];\nvarying vec3 v_Barycentric;\n\n#ifdef AMBIENT_LIGHT_NUMBER\n@import buildin.header.ambient_light\n#endif\n#ifdef POINT_LIGHT_NUMBER\n@import buildin.header.point_light\n#endif\n#ifdef DIRECTIONAL_LIGHT_NUMBER\n@import buildin.header.directional_light\n#endif\n#ifdef SPOT_LIGHT_NUMBER\n@import buildin.header.spot_light\n#endif\n\n#extension GL_OES_standard_derivatives : enable\n// Import util functions and uniforms needed\n@import buildin.util.calculate_attenuation\n\n@import buildin.util.edge_factor\n\n@import buildin.plugin.compute_shadow_map\n\nvoid main(){\n    \n    gl_FragColor = vec4(color, alpha);\n\n    #ifdef DIFFUSEMAP_ENABLED\n        vec4 tex = texture2D( diffuseMap, v_Texcoord );\n        // http://freesdk.crydev.net/display/SDKDOC3/Specular+Maps\n        gl_FragColor.rgb *= tex.rgb;\n    #endif\n\n    vec3 diffuseColor = vec3(0.0, 0.0, 0.0);\n    \n    #ifdef AMBIENT_LIGHT_NUMBER\n        for(int i = 0; i < AMBIENT_LIGHT_NUMBER; i++){\n            diffuseColor += ambientLightColor[i];\n        }\n    #endif\n    // Compute point light color\n    #ifdef POINT_LIGHT_NUMBER\n        #if defined(POINT_LIGHT_SHADOWMAP_NUMBER)\n            float shadowFallOffs[POINT_LIGHT_NUMBER];\n            if( shadowEnabled ){\n                computeShadowFallOfPointLights( v_WorldPosition, shadowFallOffs );\n            }\n        #endif\n        for(int i = 0; i < POINT_LIGHT_NUMBER; i++){\n\n            vec3 lightPosition = pointLightPosition[i];\n            vec3 lightColor = pointLightColor[i];\n            float range = pointLightRange[i];\n\n            vec3 lightDirection = lightPosition - v_WorldPosition;\n\n            // Calculate point light attenuation\n            float dist = length(lightDirection);\n            float attenuation = calculateAttenuation(dist, range);\n\n            // Normalize vectors\n            lightDirection /= dist;\n\n            float ndl = dot( v_Normal, lightDirection );\n\n            float shadowFallOff = 1.0;\n            #if defined(POINT_LIGHT_SHADOWMAP_NUMBER)\n                if( shadowEnabled ){\n                    shadowFallOff = shadowFallOffs[i];\n                }\n            #endif\n\n            diffuseColor += lightColor * clamp(ndl, 0.0, 1.0) * attenuation * shadowFallOff;\n        }\n    #endif\n    #ifdef DIRECTIONAL_LIGHT_NUMBER\n        #if defined(DIRECTIONAL_LIGHT_SHADOWMAP_NUMBER)\n            float shadowFallOffs[DIRECTIONAL_LIGHT_NUMBER];\n            if( shadowEnabled ){\n                computeShadowFallOfDirectionalLights( v_WorldPosition, shadowFallOffs );\n            }\n        #endif\n        for(int i = 0; i < DIRECTIONAL_LIGHT_NUMBER; i++){\n            vec3 lightDirection = -directionalLightDirection[i];\n            vec3 lightColor = directionalLightColor[i];\n            \n            float ndl = dot( v_Normal, normalize( lightDirection ) );\n\n            float shadowFallOff = 1.0;\n            #if defined(DIRECTIONAL_LIGHT_SHADOWMAP_NUMBER)\n                if( shadowEnabled ){\n                    shadowFallOff = shadowFallOffs[i];\n                }\n            #endif\n\n            diffuseColor += lightColor * clamp(ndl, 0.0, 1.0) * shadowFallOff;\n        }\n    #endif\n    \n    #ifdef SPOT_LIGHT_NUMBER\n        #if defined(SPOT_LIGHT_SHADOWMAP_NUMBER)\n            float shadowFallOffs[SPOT_LIGHT_NUMBER];\n            if( shadowEnabled ){\n                computeShadowFallOfSpotLights( v_WorldPosition, shadowFallOffs );\n            }\n        #endif\n        for(int i = 0; i < SPOT_LIGHT_NUMBER; i++){\n            vec3 lightPosition = -spotLightPosition[i];\n            vec3 spotLightDirection = -normalize( spotLightDirection[i] );\n            vec3 lightColor = spotLightColor[i];\n            float range = spotLightRange[i];\n            float umbraAngleCosine = spotLightUmbraAngleCosine[i];\n            float penumbraAngleCosine = spotLightPenumbraAngleCosine[i];\n            float falloffFactor = spotLightFalloffFactor[i];\n\n            vec3 lightDirection = lightPosition - v_WorldPosition;\n            // Calculate attenuation\n            float dist = length(lightDirection);\n            float attenuation = calculateAttenuation(dist, range); \n\n            // Normalize light direction\n            lightDirection /= dist;\n            // Calculate spot light fall off\n            float lightDirectCosine = dot(spotLightDirection, lightDirection);\n\n            float falloff;\n            if( lightDirectCosine < penumbraAngleCosine ){\n                falloff = 1.0;\n            }else if( lightDirectCosine > umbraAngleCosine ){\n                falloff = 0.0;\n            }else{\n                falloff = (lightDirectCosine-umbraAngleCosine)/(penumbraAngleCosine-umbraAngleCosine);\n                falloff = pow(falloff, falloffFactor);\n            }\n\n            float ndl = dot( v_Normal, lightDirection );\n            ndl = clamp(ndl, 0.0, 1.0);\n\n            float shadowFallOff = 1.0;\n            #if defined(SPOT_LIGHT_SHADOWMAP_NUMBER)\n                if( shadowEnabled ){\n                    shadowFallOff = shadowFallOffs[i];\n                }\n            #endif\n\n            diffuseColor += lightColor * ndl * attenuation * (1.0-falloff) * shadowFallOff;\n\n        }\n    #endif\n\n    gl_FragColor.xyz *= diffuseColor;\n    if( lineWidth > 0.01){\n        gl_FragColor.xyz = gl_FragColor.xyz * mix(lineColor, vec3(1.0), edgeFactor(lineWidth));\n    }\n\n}\n\n@end';});
 
 define('text!3d/shader/source/phong.essl',[],function () { return '\n// http://en.wikipedia.org/wiki/Blinn%E2%80%93Phong_shading_model\n\n@export buildin.phong.vertex\n\nuniform mat4 worldViewProjection : WORLDVIEWPROJECTION;\nuniform mat4 worldInverseTranspose : WORLDINVERSETRANSPOSE;\nuniform mat4 world : WORLD;\n\nuniform vec2 uvRepeat : [1.0, 1.0];\n\nattribute vec3 position : POSITION;\nattribute vec2 texcoord : TEXCOORD_0;\nattribute vec3 normal : NORMAL;\nattribute vec4 tangent : TANGENT;\n\nattribute vec3 barycentric;\n\n\nvarying vec2 v_Texcoord;\nvarying vec3 v_Normal;\nvarying vec3 v_WorldPosition;\nvarying vec3 v_Barycentric;\n\nvarying vec3 v_Tangent;\nvarying vec3 v_Bitangent;\n\nvoid main(){\n\n    gl_Position = worldViewProjection * vec4( position, 1.0 );\n\n    v_Texcoord = texcoord * uvRepeat;\n    v_WorldPosition = ( world * vec4( position, 1.0) ).xyz;\n    v_Barycentric = barycentric;\n\n    v_Normal = normalize( ( worldInverseTranspose * vec4(normal, 0.0) ).xyz );\n    v_Tangent = normalize( (worldInverseTranspose * vec4(tangent.xyz, 0.0) ).xyz );\n    v_Bitangent = normalize( cross(v_Normal, v_Tangent) * tangent.w );\n\n}\n\n@end\n\n\n@export buildin.phong.fragment\n\nuniform mat4 viewInverse : VIEWINVERSE;\n\nvarying vec2 v_Texcoord;\nvarying vec3 v_Normal;\nvarying vec3 v_WorldPosition;\nvarying vec3 v_Tangent;\nvarying vec3 v_Bitangent;\n\nuniform sampler2D diffuseMap;\nuniform sampler2D normalMap;\nuniform sampler2D environmentMap;\n\nuniform vec3 color : [1.0, 1.0, 1.0];\nuniform float alpha : 1.0;\n\nuniform float shininess : 30;\n\nuniform vec3 specular : [1.0, 1.0, 1.0];\n\n// Uniforms for wireframe\nuniform float lineWidth : 0.0;\nuniform vec3 lineColor : [0.0, 0.0, 0.0];\nvarying vec3 v_Barycentric;\n\n#ifdef AMBIENT_LIGHT_NUMBER\n@import buildin.header.ambient_light\n#endif\n#ifdef POINT_LIGHT_NUMBER\n@import buildin.header.point_light\n#endif\n#ifdef DIRECTIONAL_LIGHT_NUMBER\n@import buildin.header.directional_light\n#endif\n#ifdef SPOT_LIGHT_NUMBER\n@import buildin.header.spot_light\n#endif\n\n#extension GL_OES_standard_derivatives : enable\n// Import util functions and uniforms needed\n@import buildin.util.calculate_attenuation\n\n@import buildin.util.edge_factor\n\n@import buildin.plugin.compute_shadow_map\n\nvoid main(){\n    \n    vec4 finalColor = vec4(color, alpha);\n\n    #ifdef DIFFUSEMAP_ENABLED\n        vec4 tex = texture2D( diffuseMap, v_Texcoord );\n        finalColor.rgb *= tex.rgb;\n    #endif\n\n    vec3 normal = v_Normal;\n    #ifdef NORMALMAP_ENABLED\n        normal = texture2D( normalMap, v_Texcoord ).xyz * 2.0 - 1.0;\n        mat3 tbn = mat3( v_Tangent, v_Bitangent, v_Normal );\n        normal = normalize( tbn * normal );\n    #endif\n\n    // Diffuse part of all lights\n    vec3 diffuseColor = vec3(0.0, 0.0, 0.0);\n    // Specular part of all lights\n    vec3 specularColor = vec3(0.0, 0.0, 0.0);\n    \n    vec3 eyePos = viewInverse[3].xyz;\n    vec3 viewDirection = normalize(eyePos - v_WorldPosition);\n\n    #ifdef AMBIENT_LIGHT_NUMBER\n        for(int i = 0; i < AMBIENT_LIGHT_NUMBER; i++){\n            diffuseColor += ambientLightColor[i];\n        }\n    #endif\n    #ifdef POINT_LIGHT_NUMBER\n        #if defined(POINT_LIGHT_SHADOWMAP_NUMBER)\n            float shadowFallOffs[POINT_LIGHT_NUMBER];\n            if( shadowEnabled ){\n                computeShadowFallOfPointLights( v_WorldPosition, shadowFallOffs );\n            }\n        #endif\n        for(int i = 0; i < POINT_LIGHT_NUMBER; i++){\n\n            vec3 lightPosition = pointLightPosition[i];\n            vec3 lightColor = pointLightColor[i];\n            float range = pointLightRange[i];\n\n            vec3 lightDirection = lightPosition - v_WorldPosition;\n\n            // Calculate point light attenuation\n            float dist = length(lightDirection);\n            float attenuation = calculateAttenuation(dist, range); \n\n            // Normalize vectors\n            lightDirection /= dist;\n            vec3 halfVector = normalize( lightDirection + viewDirection );\n\n            float ndh = dot( normal, halfVector );\n            ndh = clamp(ndh, 0.0, 1.0);\n\n            float ndl = dot( normal,  lightDirection );\n            ndl = clamp(ndl, 0.0, 1.0);\n\n            float shadowFallOff = 1.0;\n            #if defined(POINT_LIGHT_SHADOWMAP_NUMBER)\n                if( shadowEnabled ){\n                    shadowFallOff = shadowFallOffs[i];\n                }\n            #endif\n\n            diffuseColor += lightColor * ndl * attenuation * shadowFallOff;\n\n            specularColor += specular * pow( ndh, shininess ) * attenuation * shadowFallOff;\n\n        }\n    #endif\n\n    #ifdef DIRECTIONAL_LIGHT_NUMBER\n        #if defined(DIRECTIONAL_LIGHT_SHADOWMAP_NUMBER)\n            float shadowFallOffs[DIRECTIONAL_LIGHT_NUMBER];\n            if( shadowEnabled ){\n                computeShadowFallOfDirectionalLights( v_WorldPosition, shadowFallOffs );\n            }\n        #endif\n        for(int i = 0; i < DIRECTIONAL_LIGHT_NUMBER; i++){\n\n            vec3 lightDirection = -normalize( directionalLightDirection[i] );\n            vec3 lightColor = directionalLightColor[i];\n\n            vec3 halfVector = normalize( lightDirection + viewDirection );\n\n            float ndh = dot( normal, halfVector );\n            ndh = clamp(ndh, 0.0, 1.0);\n\n            float ndl = dot( normal, lightDirection );\n            ndl = clamp(ndl, 0.0, 1.0);\n\n            float shadowFallOff = 1.0;\n            #if defined(DIRECTIONAL_LIGHT_SHADOWMAP_NUMBER)\n                if( shadowEnabled ){\n                    shadowFallOff = shadowFallOffs[i];\n                }\n            #endif\n\n            diffuseColor += lightColor * ndl * shadowFallOff;\n\n            specularColor += specular * pow( ndh, shininess ) * shadowFallOff;\n        }\n    #endif\n\n    #ifdef SPOT_LIGHT_NUMBER\n        #if defined(SPOT_LIGHT_SHADOWMAP_NUMBER)\n            float shadowFallOffs[SPOT_LIGHT_NUMBER];\n            if( shadowEnabled ){\n                computeShadowFallOfSpotLights( v_WorldPosition, shadowFallOffs );\n            }\n        #endif\n        for(int i = 0; i < SPOT_LIGHT_NUMBER; i++){\n            vec3 lightPosition = spotLightPosition[i];\n            vec3 spotLightDirection = -normalize( spotLightDirection[i] );\n            vec3 lightColor = spotLightColor[i];\n            float range = spotLightRange[i];\n            float umbraAngleCosine = spotLightUmbraAngleCosine[i];\n            float penumbraAngleCosine = spotLightPenumbraAngleCosine[i];\n            float falloffFactor = spotLightFalloffFactor[i];\n\n            vec3 lightDirection = lightPosition - v_WorldPosition;\n            // Calculate attenuation\n            float dist = length(lightDirection);\n            float attenuation = calculateAttenuation(dist, range); \n\n            // Normalize light direction\n            lightDirection /= dist;\n            // Calculate spot light fall off\n            float lightDirectCosine = dot(spotLightDirection, lightDirection);\n\n            float falloff;\n            // Fomular from real-time-rendering\n            if( lightDirectCosine < penumbraAngleCosine ){\n                falloff = 1.0;\n            }else if( lightDirectCosine > umbraAngleCosine ){\n                falloff = 0.0;\n            }else{\n                falloff = (lightDirectCosine-umbraAngleCosine)/(penumbraAngleCosine-umbraAngleCosine);\n                falloff = pow(falloff, falloffFactor);\n            }\n\n            vec3 halfVector = normalize( lightDirection + viewDirection );\n\n            float ndh = dot( normal, halfVector );\n            ndh = clamp(ndh, 0.0, 1.0);\n\n            float ndl = dot( normal, lightDirection );\n            ndl = clamp(ndl, 0.0, 1.0);\n\n            float shadowFallOff = 1.0;\n            #if defined(SPOT_LIGHT_SHADOWMAP_NUMBER)\n                if( shadowEnabled ){\n                    shadowFallOff = shadowFallOffs[i];\n                }\n            #endif\n\n            diffuseColor += lightColor * ndl * attenuation * (1.0-falloff) * shadowFallOff;\n\n            specularColor += specular * pow( ndh, shininess ) * attenuation * (1.0-falloff) * shadowFallOff;\n\n        }\n    #endif\n\n    finalColor.rgb *= diffuseColor;\n    finalColor.rgb += specularColor;\n\n    if( lineWidth > 0.01){\n        finalColor.rgb = finalColor.rgb * mix(lineColor, vec3(1.0), edgeFactor(lineWidth));\n    }\n\n    gl_FragColor = finalColor;\n}\n\n@end';});
 
@@ -16380,7 +16485,7 @@ define('3d/shader/library',['require','../shader','_','text!3d/shader/source/bas
         put : put
     }
 } );
-define('text!3d/prepass/vsm.essl',[],function () { return '/**\n *  Variance Shadow Mapping\n * http://www.punkuser.net/vsm/vsm_paper.pdf\n * http://developer.download.nvidia.com/SDK/10/direct3d/Source/VarianceShadowMapping/Doc/VarianceShadowMapping.pdf\n */\n@export buildin.vsm.depth.vertex\n\nuniform mat4 worldViewProjection : WORLDVIEWPROJECTION;\n\nattribute vec3 position : POSITION;\nvarying vec4 v_ViewPosition;\nvoid main(){\n\n    v_ViewPosition = worldViewProjection * vec4( position, 1.0 );\n    gl_Position = worldViewProjection * vec4( position , 1.0 );\n\n}\n@end\n\n\n@export buildin.vsm.depth.fragment\n\nvarying vec4 v_ViewPosition;\n\nvoid main(){\n    float z = v_ViewPosition.z / v_ViewPosition.w;\n\n    gl_FragColor = vec4(z, z*z, 0.0, 0.0);\n}\n@end\n\n// Point light shadow mapping\n// http://http.developer.nvidia.com/GPUGems/gpugems_ch12.html\n@export buildin.vsm.distance.vertex\n\nuniform mat4 worldViewProjection : WORLDVIEWPROJECTION;\nuniform mat4 world : WORLD;\n\nattribute vec3 position : POSITION;\n\nvarying vec3 v_WorldPosition;\n\nvoid main(){\n\n    gl_Position = worldViewProjection * vec4( position , 1.0 );\n    v_WorldPosition = ( world * vec4(position, 1.0) ).xyz;\n}\n\n@end\n\n@export buildin.vsm.distance.fragment\n\nuniform vec3 lightPosition;\n\nvarying vec3 v_WorldPosition;\n\nvoid main(){\n\n    float dist = distance(lightPosition, v_WorldPosition);\n\n    gl_FragColor = vec4(dist, dist * dist, 0.0, 0.0);\n}\n@end\n\n\n@export buildin.plugin.compute_shadow_map\n\n#if defined(SPOT_LIGHT_SHADOWMAP_NUMBER) || defined(DIRECTIONAL_LIGHT_SHADOWMAP_NUMBER) || defined(POINT_LIGHT_SHADOWMAP_NUMBER)\n\n#ifdef SPOT_LIGHT_SHADOWMAP_NUMBER\nuniform sampler2D spotLightShadowMap[ SPOT_LIGHT_SHADOWMAP_NUMBER ];\nuniform mat4 spotLightMatrix[ SPOT_LIGHT_SHADOWMAP_NUMBER ]; \n#endif\n\n#ifdef DIRECTIONAL_LIGHT_SHADOWMAP_NUMBER\nuniform sampler2D directionalLightShadowMap[ DIRECTIONAL_LIGHT_SHADOWMAP_NUMBER ];\nuniform mat4 directionalLightMatrix[ DIRECTIONAL_LIGHT_SHADOWMAP_NUMBER ];\n#endif\n\n#ifdef POINT_LIGHT_SHADOWMAP_NUMBER\nuniform samplerCube pointLightShadowMap[ POINT_LIGHT_SHADOWMAP_NUMBER ];\n#endif\n\nuniform bool shadowEnabled : true;\n\n#if defined(DIRECTIONAL_LIGHT_NUMBER) || defined(SPOT_LIGHT_SHADOWMAP_NUMBER)\n\nvec4 vsmBoxFilter(sampler2D texture, vec2 uv){\n    vec4 tex = texture2D(texture, uv);\n    float offset = 1.0/512.0;\n    tex += texture2D(texture, uv+vec2(offset, 0.0) );\n    tex += texture2D(texture, uv+vec2(offset, offset) );\n    tex += texture2D(texture, uv+vec2(-offset, offset) );\n    tex += texture2D(texture, uv+vec2(0.0, offset) );\n    tex += texture2D(texture, uv+vec2(-offset, 0.0) );\n    tex += texture2D(texture, uv+vec2(-offset, -offset) );\n    tex += texture2D(texture, uv+vec2(offset, -offset) );\n    tex += texture2D(texture, uv+vec2(0.0, -offset) );\n\n    tex /= 9.0;\n    return tex;\n}\n\nfloat computeShadowFalloff( sampler2D map, mat4 lightVPM, vec3 position){\n    vec4 posInLightSpace = ( lightVPM * vec4(position, 1.0) );\n    posInLightSpace.xyz /= posInLightSpace.w;\n\n    float z = posInLightSpace.z;\n    // In frustum\n    if( all(greaterThan(posInLightSpace.xyz, vec3(-1.0))) &&\n        all(lessThan(posInLightSpace.xyz, vec3(1.0))) ){\n        \n        // To texture uv\n        vec2 uv = (posInLightSpace.xy+1.0) / 2.0;\n        // vec2 moments = texture2D( map, uv ).xy;\n        vec2 moments = vsmBoxFilter( map, uv ).xy;\n        \n        float variance = moments.y - moments.x * moments.x;\n\n        float mD = moments.x - z;\n        float p = variance / (variance + mD * mD);\n\n        if(moments.x + 0.002 < z){\n            return clamp(p, 0.0, 1.0);\n        }else{\n            return 1.0;\n        }\n    }\n    return 1.0;\n}\n\n#endif\n\n#ifdef POINT_LIGHT_SHADOWMAP_NUMBER\n\nvec4 vsmBoxFilterCube(samplerCube texture, vec3 direction){\n    vec4 tex = textureCube(texture, direction);\n    float offset = 0.05;\n    tex += textureCube(texture, direction + vec3(offset, 0.0, 0.0) );\n    tex += textureCube(texture, direction + vec3(offset, offset, 0.0) );\n    tex += textureCube(texture, direction + vec3(-offset, offset, 0.0) );\n    tex += textureCube(texture, direction + vec3(0.0, offset, 0.0) );\n    tex += textureCube(texture, direction + vec3(-offset, 0.0, 0.0) );\n    tex += textureCube(texture, direction + vec3(-offset, -offset, 0.0) );\n    tex += textureCube(texture, direction + vec3(offset, -offset, 0.0) );\n    tex += textureCube(texture, direction + vec3(0.0, -offset, 0.0) );\n\n    tex /= 9.0;\n    return tex;\n}\n\nfloat computeShadowFallOfCube( samplerCube map, vec3 direction ){\n    \n    vec2 moments = vsmBoxFilterCube( map, direction).xy;\n\n    float variance = moments.y - moments.x * moments.x;\n\n    float dist = length(direction);\n    float mD = moments.x - dist;\n    float p = variance / (variance + mD * mD);\n\n    if(moments.x + 0.002 < dist){\n        return clamp(p, 0.0, 1.0);\n    }else{\n        return 1.0;\n    }\n}\n\n#endif\n\n#if defined(SPOT_LIGHT_SHADOWMAP_NUMBER)\n\nvoid computeShadowFallOfSpotLights( vec3 position, inout float shadowFalloffs[SPOT_LIGHT_NUMBER]  ){\n    for( int i = 0; i < SPOT_LIGHT_SHADOWMAP_NUMBER; i++){\n        float shadowFalloff = computeShadowFalloff( spotLightShadowMap[i], spotLightMatrix[i], position );\n        shadowFalloffs[ i ] = shadowFalloff;\n    }\n    // set default fallof of rest lights\n    for( int i = SPOT_LIGHT_SHADOWMAP_NUMBER; i < SPOT_LIGHT_NUMBER; i++){\n        shadowFalloffs[i] = 1.0;\n    }\n}\n\n#endif\n\n\n#if defined(POINT_LIGHT_SHADOWMAP_NUMBER)\n\nvoid computeShadowFallOfPointLights( vec3 position, inout float shadowFalloffs[POINT_LIGHT_NUMBER]  ){\n    for( int i = 0; i < POINT_LIGHT_SHADOWMAP_NUMBER; i++){\n        vec3 lightPosition = pointLightPosition[i];\n        vec3 direction = position - lightPosition;\n        shadowFalloffs[ i ] = computeShadowFallOfCube( pointLightShadowMap[i], direction );\n    }\n    for( int i = POINT_LIGHT_SHADOWMAP_NUMBER; i < POINT_LIGHT_NUMBER; i++){\n        shadowFalloffs[i] = 1.0;\n    }\n}\n\n#endif\n\n\n#if defined(DIRECTIONAL_LIGHT_SHADOWMAP_NUMBER)\n\nvoid computeShadowFallOfDirectionalLights( vec3 position, inout float shadowFalloffs[DIRECTIONAL_LIGHT_NUMBER] ){\n    for( int i = 0; i < DIRECTIONAL_LIGHT_SHADOWMAP_NUMBER; i++){\n        float shadowFalloff = computeShadowFalloff( directionalLightShadowMap[i], directionalLightMatrix[i], position );\n        shadowFalloffs[ i ] = shadowFalloff;\n    }\n    // set default fallof of rest lights\n    for( int i = DIRECTIONAL_LIGHT_SHADOWMAP_NUMBER; i < DIRECTIONAL_LIGHT_NUMBER; i++){\n        shadowFalloffs[i] = 1.0;\n    }\n}\n\n#endif\n\n#endif\n\n@end';});
+define('text!3d/prepass/vsm.essl',[],function () { return '/**\n *  Variance Shadow Mapping\n * http://www.punkuser.net/vsm/vsm_paper.pdf\n * http://developer.download.nvidia.com/SDK/10/direct3d/Source/VarianceShadowMapping/Doc/VarianceShadowMapping.pdf\n */\n@export buildin.vsm.depth.vertex\n\nuniform mat4 worldViewProjection : WORLDVIEWPROJECTION;\n\nattribute vec3 position : POSITION;\nvarying vec4 v_ViewPosition;\nvoid main(){\n\n    v_ViewPosition = worldViewProjection * vec4( position, 1.0 );\n    gl_Position = worldViewProjection * vec4( position , 1.0 );\n\n}\n@end\n\n\n@export buildin.vsm.depth.fragment\n\nvarying vec4 v_ViewPosition;\n\nvoid main(){\n    float z = v_ViewPosition.z / v_ViewPosition.w;\n\n    gl_FragColor = vec4(z, z*z, 0.0, 0.0);\n}\n@end\n\n// Point light shadow mapping\n// http://http.developer.nvidia.com/GPUGems/gpugems_ch12.html\n@export buildin.vsm.distance.vertex\n\nuniform mat4 worldViewProjection : WORLDVIEWPROJECTION;\nuniform mat4 world : WORLD;\n\nattribute vec3 position : POSITION;\n\nvarying vec3 v_WorldPosition;\n\nvoid main(){\n\n    gl_Position = worldViewProjection * vec4( position , 1.0 );\n    v_WorldPosition = ( world * vec4(position, 1.0) ).xyz;\n}\n\n@end\n\n@export buildin.vsm.distance.fragment\n\nuniform vec3 lightPosition;\n\nvarying vec3 v_WorldPosition;\n\nvoid main(){\n\n    float dist = distance(lightPosition, v_WorldPosition);\n\n    gl_FragColor = vec4(dist, dist * dist, 0.0, 0.0);\n}\n@end\n\n\n@export buildin.plugin.compute_shadow_map\n\n#if defined(SPOT_LIGHT_SHADOWMAP_NUMBER) || defined(DIRECTIONAL_LIGHT_SHADOWMAP_NUMBER) || defined(POINT_LIGHT_SHADOWMAP_NUMBER)\n\n#ifdef SPOT_LIGHT_SHADOWMAP_NUMBER\nuniform sampler2D spotLightShadowMap[ SPOT_LIGHT_SHADOWMAP_NUMBER ];\nuniform mat4 spotLightMatrix[ SPOT_LIGHT_SHADOWMAP_NUMBER ]; \n#endif\n\n#ifdef DIRECTIONAL_LIGHT_SHADOWMAP_NUMBER\nuniform sampler2D directionalLightShadowMap[ DIRECTIONAL_LIGHT_SHADOWMAP_NUMBER ];\nuniform mat4 directionalLightMatrix[ DIRECTIONAL_LIGHT_SHADOWMAP_NUMBER ];\n#endif\n\n#ifdef POINT_LIGHT_SHADOWMAP_NUMBER\nuniform samplerCube pointLightShadowMap[ POINT_LIGHT_SHADOWMAP_NUMBER ];\n#endif\n\nuniform bool shadowEnabled : true;\n\n#if defined(DIRECTIONAL_LIGHT_NUMBER) || defined(SPOT_LIGHT_SHADOWMAP_NUMBER)\n\nvec4 vsmBoxFilter(sampler2D texture, vec2 uv){\n    vec4 tex = texture2D(texture, uv);\n    float offset = 1.0/512.0;\n    tex += texture2D(texture, uv+vec2(offset, 0.0) );\n    tex += texture2D(texture, uv+vec2(offset, offset) );\n    tex += texture2D(texture, uv+vec2(-offset, offset) );\n    tex += texture2D(texture, uv+vec2(0.0, offset) );\n    tex += texture2D(texture, uv+vec2(-offset, 0.0) );\n    tex += texture2D(texture, uv+vec2(-offset, -offset) );\n    tex += texture2D(texture, uv+vec2(offset, -offset) );\n    tex += texture2D(texture, uv+vec2(0.0, -offset) );\n\n    tex /= 9.0;\n    return tex;\n}\n\nfloat computeShadowFalloff( sampler2D map, mat4 lightVPM, vec3 position){\n    vec4 posInLightSpace = ( lightVPM * vec4(position, 1.0) );\n    posInLightSpace.xyz /= posInLightSpace.w;\n\n    float z = posInLightSpace.z;\n    // In frustum\n    if( all(greaterThan(posInLightSpace.xyz, vec3(-1.0))) &&\n        all(lessThan(posInLightSpace.xyz, vec3(1.0))) ){\n        \n        // To texture uv\n        vec2 uv = (posInLightSpace.xy+1.0) / 2.0;\n        // vec2 moments = texture2D( map, uv ).xy;\n        vec2 moments = vsmBoxFilter( map, uv ).xy;\n        \n        float variance = moments.y - moments.x * moments.x;\n\n        float mD = moments.x - z;\n        float p = variance / (variance + mD * mD);\n\n        if(moments.x + 0.002 < z){\n            return clamp(p, 0.0, 1.0);\n        }else{\n            return 1.0;\n        }\n    }\n    return 1.0;\n}\n\n#endif\n\n#ifdef POINT_LIGHT_SHADOWMAP_NUMBER\n\nvec4 vsmBoxFilterCube(samplerCube texture, vec3 direction){\n    vec4 tex = textureCube(texture, direction);\n    float offset = 0.05;\n    tex += textureCube(texture, direction + vec3(offset, 0.0, 0.0) );\n    tex += textureCube(texture, direction + vec3(offset, offset, 0.0) );\n    tex += textureCube(texture, direction + vec3(-offset, offset, 0.0) );\n    tex += textureCube(texture, direction + vec3(0.0, offset, 0.0) );\n    tex += textureCube(texture, direction + vec3(-offset, 0.0, 0.0) );\n    tex += textureCube(texture, direction + vec3(-offset, -offset, 0.0) );\n    tex += textureCube(texture, direction + vec3(offset, -offset, 0.0) );\n    tex += textureCube(texture, direction + vec3(0.0, -offset, 0.0) );\n\n    tex /= 9.0;\n    return tex;\n}\n\nfloat computeShadowFallOfCube( samplerCube map, vec3 direction ){\n    \n    vec2 moments = vsmBoxFilterCube( map, direction).xy;\n\n    float variance = moments.y - moments.x * moments.x;\n\n    float dist = length(direction);\n    float mD = moments.x - dist;\n    float p = variance / (variance + mD * mD);\n\n    if(moments.x + 0.001 < dist){\n        return clamp(p, 0.0, 1.0);\n    }else{\n        return 1.0;\n    }\n}\n\n#endif\n\n#if defined(SPOT_LIGHT_SHADOWMAP_NUMBER)\n\nvoid computeShadowFallOfSpotLights( vec3 position, inout float shadowFalloffs[SPOT_LIGHT_NUMBER]  ){\n    for( int i = 0; i < SPOT_LIGHT_SHADOWMAP_NUMBER; i++){\n        float shadowFalloff = computeShadowFalloff( spotLightShadowMap[i], spotLightMatrix[i], position );\n        shadowFalloffs[ i ] = shadowFalloff;\n    }\n    // set default fallof of rest lights\n    for( int i = SPOT_LIGHT_SHADOWMAP_NUMBER; i < SPOT_LIGHT_NUMBER; i++){\n        shadowFalloffs[i] = 1.0;\n    }\n}\n\n#endif\n\n\n#if defined(POINT_LIGHT_SHADOWMAP_NUMBER)\n\nvoid computeShadowFallOfPointLights( vec3 position, inout float shadowFalloffs[POINT_LIGHT_NUMBER]  ){\n    for( int i = 0; i < POINT_LIGHT_SHADOWMAP_NUMBER; i++){\n        vec3 lightPosition = pointLightPosition[i];\n        vec3 direction = position - lightPosition;\n        shadowFalloffs[ i ] = computeShadowFallOfCube( pointLightShadowMap[i], direction );\n    }\n    for( int i = POINT_LIGHT_SHADOWMAP_NUMBER; i < POINT_LIGHT_NUMBER; i++){\n        shadowFalloffs[i] = 1.0;\n    }\n}\n\n#endif\n\n\n#if defined(DIRECTIONAL_LIGHT_SHADOWMAP_NUMBER)\n\nvoid computeShadowFallOfDirectionalLights( vec3 position, inout float shadowFalloffs[DIRECTIONAL_LIGHT_NUMBER] ){\n    for( int i = 0; i < DIRECTIONAL_LIGHT_SHADOWMAP_NUMBER; i++){\n        float shadowFalloff = computeShadowFalloff( directionalLightShadowMap[i], directionalLightMatrix[i], position );\n        shadowFalloffs[ i ] = shadowFalloff;\n    }\n    // set default fallof of rest lights\n    for( int i = DIRECTIONAL_LIGHT_SHADOWMAP_NUMBER; i < DIRECTIONAL_LIGHT_NUMBER; i++){\n        shadowFalloffs[i] = 1.0;\n    }\n}\n\n#endif\n\n#endif\n\n@end';});
 
 /**
  * @export{class} ShadowMap
@@ -17419,14 +17524,17 @@ define('core/vector4',['require','glmatrix'], function(require){
 
         add : function(b){
             vec4.add( this._array, this._array, b._array );
+            this._dirty = true;
             return this;
         },
 
         set : function(x, y, z, w){
-            this.x = x;
-            this.y = y;
-            this.z = z;
-            this.w = w;
+            this._array[0] = x;
+            this._array[1] = y;
+            this._array[2] = z;
+            this._array[3] = w;
+            this._dirty = true;
+            return this;
         },
 
         clone : function(){
@@ -17435,6 +17543,7 @@ define('core/vector4',['require','glmatrix'], function(require){
 
         copy : function(b){
             vec4.copy( this._array, b._array );
+            this._dirty = true;
             return this;
         },
 
@@ -17453,11 +17562,14 @@ define('core/vector4',['require','glmatrix'], function(require){
 
         div : function(b){
             vec4.div(this._array, this._array, b._array);
+            this._dirty = true;
             return this;
         },
 
         divide : function(b){
-            return vec4.divide(this._array, this._array, b._array);
+            vec4.divide(this._array, this._array, b._array);
+            this._dirty = true;
+            return this;
         },
 
         dot : function(b){
@@ -17476,36 +17588,43 @@ define('core/vector4',['require','glmatrix'], function(require){
          */
         lerp : function(a, b, t){
             vec4.lerp(this._array, a._array, b._array, t);
+            this._dirty = true;
             return this;
         },
 
         mul : function(b){
             vec4.mul(this._array, this._array, b._array);
+            this._dirty = true;
             return this;
         },
 
         multiply : function(b){
             vec4.multiply(this._array, this._array, b._array);
+            this._dirty = true;
             return this;
         },
 
         negate : function(){
             vec4.negate(this._array, this._array);
+            this._dirty = true;
             return this;
         },
 
         normalize : function(){
             vec4.normalize(this._array, this._array);
+            this._dirty = true;
             return this;
         },
 
         random : function(scale){
             vec4.random(this._array, scale);
+            this._dirty = true;
             return this;
         },
 
         scale : function(s){
             vec4.scale(this._array, this._array, s);
+            this._dirty = true;
             return this;
         },
         /**
@@ -17513,6 +17632,7 @@ define('core/vector4',['require','glmatrix'], function(require){
          */
         scaleAndAdd : function(b, s){
             vec4.scaleAndAdd(this._array, this._array, b._array, s);
+            this._dirty = true;
             return this;
         },
 
@@ -17533,22 +17653,26 @@ define('core/vector4',['require','glmatrix'], function(require){
         },
 
         sub : function(b){
-            vec4.sub(this._array, b._array);
+            vec4.sub(this._array, this._array, b._array);
+            this._dirty = true;
             return this;
         },
 
-        substract : function(b){
-            vec4.substract(this._array, b._array);
+        subtract : function(b){
+            vec4.subtract(this._array, this._array, b._array);
+            this._dirty = true;
             return this;
         },
 
         transformMat4 : function(m){
             vec4.transformMat4(this._array, this._array, m._array);
+            this._dirty = true;
             return this;
         },
 
         transformQuat : function(q){
             vec4.transformQuat(this._array, this._array, q._array);
+            this._dirty = true;
             return this;
         },     
 
