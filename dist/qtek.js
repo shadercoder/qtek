@@ -12316,6 +12316,11 @@ define('3d/node',['require','core/base','core/vector3','core/quaternion','core/m
             if( ! this.useEuler){
                 this.eulerAngle.setEulerFromQuaternion(this.rotation);
             }
+            
+            this.rotation._dirty = false;
+            this.scale._dirty = false;
+            this.position._dirty = false;
+            this.eulerAngle._dirty = false;
         },
 
         updateWorldMatrix : function(  ){
@@ -12391,7 +12396,7 @@ define('3d/node',['require','core/base','core/vector3','core/quaternion','core/m
                 RTMatrix.fromRotationTranslation(this.rotation, v);
                 this.matrix.multiply(RTMatrix);
                 this.matrix.scale(this.scale);
-                
+
                 this.decomposeMatrix();
             }
         })(),
@@ -16280,9 +16285,9 @@ define('3d/plugin/firstpersoncontrol',['require','core/base','core/vector3','cor
 
                 var camera = this.camera;
 
-                camera.rotateAround( camera.position, camera.up, -this._offsetPitch * Math.PI / 180);
-
-                camera.rotateAround( camera.position, xAxis, -this._offsetRoll * Math.PI / 180);
+                camera.rotateAround(camera.position, camera.up, -this._offsetPitch * Math.PI / 180);
+                var xAxis = this._getXAxis(true);
+                camera.rotateAround(camera.position, xAxis, -this._offsetRoll * Math.PI / 180);
 
                 this._offsetRoll = this._offsetPitch = 0;
             }
