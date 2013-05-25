@@ -11892,9 +11892,10 @@ define('core/quaternion',['require','glmatrix'], function(require){
 
     return Quaternion;
 } );
-define('core/matrix4',['require','glmatrix'], function(require){
+define('core/matrix4',['require','glmatrix','./vector3'], function(require){
 
     var glMatrix = require("glmatrix");
+    var Vector3 = require("./vector3");
     var mat4 = glMatrix.mat4;
     var vec3 = glMatrix.vec3;
     var mat3 = glMatrix.mat3;
@@ -11914,6 +11915,10 @@ define('core/matrix4',['require','glmatrix'], function(require){
     }
     var Matrix4 = function(){
 
+        var axisX = new Vector3(),
+            axisY = new Vector3(),
+            axisZ = new Vector3();
+
         return Object.create(Matrix4Proto, {
 
             m00 : makeProperty(0),
@@ -11932,6 +11937,66 @@ define('core/matrix4',['require','glmatrix'], function(require){
             m31 : makeProperty(13),
             m32 : makeProperty(14),
             m33 : makeProperty(15),
+
+            // Forward axis of local matrix, i.e. z axis
+            forward : {
+                configurable : false,
+                get : function(){
+                    var el = this._array;
+                    axisZ.set(el[8], el[9], el[10]);
+                    return axisZ;
+                },
+                // TODO Here has a problem
+                // If only set an item of vector will not work
+                set : function(v){
+                    var el = this._array,
+                        v = v._array;
+                    el[8] = v[8];
+                    el[9] = v[9];
+                    el[10] = v[10];
+
+                    this.decomposeMatrix();
+                }
+            },
+
+            // Up axis of local matrix, i.e. y axis
+            up : {
+                configurable : false,
+                enumerable : true,
+                get : function(){
+                    var el = this._array;
+                    axisY.set(el[4], el[5], el[6]);
+                    return axisY;
+                },
+                set : function(v){
+                    var el = this._array,
+                        v = v._array;
+                    el[4] = v[4];
+                    el[5] = v[5];
+                    el[6] = v[6];
+
+                    this.decomposeMatrix();
+                }
+            },
+
+            // Right axis of local matrix, i.e. x axis
+            right : {
+                configurable : false,
+                get : function(){
+                    var el = this._array;
+                    axisX.set(el[0], el[1], el[2]);
+                    return axisX;
+                },
+                set : function(v){
+                    var el = this._array,
+                        v = v._array;
+                    el[0] = v[0];
+                    el[1] = v[1];
+                    el[2] = v[2];
+
+                    this.decomposeMatrix();
+                }
+            },
             
             _array : {
                 writable : false,
@@ -12240,8 +12305,6 @@ define('3d/node',['require','core/base','core/vector3','core/quaternion','core/m
 
             scale : new Vector3(1, 1, 1),
 
-            up : new Vector3(0, 1, 0),
-
             // Euler angles
             // https://en.wikipedia.org/wiki/Rotation_matrix
             eulerAngle : new Vector3(),
@@ -12404,13 +12467,13 @@ define('3d/node',['require','core/base','core/vector3','core/quaternion','core/m
         lookAt : (function(){
             var m = new Matrix4();
             var scaleVector = new Vector3();
-            return function( target ){
-                m.lookAt(this.position, target, this.up ).invert();
+            return function( target, up ){
+                m.lookAt(this.position, target, up || this.matrix.up ).invert();
 
                 m.decomposeMatrix(scaleVector, this.rotation, this.position);
 
             }
-        })()
+        })(),
 
     });
 
@@ -12464,29 +12527,29 @@ define('3d/camera/orthographic',['require','../camera'], function(require){
 } );
 define('3d/camera/perspective',['require','../camera'], function(require){
 
-	var Camera = require('../camera');
+    var Camera = require('../camera');
 
 
-	var Perspective = Camera.derive( function(){
-		return {
+    var Perspective = Camera.derive( function(){
+        return {
 
-			fov : 50,
-			
-			aspect : 1,
-			
-			near : 0.1,
-			
-			far : 2000
-		}
-	}, {
-		
-		updateProjectionMatrix : function(){
-			var rad = this.fov / 180 * Math.PI;
-			this.projectionMatrix.perspective(rad, this.aspect, this.near, this.far);
-		}
-	});
+            fov : 50,
+            
+            aspect : 1,
+            
+            near : 0.1,
+            
+            far : 2000
+        }
+    }, {
+        
+        updateProjectionMatrix : function(){
+            var rad = this.fov / 180 * Math.PI;
+            this.projectionMatrix.perspective(rad, this.aspect, this.near, this.far);
+        }
+    });
 
-	return Perspective;
+    return Perspective;
 } );
 ;
 define("3d/compositor", function(){});
@@ -12590,28 +12653,28 @@ define('3d/compositor/graph/graph',['require','core/base','_'], function( requir
 });
 define('3d/scene',['require','./node'], function(require){
 
-	var Node = require('./node');
+    var Node = require('./node');
 
-	var Scene = Node.derive( function(){
-		return {
+    var Scene = Node.derive( function(){
+        return {
 
-			// Global material of scene
-			material : null,
+            // Global material of scene
+            material : null,
 
-			// Properties to save the light information in the scene
-			// Will be set in the render function
-			lightNumber : {},
-			lightUniforms : {},
-			// Filter function.
-			// Called each render pass to omit the mesh don't want
-			// to be rendered on the screen
-			filter : null
-		}
-	},{
-		
-	});
+            // Properties to save the light information in the scene
+            // Will be set in the render function
+            lightNumber : {},
+            lightUniforms : {},
+            // Filter function.
+            // Called each render pass to omit the mesh don't want
+            // to be rendered on the screen
+            filter : null
+        }
+    },{
+        
+    });
 
-	return Scene;
+    return Scene;
 } );
 /**
  *
@@ -13431,738 +13494,738 @@ define('3d/geometry/plane',['require','../geometry'], function(require){
  *
  */
 define('3d/shader',['require','core/base','glmatrix','util/util','_'], function(require){
-	
-	var Base = require("core/base"),
-		glMatrix = require("glmatrix"),
-		mat2 = glMatrix.mat2
-		mat3 = glMatrix.mat3,
-		mat4 = glMatrix.mat4,
-		vec2 = glMatrix.vec2,
-		vec3 = glMatrix.vec3,
-		vec4 = glMatrix.vec4,
-		util = require("util/util"),
-		_ = require("_");
-
-	var uniformRegex = /uniform\s+(bool|float|int|vec2|vec3|vec4|ivec2|ivec3|ivec4|mat2|mat3|mat4|sampler2D|samplerCube)\s+(\w+)?(\[.*?\])?\s*(:\s*([\S\s]+?))?;/g;
-	var attributeRegex = /attribute\s+(float|int|vec2|vec3|vec4)\s+(\w*)\s*(:\s*(\w+))?;/g;
-
-	var uniformTypeMap = {
-		"bool" : "1i",
-		"int" : "1i",
-		"sampler2D" : "t",
-		"samplerCube" : "t",
-		"float" : "1f",
-		"vec2" : "2f",
-		"vec3" : "3f",
-		"vec4" : "4f",
-		"ivec2" : "2i",
-		"ivec3" : "3i",
-		"ivec4" : "4i",
-		"mat2" : "m2",
-		"mat3" : "m3",
-		"mat4" : "m4"
-	}
-	var uniformValueConstructor = {
-		'bool' : function(){return true;},
-		'int' : function(){return 0;},
-		'float' : function(){return 0;},
-		'sampler2D' : function(){return null;},
-		'samplerCube' : function(){return null;},
-
-		'vec2' : function(){return new Float32Array(2);},
-		'vec3' : function(){return new Float32Array(3);},
-		'vec4' : function(){return new Float32Array(4);},
-
-		'ivec2' : function(){return new Int32Array(2);},
-		'ivec3' : function(){return new Int32Array(3);},
-		'ivec4' : function(){return new Int32Array(4);},
-
-		'mat2' : function(){return mat2.create();},
-		'mat3' : function(){return mat3.create();},
-		'mat4' : function(){return mat4.create();},
-
-		'array' : function(){return [];}
-	}
-	var availableSemantics = [
-			'POSITION', 
-			'NORMAL',
-			'BINORMAL',
-			'TANGENT',
-			'TEXCOORD',
-			'TEXCOORD_0',
-			'TEXCOORD_1',
-			'COLOR',
-			'WORLD',
-			'VIEW',
-			'PROJECTION',
-			'WORLDVIEW',
-			'VIEWPROJECTION',
-			'WORLDVIEWPROJECTION',
-			'WORLDINVERSE',
-			'VIEWINVERSE',
-			'PROJECTIONINVERSE',
-			'WORLDVIEWINVERSE',
-			'VIEWPROJECTIONINVERSE',
-			'WORLDVIEWPROJECTIONINVERSE',
-			'WORLDTRANSPOSE',
-			'VIEWTRANSPOSE',
-			'PROJECTIONTRANSPOSE',
-			'WORLDVIEWTRANSPOSE',
-			'VIEWPROJECTIONTRANSPOSE',
-			'WORLDVIEWPROJECTIONTRANSPOSE',
-			'WORLDINVERSETRANSPOSE',
-			'VIEWINVERSETRANSPOSE',
-			'PROJECTIONINVERSETRANSPOSE',
-			'WORLDVIEWINVERSETRANSPOSE',
-			'VIEWPROJECTIONINVERSETRANSPOSE',
-			'WORLDVIEWPROJECTIONINVERSETRANSPOSE'];
-	
-	var errorShader = {};
-
-	// Enable attribute operation is global to all programs
-	// Here saved the list of all enabled attribute index 
-	// http://www.mjbshaw.com/2013/03/webgl-fixing-invalidoperation.html
-	var enabledAttributeList = {};
-
-	var Shader = Base.derive( function(){
-
-		return {
-
-			__GUID__ : util.genGUID(),
-
-			vertex : "",
-			
-			fragment : "",
-
-			precision : "mediump",
-			// Properties follow will be generated by the program
-			semantics : {},
-
-			uniformTemplates : {},
-			attributeTemplates : {},
-
-			// Custom defined values in the shader
-			vertexDefines : {},
-			fragmentDefines : {},
-			// Glue code
-			// Defines the each type light number in the scene
-			// AMBIENT_LIGHT
-			// POINT_LIGHT
-			// SPOT_LIGHT
-			// AREA_LIGHT
-			lightNumber : {},
-			// {
-			//  enabled : true
-			//  shaderType : "vertexs",
-			// }
-			_vextureStatus : {},
-
-			_vertexProcessed : "",
-			_fragmentProcessed : "",
-
-			_program : null,
-
-		}
-	}, function(){
-
-		this.update();
-
-	}, {
-
-		setVertex : function(str){
-			this.vertex = str;
-			this.update();
-		},
-		setFragment : function(str){
-			this.fragment = str;_caches
-			this.update();
-		},
-		bind : function( _gl ){
-
-			this.cache.use( _gl.__GUID__ , {
-				"locations" : {},
-				"attriblocations" : {}
-			} );
-
-			if( this.cache.get("dirty") || this.cache.miss("program") ){
-				
-				this._buildProgram( _gl, this._vertexProcessed, this._fragmentProcessed );
-			
-				this.cache.put("dirty", false);
-			}
-
-			_gl.useProgram( this.cache.get("program") );
-		},
-		// Overwrite the dirty method
-		dirty : function(){
-			for( var contextId in this.cache._caches){
-				var context = this.cache._caches[contextId];
-				context["dirty"] = true;
-				context["locations"] = {};
-				context["attriblocations"] = {};
-			}
-		},
-
-		update : function( force ){
-
-			if( this.vertex !== this._vertexPrev ||
-				this.fragment !== this._fragmentPrev || force){
-
-				this._parseImport();
-				
-				this.semantics = {};
-				this._textureStatus = {};
-
-				this._parseUniforms();
-				this._parseAttributes();
-
-				this._vertexPrev = this.vertex;
-				this._fragmentPrev = this.fragment;
-			}
-			this._addDefine();
-
-			this.dirty();
-		},
-
-		enableTexture : function( symbol, autoUpdate ){
-			var status = this._textureStatus[ symbol ];
-			if( status ){
-				var isEnabled = status.enabled;
-				if( isEnabled ){
-					// Do nothing
-					return;
-				}else{
-					status.enabled = true;
-
-					var autoUpdate = typeof(autoUpdate)==="undefined" || true;
-					if(autoUpdate){
-						this.update();
-					}
-				}
-			}
-		},
-
-		enableTexturesAll : function(autoUpdate){
-			for(var symbol in this._textureStatus){
-				this._textureStatus[symbol].enabled = true;
-			}
-
-			var autoUpdate = typeof(autoUpdate)==="undefined" || true;
-			if(autoUpdate){
-				this.update();
-			}
-		},
-
-		disableTexture : function( symbol, autoUpdate ){
-			var status = this._textureStatus[ symbol ];
-			if( status ){
-				var isDisabled = ! status.enabled;
-				if( isDisabled){
-					// Do nothing
-					return;
-				}else{
-					status.enabled = false;
-
-					var autoUpdate = typeof(autoUpdate)==="undefined" || true;
-					if(autoUpdate){
-						this.update();
-					}
-				}
-			}
-		},
-
-		disableTexturesAll : function(symbol, autoUpdate){
-			for(var symbol in this._textureStatus){
-				this._textureStatus[symbol].enabled = false;
-			}
-
-			var autoUpdate = typeof(autoUpdate)==="undefined" || true;
-			if(autoUpdate){
-				this.update();
-			}
-		},
-
-		setUniform : function( _gl, type, symbol, value ){
-
-			var program = this.cache.get("program");			
-
-			var locationsMap = this.cache.get( "locations" );
-			var location = locationsMap[symbol];
-			// Uniform is not existed in the shader
-			if( location === null){
-				return;
-			}
-			else if( ! location ){
-				location = _gl.getUniformLocation( program, symbol );
-				// Unform location is a WebGLUniformLocation Object
-				// If the uniform not exist, it will return null
-				if( location === null  ){
-					locationsMap[symbol] = null;
-					return;
-				}
-				locationsMap[symbol] = location;
-			}
-			switch( type ){
-				case '1i':
-					_gl.uniform1i( location, value );
-					break;
-				case '1f':
-					_gl.uniform1f( location, value );
-					break;
-				case "1fv":
-					_gl.uniform1fv( location, value );
-					break;
-				case "1iv":
-					_gl.uniform1iv( location, value );
-					break;
-				case '2iv':
-					_gl.uniform2iv( location, value );
-					break;
-				case '2fv':
-					_gl.uniform2fv( location, value );
-					break;
-				case '3iv':
-					_gl.uniform3iv( location, value );
-					break;
-				case '3fv':
-					_gl.uniform3fv( location, value );
-					break;
-				case "4iv":
-					_gl.uniform4iv( location, value );
-					break;
-				case "4fv":
-					_gl.uniform4fv( location, value );
-					break;
-				case '2i':
-					_gl.uniform2i( location, value[0], value[1] );
-					break;
-				case '2f':
-					_gl.uniform2f( location, value[0], value[1] );
-					break;
-				case '3i':
-					_gl.uniform3i( location, value[0], value[1], value[2] );
-					break;
-				case '3f':
-					_gl.uniform3f( location, value[0], value[1], value[2] );
-					break;
-				case '4i':
-					_gl.uniform4i( location, value[0], value[1], value[2], value[3] );
-					break;
-				case '4f':
-					_gl.uniform4f( location, value[0], value[1], value[2], value[3] );
-					break;
-				case 'm2':
-					// The matrix must be created by glmatrix and can pass it directly.
-					_gl.uniformMatrix2fv(location, false, value);
-					break;
-				case 'm3':
-					// The matrix must be created by glmatrix and can pass it directly.
-					_gl.uniformMatrix3fv(location, false, value);
-					break;
-				case 'm4':
-					// The matrix must be created by glmatrix and can pass it directly.
-					_gl.uniformMatrix4fv(location, false, value);
-					break;
-				case "m2v":
-					var size = 4;
-				case "m3v":
-					var size = 9;
-				case 'm4v':
-					var size = 16;
-					if( value instanceof Array){
-						var array = new Float32Array(value.length * size);
-						var cursor = 0;
-						for(var i = 0; i < value.length; i++){
-							var item = value[i];
-							for(var j = 0; j < item.length; j++){
-								array[cursor++] = item[j];
-							}
-						}
-						_gl.uniformMatrix4fv(location, false, array);
-					// Raw value
-					}else if( value instanceof Float32Array){	// ArrayBufferView
-						_gl.uniformMatrix4fv(location, false, value);
-					}
-					break;
-			}
-		},
-		/**
-		 * Enable the attributes passed in and disable the rest
-		 * Example Usage:
-		 * enableAttributes( _gl, "position", "texcoords")
-		 * OR
-		 * enableAttributes(_gl, ["position", "texcoors"])
-		 */
-		enableAttributes : function( _gl, attribList ){
-			
-			var program = this.cache.get("program");
-
-			var locationsMap = this.cache.get("attriblocations");
-
-			if( typeof(attribList) === "string"){
-				attribList = Array.prototype.slice.call(arguments, 1);
-			}
-
-			var enabledAttributeListInContext = enabledAttributeList[_gl.__GUID__];
-			if( ! enabledAttributeListInContext ){
-				enabledAttributeListInContext = enabledAttributeList[_gl.__GUID__] = [];
-			}
-
-			for(var symbol in this.attributeTemplates){
-				var location = locationsMap[symbol];						
-				if( typeof(location) === "undefined" ){
-					location = _gl.getAttribLocation( program, symbol );
-					// Attrib location is a number from 0 to ...
-					if( location === -1){
-						continue;
-					}
-					locationsMap[symbol] = location;
-				}
-
-				if(attribList.indexOf(symbol) >= 0){
-					if( ! enabledAttributeListInContext[location] ){
-						_gl.enableVertexAttribArray(location);
-						enabledAttributeListInContext[location] = true;
-					}
-				}else{
-					if( enabledAttributeListInContext[location]){
-						_gl.disableVertexAttribArray(location);
-						enabledAttributeListInContext[location] = false;
-					}
-				}
-			}
-		},
-
-		setMeshAttribute : function( _gl, symbol, info ){
-			var type = info.type,
-				size = info.size,
-				glType;
-			switch( type ){
-				case "byte":
-					glType = _gl.BYTE;
-					break;
-				case "ubyte":
-					glType = _gl.UNSIGNED_BYTE;
-					break;
-				case "short":
-					glType = _gl.SHORT;
-					break;
-				case "ushort":
-					glType = _gl.UNSIGNED_SHORT;
-					break;
-				default:
-					glType = _gl.FLOAT;
-					break;
-			}
-
-			var program = this.cache.get("program");			
-
-			var locationsMap = this.cache.get("attriblocations");
-			var location = locationsMap[symbol];
-
-			if( typeof(location) === "undefined" ){
-				location = _gl.getAttribLocation( program, symbol );
-				// Attrib location is a number from 0 to ...
-				if( location === -1){
-					return;
-				}
-				locationsMap[symbol] = location;
-			}
-
-			_gl.vertexAttribPointer( location, size, glType, false, 0, 0 );
-		},
-
-		_parseImport : function(){
-
-			this._vertexProcessedWithoutDefine = Shader.parseImport( this.vertex );
-			this._fragmentProcessedWithoutDefine = Shader.parseImport( this.fragment );
-
-		},
-
-		_addDefine : function(){
-
-			// Add defines
-			var defineStr = [];
-			_.each( this.lightNumber, function(count, lightType){
-				if( count ){
-					defineStr.push( "#define "+lightType.toUpperCase()+"_NUMBER "+count );
-				}
-			});
-			_.each( this._textureStatus, function(status, symbol){
-				if( status.enabled && status.shaderType === "vertex" ){
-					defineStr.push( "#define "+symbol.toUpperCase()+"_ENABLED" );
-				}
-			});
-			// Custom Defines
-			_.each( this.vertexDefines, function(value, symbol){
-				if( value === null){
-					defineStr.push("#define "+symbol);
-				}else{
-					defineStr.push("#define "+symbol+" "+value.toString());
-				}
-			} )
-			this._vertexProcessed = defineStr.join("\n") + "\n" + this._vertexProcessedWithoutDefine;
-
-			defineStr = [];
-			_.each( this.lightNumber, function( count, lightType){
-				if( count ){
-					defineStr.push( "#define "+lightType+"_NUMBER "+count );
-				}
-			});
-			_.each( this._textureStatus, function( status, symbol){
-				if( status.enabled && status.shaderType === "fragment" ){
-					defineStr.push( "#define "+symbol.toUpperCase()+"_ENABLED" );
-				}
-			});
-			// Custom Defines
-			_.each( this.fragmentDefines, function(value, symbol){
-				if( value === null){
-					defineStr.push("#define "+symbol);
-				}else{
-					defineStr.push("#define "+symbol+" "+value.toString());
-				}
-			} )
-			var tmp = defineStr.join("\n") + "\n" + this._fragmentProcessedWithoutDefine;
-			
-			// Add precision
-			this._fragmentProcessed = ['precision', this.precision, 'float'].join(' ')+';\n' + tmp;
-
-		},
-
-		_parseUniforms : function(){
-			var uniforms = {},
-				self = this;
-			var shaderType = "vertex";
-			this._vertexProcessedWithoutDefine = this._vertexProcessedWithoutDefine.replace( uniformRegex, _uniformParser );
-			shaderType = "fragment";
-			this._fragmentProcessedWithoutDefine = this._fragmentProcessedWithoutDefine.replace( uniformRegex, _uniformParser );
-
-			function _uniformParser(str, type, symbol, isArray, semanticWrapper, semantic){
-				if( type && symbol ){
-					var uniformType = uniformTypeMap[type];
-					if( uniformType ){
-						if( type === "sampler2D" || type === "samplerCube" ){
-							// Texture is default disabled
-							self._textureStatus[symbol] = {
-								enabled : false,
-								shaderType : shaderType
-							};
-						}
-						if( isArray ){
-							uniformType += 'v';
-						}
-						if( semantic ){
-							if( availableSemantics.indexOf(semantic) < 0 ){
-								var defaultValueFunc = self._parseDefaultValue( type, semantic );
-								if( ! defaultValueFunc)
-									console.warn('Unkown semantic "' + semantic + '"');
-								else
-									semantic = "";
-							}else{
-								self.semantics[ semantic ] = {
-									symbol : symbol,
-									type : uniformType
-								}
-							}
-						}	
-						uniforms[ symbol ] = {
-							type : uniformType,
-							value : isArray ? uniformValueConstructor['array'] : ( defaultValueFunc || uniformValueConstructor[ type ] ),
-							semantic : semantic || null
-						}
-					}
-					return ["uniform", type, symbol, isArray].join(" ")+";\n";
-				}
-			}
-
-			this.uniformTemplates = uniforms;
-		},
-
-		_parseDefaultValue : function(type, str){
-			var arrayRegex = /\[\s*(.*)\s*\]/
-			if( type === "vec2" ||
-				type === "vec3" ||
-				type === "vec4"){
-				var arrayStr = arrayRegex.exec(str)[1];
-				if( arrayStr ){
-					var arr = arrayStr.split(/\s*,\s*/);
-					return function(){
-						return new Float32Array(arr);
-					}
-				}else{
-					// Invalid value
-					return;
-				}
-			}
-			else if( type === "bool" ){
-				return function(){
-					return str.toLowerCase() === "true" ? true : false;
-				}
-			}
-			else if( type === "float" ){
-				return function(){
-					return parseFloat(str);
-				}
-			}
-		},
-
-		// Create a new uniform instance for material
-		createUniforms : function(){
-			var uniforms = {};
-			
-			_.each( this.uniformTemplates, function( uniformTpl, symbol ){
-				uniforms[ symbol ] = {
-					type : uniformTpl.type,
-					value : uniformTpl.value()
-				}
-			} )
-
-			return uniforms;
-		},
-
-		_parseAttributes : function(){
-			var attributes = {},
-				self = this;
-			this._vertexProcessedWithoutDefine = this._vertexProcessedWithoutDefine.replace( attributeRegex, _attributeParser );
-
-			function _attributeParser( str, type, symbol, semanticWrapper, semantic ){
-				if( type && symbol ){
-					var size = 1;
-					switch( type ){
-						case "vec4":
-							size = 4;
-							break;
-						case "vec3":
-							size = 3;
-							break;
-						case "vec2":
-							size = 2;
-							break;
-						case "float":
-							size = 1;
-							break;
-					}
-
-					attributes[ symbol ] = {
-						// Force float
-						type : "float",
-						size : size,
-						semantic : semantic || null
-					}
-
-					if( semantic ){
-						if( availableSemantics.indexOf(semantic) < 0 ){
-							console.warn('Unkown semantic "' + semantic + '"');
-						}else{
-							self.semantics[ semantic ] = {
-								symbol : symbol,
-								type : type
-							}
-						}
-					}
-				}
-
-				return ["attribute", type, symbol].join(" ")+";\n";
-			}
-
-			this.attributeTemplates = attributes;
-		},
-
-		_buildProgram : function(_gl, vertexShaderString, fragmentShaderString){
-
-			if( this.cache.get("program") ){
-				_gl.deleteProgram( this.cache.get("program") );
-			}
-			var program = _gl.createProgram();
-
-			try{
-
-				var vertexShader = this._compileShader(_gl, "vertex", vertexShaderString);
-				var fragmentShader = this._compileShader(_gl, "fragment", fragmentShaderString);
-				_gl.attachShader( program, vertexShader );
-				_gl.attachShader( program, fragmentShader );
-
-				_gl.linkProgram( program );
-
-				if ( !_gl.getProgramParameter( program, _gl.LINK_STATUS ) ) {
-					throw new Error( "Could not initialize shader\n" + "VALIDATE_STATUS: " + _gl.getProgramParameter( program, _gl.VALIDATE_STATUS ) + ", gl error [" + _gl.getError() + "]" );
-				}
-			}catch(e){
-				if( errorShader[ this.__GUID__] ){
-					return;
-				}
-				errorShader[ this.__GUID__ ] = this;
-				throw e; 
-			}
-
-			_gl.deleteShader( vertexShader );
-			_gl.deleteShader( fragmentShader );
-
-			this.cache.put("program", program);
-		},
-
-		_compileShader : function(_gl, type, shaderString){
-			var shader = _gl.createShader( type === "fragment" ? _gl.FRAGMENT_SHADER : _gl.VERTEX_SHADER );
-			_gl.shaderSource( shader, shaderString );
-			_gl.compileShader( shader );
-
-			if ( !_gl.getShaderParameter( shader, _gl.COMPILE_STATUS ) ) {
-				throw new Error( [_gl.getShaderInfoLog( shader ),
-									addLineNumbers(shaderString) ].join("\n") );
-			}
-			return shader;
-		},
-
-		dispose : function(){
-			
-		}
-	});
-		
-	// some util functions
-	function addLineNumbers( string ){
-		var chunks = string.split( "\n" );
-		for ( var i = 0, il = chunks.length; i < il; i ++ ) {
-			// Chrome reports shader errors on lines
-			// starting counting from 1
-			chunks[ i ] = ( i + 1 ) + ": " + chunks[ i ];
-		}
-		return chunks.join( "\n" );
-	}
-
-	var importRegex = /(@import)\s*([0-9a-zA-Z_\-\.]*)/g;
-	Shader.parseImport = function( shaderStr ){
-		shaderStr = shaderStr.replace( importRegex, function(str, importSymbol, importName ){
-			if( _source[importName] ){
-				// Recursively parse
-				return Shader.parseImport( _source[ importName ] );
-			}
-		} )
-		return shaderStr;
-	}
-
-	var exportRegex = /(@export)\s*([0-9a-zA-Z_\-\.]*)\s*\n([\s\S]*?)@end/g;
-	// Import the shader to library and chunks
-	Shader.import = function( shaderStr ){
-
-		shaderStr.replace( exportRegex, function(str, exportSymbol, exportName, code){
-			_source[ exportName ] = code;
-			return code;
-		} )
-	}
-
-	// Library to store all the loaded shader strings
-	var _source = {};
-
-	Shader.source = function( name ){
-		var shaderStr = _source[name];
-		if( ! shaderStr ){
-			console.error( 'Shader "' + name + '" not existed in library');
-			return;
-		}
-		return shaderStr;
-	}
-
-	return Shader;
+    
+    var Base = require("core/base"),
+        glMatrix = require("glmatrix"),
+        mat2 = glMatrix.mat2
+        mat3 = glMatrix.mat3,
+        mat4 = glMatrix.mat4,
+        vec2 = glMatrix.vec2,
+        vec3 = glMatrix.vec3,
+        vec4 = glMatrix.vec4,
+        util = require("util/util"),
+        _ = require("_");
+
+    var uniformRegex = /uniform\s+(bool|float|int|vec2|vec3|vec4|ivec2|ivec3|ivec4|mat2|mat3|mat4|sampler2D|samplerCube)\s+(\w+)?(\[.*?\])?\s*(:\s*([\S\s]+?))?;/g;
+    var attributeRegex = /attribute\s+(float|int|vec2|vec3|vec4)\s+(\w*)\s*(:\s*(\w+))?;/g;
+
+    var uniformTypeMap = {
+        "bool" : "1i",
+        "int" : "1i",
+        "sampler2D" : "t",
+        "samplerCube" : "t",
+        "float" : "1f",
+        "vec2" : "2f",
+        "vec3" : "3f",
+        "vec4" : "4f",
+        "ivec2" : "2i",
+        "ivec3" : "3i",
+        "ivec4" : "4i",
+        "mat2" : "m2",
+        "mat3" : "m3",
+        "mat4" : "m4"
+    }
+    var uniformValueConstructor = {
+        'bool' : function(){return true;},
+        'int' : function(){return 0;},
+        'float' : function(){return 0;},
+        'sampler2D' : function(){return null;},
+        'samplerCube' : function(){return null;},
+
+        'vec2' : function(){return new Float32Array(2);},
+        'vec3' : function(){return new Float32Array(3);},
+        'vec4' : function(){return new Float32Array(4);},
+
+        'ivec2' : function(){return new Int32Array(2);},
+        'ivec3' : function(){return new Int32Array(3);},
+        'ivec4' : function(){return new Int32Array(4);},
+
+        'mat2' : function(){return mat2.create();},
+        'mat3' : function(){return mat3.create();},
+        'mat4' : function(){return mat4.create();},
+
+        'array' : function(){return [];}
+    }
+    var availableSemantics = [
+            'POSITION', 
+            'NORMAL',
+            'BINORMAL',
+            'TANGENT',
+            'TEXCOORD',
+            'TEXCOORD_0',
+            'TEXCOORD_1',
+            'COLOR',
+            'WORLD',
+            'VIEW',
+            'PROJECTION',
+            'WORLDVIEW',
+            'VIEWPROJECTION',
+            'WORLDVIEWPROJECTION',
+            'WORLDINVERSE',
+            'VIEWINVERSE',
+            'PROJECTIONINVERSE',
+            'WORLDVIEWINVERSE',
+            'VIEWPROJECTIONINVERSE',
+            'WORLDVIEWPROJECTIONINVERSE',
+            'WORLDTRANSPOSE',
+            'VIEWTRANSPOSE',
+            'PROJECTIONTRANSPOSE',
+            'WORLDVIEWTRANSPOSE',
+            'VIEWPROJECTIONTRANSPOSE',
+            'WORLDVIEWPROJECTIONTRANSPOSE',
+            'WORLDINVERSETRANSPOSE',
+            'VIEWINVERSETRANSPOSE',
+            'PROJECTIONINVERSETRANSPOSE',
+            'WORLDVIEWINVERSETRANSPOSE',
+            'VIEWPROJECTIONINVERSETRANSPOSE',
+            'WORLDVIEWPROJECTIONINVERSETRANSPOSE'];
+    
+    var errorShader = {};
+
+    // Enable attribute operation is global to all programs
+    // Here saved the list of all enabled attribute index 
+    // http://www.mjbshaw.com/2013/03/webgl-fixing-invalidoperation.html
+    var enabledAttributeList = {};
+
+    var Shader = Base.derive( function(){
+
+        return {
+
+            __GUID__ : util.genGUID(),
+
+            vertex : "",
+            
+            fragment : "",
+
+            precision : "mediump",
+            // Properties follow will be generated by the program
+            semantics : {},
+
+            uniformTemplates : {},
+            attributeTemplates : {},
+
+            // Custom defined values in the shader
+            vertexDefines : {},
+            fragmentDefines : {},
+            // Glue code
+            // Defines the each type light number in the scene
+            // AMBIENT_LIGHT
+            // POINT_LIGHT
+            // SPOT_LIGHT
+            // AREA_LIGHT
+            lightNumber : {},
+            // {
+            //  enabled : true
+            //  shaderType : "vertexs",
+            // }
+            _vextureStatus : {},
+
+            _vertexProcessed : "",
+            _fragmentProcessed : "",
+
+            _program : null,
+
+        }
+    }, function(){
+
+        this.update();
+
+    }, {
+
+        setVertex : function(str){
+            this.vertex = str;
+            this.update();
+        },
+        setFragment : function(str){
+            this.fragment = str;_caches
+            this.update();
+        },
+        bind : function( _gl ){
+
+            this.cache.use( _gl.__GUID__ , {
+                "locations" : {},
+                "attriblocations" : {}
+            } );
+
+            if( this.cache.get("dirty") || this.cache.miss("program") ){
+                
+                this._buildProgram( _gl, this._vertexProcessed, this._fragmentProcessed );
+            
+                this.cache.put("dirty", false);
+            }
+
+            _gl.useProgram( this.cache.get("program") );
+        },
+        // Overwrite the dirty method
+        dirty : function(){
+            for( var contextId in this.cache._caches){
+                var context = this.cache._caches[contextId];
+                context["dirty"] = true;
+                context["locations"] = {};
+                context["attriblocations"] = {};
+            }
+        },
+
+        update : function( force ){
+
+            if( this.vertex !== this._vertexPrev ||
+                this.fragment !== this._fragmentPrev || force){
+
+                this._parseImport();
+                
+                this.semantics = {};
+                this._textureStatus = {};
+
+                this._parseUniforms();
+                this._parseAttributes();
+
+                this._vertexPrev = this.vertex;
+                this._fragmentPrev = this.fragment;
+            }
+            this._addDefine();
+
+            this.dirty();
+        },
+
+        enableTexture : function( symbol, autoUpdate ){
+            var status = this._textureStatus[ symbol ];
+            if( status ){
+                var isEnabled = status.enabled;
+                if( isEnabled ){
+                    // Do nothing
+                    return;
+                }else{
+                    status.enabled = true;
+
+                    var autoUpdate = typeof(autoUpdate)==="undefined" || true;
+                    if(autoUpdate){
+                        this.update();
+                    }
+                }
+            }
+        },
+
+        enableTexturesAll : function(autoUpdate){
+            for(var symbol in this._textureStatus){
+                this._textureStatus[symbol].enabled = true;
+            }
+
+            var autoUpdate = typeof(autoUpdate)==="undefined" || true;
+            if(autoUpdate){
+                this.update();
+            }
+        },
+
+        disableTexture : function( symbol, autoUpdate ){
+            var status = this._textureStatus[ symbol ];
+            if( status ){
+                var isDisabled = ! status.enabled;
+                if( isDisabled){
+                    // Do nothing
+                    return;
+                }else{
+                    status.enabled = false;
+
+                    var autoUpdate = typeof(autoUpdate)==="undefined" || true;
+                    if(autoUpdate){
+                        this.update();
+                    }
+                }
+            }
+        },
+
+        disableTexturesAll : function(symbol, autoUpdate){
+            for(var symbol in this._textureStatus){
+                this._textureStatus[symbol].enabled = false;
+            }
+
+            var autoUpdate = typeof(autoUpdate)==="undefined" || true;
+            if(autoUpdate){
+                this.update();
+            }
+        },
+
+        setUniform : function( _gl, type, symbol, value ){
+
+            var program = this.cache.get("program");            
+
+            var locationsMap = this.cache.get( "locations" );
+            var location = locationsMap[symbol];
+            // Uniform is not existed in the shader
+            if( location === null){
+                return;
+            }
+            else if( ! location ){
+                location = _gl.getUniformLocation( program, symbol );
+                // Unform location is a WebGLUniformLocation Object
+                // If the uniform not exist, it will return null
+                if( location === null  ){
+                    locationsMap[symbol] = null;
+                    return;
+                }
+                locationsMap[symbol] = location;
+            }
+            switch( type ){
+                case '1i':
+                    _gl.uniform1i( location, value );
+                    break;
+                case '1f':
+                    _gl.uniform1f( location, value );
+                    break;
+                case "1fv":
+                    _gl.uniform1fv( location, value );
+                    break;
+                case "1iv":
+                    _gl.uniform1iv( location, value );
+                    break;
+                case '2iv':
+                    _gl.uniform2iv( location, value );
+                    break;
+                case '2fv':
+                    _gl.uniform2fv( location, value );
+                    break;
+                case '3iv':
+                    _gl.uniform3iv( location, value );
+                    break;
+                case '3fv':
+                    _gl.uniform3fv( location, value );
+                    break;
+                case "4iv":
+                    _gl.uniform4iv( location, value );
+                    break;
+                case "4fv":
+                    _gl.uniform4fv( location, value );
+                    break;
+                case '2i':
+                    _gl.uniform2i( location, value[0], value[1] );
+                    break;
+                case '2f':
+                    _gl.uniform2f( location, value[0], value[1] );
+                    break;
+                case '3i':
+                    _gl.uniform3i( location, value[0], value[1], value[2] );
+                    break;
+                case '3f':
+                    _gl.uniform3f( location, value[0], value[1], value[2] );
+                    break;
+                case '4i':
+                    _gl.uniform4i( location, value[0], value[1], value[2], value[3] );
+                    break;
+                case '4f':
+                    _gl.uniform4f( location, value[0], value[1], value[2], value[3] );
+                    break;
+                case 'm2':
+                    // The matrix must be created by glmatrix and can pass it directly.
+                    _gl.uniformMatrix2fv(location, false, value);
+                    break;
+                case 'm3':
+                    // The matrix must be created by glmatrix and can pass it directly.
+                    _gl.uniformMatrix3fv(location, false, value);
+                    break;
+                case 'm4':
+                    // The matrix must be created by glmatrix and can pass it directly.
+                    _gl.uniformMatrix4fv(location, false, value);
+                    break;
+                case "m2v":
+                    var size = 4;
+                case "m3v":
+                    var size = 9;
+                case 'm4v':
+                    var size = 16;
+                    if( value instanceof Array){
+                        var array = new Float32Array(value.length * size);
+                        var cursor = 0;
+                        for(var i = 0; i < value.length; i++){
+                            var item = value[i];
+                            for(var j = 0; j < item.length; j++){
+                                array[cursor++] = item[j];
+                            }
+                        }
+                        _gl.uniformMatrix4fv(location, false, array);
+                    // Raw value
+                    }else if( value instanceof Float32Array){   // ArrayBufferView
+                        _gl.uniformMatrix4fv(location, false, value);
+                    }
+                    break;
+            }
+        },
+        /**
+         * Enable the attributes passed in and disable the rest
+         * Example Usage:
+         * enableAttributes( _gl, "position", "texcoords")
+         * OR
+         * enableAttributes(_gl, ["position", "texcoors"])
+         */
+        enableAttributes : function( _gl, attribList ){
+            
+            var program = this.cache.get("program");
+
+            var locationsMap = this.cache.get("attriblocations");
+
+            if( typeof(attribList) === "string"){
+                attribList = Array.prototype.slice.call(arguments, 1);
+            }
+
+            var enabledAttributeListInContext = enabledAttributeList[_gl.__GUID__];
+            if( ! enabledAttributeListInContext ){
+                enabledAttributeListInContext = enabledAttributeList[_gl.__GUID__] = [];
+            }
+
+            for(var symbol in this.attributeTemplates){
+                var location = locationsMap[symbol];                        
+                if( typeof(location) === "undefined" ){
+                    location = _gl.getAttribLocation( program, symbol );
+                    // Attrib location is a number from 0 to ...
+                    if( location === -1){
+                        continue;
+                    }
+                    locationsMap[symbol] = location;
+                }
+
+                if(attribList.indexOf(symbol) >= 0){
+                    if( ! enabledAttributeListInContext[location] ){
+                        _gl.enableVertexAttribArray(location);
+                        enabledAttributeListInContext[location] = true;
+                    }
+                }else{
+                    if( enabledAttributeListInContext[location]){
+                        _gl.disableVertexAttribArray(location);
+                        enabledAttributeListInContext[location] = false;
+                    }
+                }
+            }
+        },
+
+        setMeshAttribute : function( _gl, symbol, info ){
+            var type = info.type,
+                size = info.size,
+                glType;
+            switch( type ){
+                case "byte":
+                    glType = _gl.BYTE;
+                    break;
+                case "ubyte":
+                    glType = _gl.UNSIGNED_BYTE;
+                    break;
+                case "short":
+                    glType = _gl.SHORT;
+                    break;
+                case "ushort":
+                    glType = _gl.UNSIGNED_SHORT;
+                    break;
+                default:
+                    glType = _gl.FLOAT;
+                    break;
+            }
+
+            var program = this.cache.get("program");            
+
+            var locationsMap = this.cache.get("attriblocations");
+            var location = locationsMap[symbol];
+
+            if( typeof(location) === "undefined" ){
+                location = _gl.getAttribLocation( program, symbol );
+                // Attrib location is a number from 0 to ...
+                if( location === -1){
+                    return;
+                }
+                locationsMap[symbol] = location;
+            }
+
+            _gl.vertexAttribPointer( location, size, glType, false, 0, 0 );
+        },
+
+        _parseImport : function(){
+
+            this._vertexProcessedWithoutDefine = Shader.parseImport( this.vertex );
+            this._fragmentProcessedWithoutDefine = Shader.parseImport( this.fragment );
+
+        },
+
+        _addDefine : function(){
+
+            // Add defines
+            var defineStr = [];
+            _.each( this.lightNumber, function(count, lightType){
+                if( count ){
+                    defineStr.push( "#define "+lightType.toUpperCase()+"_NUMBER "+count );
+                }
+            });
+            _.each( this._textureStatus, function(status, symbol){
+                if( status.enabled && status.shaderType === "vertex" ){
+                    defineStr.push( "#define "+symbol.toUpperCase()+"_ENABLED" );
+                }
+            });
+            // Custom Defines
+            _.each( this.vertexDefines, function(value, symbol){
+                if( value === null){
+                    defineStr.push("#define "+symbol);
+                }else{
+                    defineStr.push("#define "+symbol+" "+value.toString());
+                }
+            } )
+            this._vertexProcessed = defineStr.join("\n") + "\n" + this._vertexProcessedWithoutDefine;
+
+            defineStr = [];
+            _.each( this.lightNumber, function( count, lightType){
+                if( count ){
+                    defineStr.push( "#define "+lightType+"_NUMBER "+count );
+                }
+            });
+            _.each( this._textureStatus, function( status, symbol){
+                if( status.enabled && status.shaderType === "fragment" ){
+                    defineStr.push( "#define "+symbol.toUpperCase()+"_ENABLED" );
+                }
+            });
+            // Custom Defines
+            _.each( this.fragmentDefines, function(value, symbol){
+                if( value === null){
+                    defineStr.push("#define "+symbol);
+                }else{
+                    defineStr.push("#define "+symbol+" "+value.toString());
+                }
+            } )
+            var tmp = defineStr.join("\n") + "\n" + this._fragmentProcessedWithoutDefine;
+            
+            // Add precision
+            this._fragmentProcessed = ['precision', this.precision, 'float'].join(' ')+';\n' + tmp;
+
+        },
+
+        _parseUniforms : function(){
+            var uniforms = {},
+                self = this;
+            var shaderType = "vertex";
+            this._vertexProcessedWithoutDefine = this._vertexProcessedWithoutDefine.replace( uniformRegex, _uniformParser );
+            shaderType = "fragment";
+            this._fragmentProcessedWithoutDefine = this._fragmentProcessedWithoutDefine.replace( uniformRegex, _uniformParser );
+
+            function _uniformParser(str, type, symbol, isArray, semanticWrapper, semantic){
+                if( type && symbol ){
+                    var uniformType = uniformTypeMap[type];
+                    if( uniformType ){
+                        if( type === "sampler2D" || type === "samplerCube" ){
+                            // Texture is default disabled
+                            self._textureStatus[symbol] = {
+                                enabled : false,
+                                shaderType : shaderType
+                            };
+                        }
+                        if( isArray ){
+                            uniformType += 'v';
+                        }
+                        if( semantic ){
+                            if( availableSemantics.indexOf(semantic) < 0 ){
+                                var defaultValueFunc = self._parseDefaultValue( type, semantic );
+                                if( ! defaultValueFunc)
+                                    console.warn('Unkown semantic "' + semantic + '"');
+                                else
+                                    semantic = "";
+                            }else{
+                                self.semantics[ semantic ] = {
+                                    symbol : symbol,
+                                    type : uniformType
+                                }
+                            }
+                        }   
+                        uniforms[ symbol ] = {
+                            type : uniformType,
+                            value : isArray ? uniformValueConstructor['array'] : ( defaultValueFunc || uniformValueConstructor[ type ] ),
+                            semantic : semantic || null
+                        }
+                    }
+                    return ["uniform", type, symbol, isArray].join(" ")+";\n";
+                }
+            }
+
+            this.uniformTemplates = uniforms;
+        },
+
+        _parseDefaultValue : function(type, str){
+            var arrayRegex = /\[\s*(.*)\s*\]/
+            if( type === "vec2" ||
+                type === "vec3" ||
+                type === "vec4"){
+                var arrayStr = arrayRegex.exec(str)[1];
+                if( arrayStr ){
+                    var arr = arrayStr.split(/\s*,\s*/);
+                    return function(){
+                        return new Float32Array(arr);
+                    }
+                }else{
+                    // Invalid value
+                    return;
+                }
+            }
+            else if( type === "bool" ){
+                return function(){
+                    return str.toLowerCase() === "true" ? true : false;
+                }
+            }
+            else if( type === "float" ){
+                return function(){
+                    return parseFloat(str);
+                }
+            }
+        },
+
+        // Create a new uniform instance for material
+        createUniforms : function(){
+            var uniforms = {};
+            
+            _.each( this.uniformTemplates, function( uniformTpl, symbol ){
+                uniforms[ symbol ] = {
+                    type : uniformTpl.type,
+                    value : uniformTpl.value()
+                }
+            } )
+
+            return uniforms;
+        },
+
+        _parseAttributes : function(){
+            var attributes = {},
+                self = this;
+            this._vertexProcessedWithoutDefine = this._vertexProcessedWithoutDefine.replace( attributeRegex, _attributeParser );
+
+            function _attributeParser( str, type, symbol, semanticWrapper, semantic ){
+                if( type && symbol ){
+                    var size = 1;
+                    switch( type ){
+                        case "vec4":
+                            size = 4;
+                            break;
+                        case "vec3":
+                            size = 3;
+                            break;
+                        case "vec2":
+                            size = 2;
+                            break;
+                        case "float":
+                            size = 1;
+                            break;
+                    }
+
+                    attributes[ symbol ] = {
+                        // Force float
+                        type : "float",
+                        size : size,
+                        semantic : semantic || null
+                    }
+
+                    if( semantic ){
+                        if( availableSemantics.indexOf(semantic) < 0 ){
+                            console.warn('Unkown semantic "' + semantic + '"');
+                        }else{
+                            self.semantics[ semantic ] = {
+                                symbol : symbol,
+                                type : type
+                            }
+                        }
+                    }
+                }
+
+                return ["attribute", type, symbol].join(" ")+";\n";
+            }
+
+            this.attributeTemplates = attributes;
+        },
+
+        _buildProgram : function(_gl, vertexShaderString, fragmentShaderString){
+
+            if( this.cache.get("program") ){
+                _gl.deleteProgram( this.cache.get("program") );
+            }
+            var program = _gl.createProgram();
+
+            try{
+
+                var vertexShader = this._compileShader(_gl, "vertex", vertexShaderString);
+                var fragmentShader = this._compileShader(_gl, "fragment", fragmentShaderString);
+                _gl.attachShader( program, vertexShader );
+                _gl.attachShader( program, fragmentShader );
+
+                _gl.linkProgram( program );
+
+                if ( !_gl.getProgramParameter( program, _gl.LINK_STATUS ) ) {
+                    throw new Error( "Could not initialize shader\n" + "VALIDATE_STATUS: " + _gl.getProgramParameter( program, _gl.VALIDATE_STATUS ) + ", gl error [" + _gl.getError() + "]" );
+                }
+            }catch(e){
+                if( errorShader[ this.__GUID__] ){
+                    return;
+                }
+                errorShader[ this.__GUID__ ] = this;
+                throw e; 
+            }
+
+            _gl.deleteShader( vertexShader );
+            _gl.deleteShader( fragmentShader );
+
+            this.cache.put("program", program);
+        },
+
+        _compileShader : function(_gl, type, shaderString){
+            var shader = _gl.createShader( type === "fragment" ? _gl.FRAGMENT_SHADER : _gl.VERTEX_SHADER );
+            _gl.shaderSource( shader, shaderString );
+            _gl.compileShader( shader );
+
+            if ( !_gl.getShaderParameter( shader, _gl.COMPILE_STATUS ) ) {
+                throw new Error( [_gl.getShaderInfoLog( shader ),
+                                    addLineNumbers(shaderString) ].join("\n") );
+            }
+            return shader;
+        },
+
+        dispose : function(){
+            
+        }
+    });
+        
+    // some util functions
+    function addLineNumbers( string ){
+        var chunks = string.split( "\n" );
+        for ( var i = 0, il = chunks.length; i < il; i ++ ) {
+            // Chrome reports shader errors on lines
+            // starting counting from 1
+            chunks[ i ] = ( i + 1 ) + ": " + chunks[ i ];
+        }
+        return chunks.join( "\n" );
+    }
+
+    var importRegex = /(@import)\s*([0-9a-zA-Z_\-\.]*)/g;
+    Shader.parseImport = function( shaderStr ){
+        shaderStr = shaderStr.replace( importRegex, function(str, importSymbol, importName ){
+            if( _source[importName] ){
+                // Recursively parse
+                return Shader.parseImport( _source[ importName ] );
+            }
+        } )
+        return shaderStr;
+    }
+
+    var exportRegex = /(@export)\s*([0-9a-zA-Z_\-\.]*)\s*\n([\s\S]*?)@end/g;
+    // Import the shader to library and chunks
+    Shader.import = function( shaderStr ){
+
+        shaderStr.replace( exportRegex, function(str, exportSymbol, exportName, code){
+            _source[ exportName ] = code;
+            return code;
+        } )
+    }
+
+    // Library to store all the loaded shader strings
+    var _source = {};
+
+    Shader.source = function( name ){
+        var shaderStr = _source[name];
+        if( ! shaderStr ){
+            console.error( 'Shader "' + name + '" not existed in library');
+            return;
+        }
+        return shaderStr;
+    }
+
+    return Shader;
 } );
 /**
  * Base class for all textures like compressed texture, texture2d, texturecube
@@ -14170,160 +14233,160 @@ define('3d/shader',['require','core/base','glmatrix','util/util','_'], function(
  */
 define('3d/texture',['require','core/base','_'], function(require){
 
-	var Base = require("core/base"),
-		_ = require("_");
+    var Base = require("core/base"),
+        _ = require("_");
 
-	var Texture = Base.derive( function(){
+    var Texture = Base.derive( function(){
 
-		return {
+        return {
 
-			// Width and height is used when the image is null and want
-			// to use it as a texture attach to framebuffer( RTT )
-			width : 512,
-			height : 512,
+            // Width and height is used when the image is null and want
+            // to use it as a texture attach to framebuffer( RTT )
+            width : 512,
+            height : 512,
 
-			// UNSIGNED_BYTE 
-			// FLOAT
-			type : 'UNSIGNED_BYTE',
-			// ALPHA
-			// RGB
-			// RGBA
-			// LUMINANCE
-			// LUMINANCE_ALPHA
-			format : 'RGBA',
-			// 'CLAMP_TO_EDGE'
-			// 'REPEAT'
-			// 'MIRRORED_REPEAT'
-			wrapS : 'CLAMP_TO_EDGE',
-			wrapT : 'CLAMP_TO_EDGE',
-			// Texture min and mag filter
-			// http://www.khronos.org/registry/gles/specs/2.0/es_full_spec_2.0.25.pdf
-			// NEARST
-			// LINEAR
-			// NEAREST_MIPMAP_NEAREST
-			// NEAREST_MIPMAP_LINEAR
-			// LINEAR_MIPMAP_NEAREST
-			// LINEAR_MIPMAP_LINEAR
-			minFilter : 'LINEAR_MIPMAP_LINEAR',
-			// NEARST
-			// LINEAR
-			magFilter : 'LINEAR',
+            // UNSIGNED_BYTE 
+            // FLOAT
+            type : 'UNSIGNED_BYTE',
+            // ALPHA
+            // RGB
+            // RGBA
+            // LUMINANCE
+            // LUMINANCE_ALPHA
+            format : 'RGBA',
+            // 'CLAMP_TO_EDGE'
+            // 'REPEAT'
+            // 'MIRRORED_REPEAT'
+            wrapS : 'CLAMP_TO_EDGE',
+            wrapT : 'CLAMP_TO_EDGE',
+            // Texture min and mag filter
+            // http://www.khronos.org/registry/gles/specs/2.0/es_full_spec_2.0.25.pdf
+            // NEARST
+            // LINEAR
+            // NEAREST_MIPMAP_NEAREST
+            // NEAREST_MIPMAP_LINEAR
+            // LINEAR_MIPMAP_NEAREST
+            // LINEAR_MIPMAP_LINEAR
+            minFilter : 'LINEAR_MIPMAP_LINEAR',
+            // NEARST
+            // LINEAR
+            magFilter : 'LINEAR',
 
-			generateMipmaps : true,
+            generateMipmaps : true,
 
-			// http://blog.tojicode.com/2012/03/anisotropic-filtering-in-webgl.html
-			anisotropic : 1,
-			// pixelStorei parameters
-			// http://www.khronos.org/opengles/sdk/docs/man/xhtml/glPixelStorei.xml
-			flipY : true,
-			unpackAlignment : 4,
-			premultiplyAlpha : false,
+            // http://blog.tojicode.com/2012/03/anisotropic-filtering-in-webgl.html
+            anisotropic : 1,
+            // pixelStorei parameters
+            // http://www.khronos.org/opengles/sdk/docs/man/xhtml/glPixelStorei.xml
+            flipY : true,
+            unpackAlignment : 4,
+            premultiplyAlpha : false,
 
-			NPOT : false
-		}
-	}, {
+            NPOT : false
+        }
+    }, {
 
-		getWebGLTexture : function( _gl ){
+        getWebGLTexture : function( _gl ){
 
-			this.cache.use( _gl.__GUID__ );
+            this.cache.use( _gl.__GUID__ );
 
-			if( this.cache.miss( "webgl_texture" ) ){
-				// In a new gl context, create new texture and set dirty true
-				this.cache.put( "webgl_texture", _gl.createTexture() );
-				this.cache.put( "dirty", true );
-			}
-			if( this.cache.get("dirty") ){
-				this.update( _gl );
-				this.cache.put("dirty", false);
-			}
+            if( this.cache.miss( "webgl_texture" ) ){
+                // In a new gl context, create new texture and set dirty true
+                this.cache.put( "webgl_texture", _gl.createTexture() );
+                this.cache.put( "dirty", true );
+            }
+            if( this.cache.get("dirty") ){
+                this.update( _gl );
+                this.cache.put("dirty", false);
+            }
 
-			return this.cache.get( "webgl_texture" );
-		},
+            return this.cache.get( "webgl_texture" );
+        },
 
-		bind : function(){},
-		unbind : function(){},
-		
-		// Overwrite the dirty method
-		dirty : function(){
-			for( var contextId in this.cache._caches ){
-				this.cache._caches[ contextId ][ "dirty" ] = true;
-			}
-		},
+        bind : function(){},
+        unbind : function(){},
+        
+        // Overwrite the dirty method
+        dirty : function(){
+            for( var contextId in this.cache._caches ){
+                this.cache._caches[ contextId ][ "dirty" ] = true;
+            }
+        },
 
-		update : function( _gl ){},
+        update : function( _gl ){},
 
-		// Update the common parameters of texture
-		beforeUpdate : function( _gl ){
-			_gl.pixelStorei( _gl.UNPACK_FLIP_Y_WEBGL, this.flipY );
-			_gl.pixelStorei( _gl.UNPACK_PREMULTIPLY_ALPHA_WEBGL, this.premultiplyAlpha );
-			_gl.pixelStorei( _gl.UNPACK_ALIGNMENT, this.unpackAlignment );
+        // Update the common parameters of texture
+        beforeUpdate : function( _gl ){
+            _gl.pixelStorei( _gl.UNPACK_FLIP_Y_WEBGL, this.flipY );
+            _gl.pixelStorei( _gl.UNPACK_PREMULTIPLY_ALPHA_WEBGL, this.premultiplyAlpha );
+            _gl.pixelStorei( _gl.UNPACK_ALIGNMENT, this.unpackAlignment );
 
-			// Use of none-power of two texture
-			// http://www.khronos.org/webgl/wiki/WebGL_and_OpenGL_Differences
-			
-			var isPowerOfTwo = this.isPowerOfTwo();
+            // Use of none-power of two texture
+            // http://www.khronos.org/webgl/wiki/WebGL_and_OpenGL_Differences
+            
+            var isPowerOfTwo = this.isPowerOfTwo();
 
-			if( ! isPowerOfTwo || ! this.generateMipmaps || this.format === 'DEPTH_COMPONENT' ){
-				// none-power of two flag
-				this.NPOT = true;
-				// Save the original value for restore
-				this._minFilterOriginal = this.minFilter;
-				this._magFilterOriginal = this.magFilter;
-				this._wrapSOriginal = this.wrapS;
-				this._wrapTOriginal = this.wrapT;
+            if( ! isPowerOfTwo || ! this.generateMipmaps || this.format === 'DEPTH_COMPONENT' ){
+                // none-power of two flag
+                this.NPOT = true;
+                // Save the original value for restore
+                this._minFilterOriginal = this.minFilter;
+                this._magFilterOriginal = this.magFilter;
+                this._wrapSOriginal = this.wrapS;
+                this._wrapTOriginal = this.wrapT;
 
-				if( this.minFilter.indexOf("NEARST") == 0){
-					this.minFilter = 'NEARST';
-				}else{
-					this.minFilter = 'LINEAR'
-				}
+                if( this.minFilter.indexOf("NEARST") == 0){
+                    this.minFilter = 'NEARST';
+                }else{
+                    this.minFilter = 'LINEAR'
+                }
 
-				if( this.magFilter.indexOf("NEARST") == 0){
-					this.magFilter = 'NEARST';
-				}else{
-					this.magFilter = 'LINEAR'
-				}
-				this.wrapS = 'CLAMP_TO_EDGE';
-				this.wrapT = 'CLAMP_TO_EDGE';
-			}else{
-				if( this._minFilterOriginal ){
-					this.minFilter = this._minFilterOriginal;
-				}
-				if( this._magFilterOriginal ){
-					this.magFilter = this._magFilterOriginal;
-				}
-				if( this._wrapSOriginal ){
-					this.wrapS = this._wrapSOriginal;
-				}
-				if( this._wrapTOriginal ){
-					this.wrapT = this._wrapTOriginal;
-				}
-			}
+                if( this.magFilter.indexOf("NEARST") == 0){
+                    this.magFilter = 'NEARST';
+                }else{
+                    this.magFilter = 'LINEAR'
+                }
+                this.wrapS = 'CLAMP_TO_EDGE';
+                this.wrapT = 'CLAMP_TO_EDGE';
+            }else{
+                if( this._minFilterOriginal ){
+                    this.minFilter = this._minFilterOriginal;
+                }
+                if( this._magFilterOriginal ){
+                    this.magFilter = this._magFilterOriginal;
+                }
+                if( this._wrapSOriginal ){
+                    this.wrapS = this._wrapSOriginal;
+                }
+                if( this._wrapTOriginal ){
+                    this.wrapT = this._wrapTOriginal;
+                }
+            }
 
-			if( this.format === "DEPTH_COMPONENT"){
-				this.generateMipmaps = false;
-			}
-		},
+            if( this.format === "DEPTH_COMPONENT"){
+                this.generateMipmaps = false;
+            }
+        },
 
-		nextHighestPowerOfTwo : function(x) {
-		    --x;
-		    for (var i = 1; i < 32; i <<= 1) {
-		        x = x | x >> i;
-		    }
-		    return x + 1;
-		},
+        nextHighestPowerOfTwo : function(x) {
+            --x;
+            for (var i = 1; i < 32; i <<= 1) {
+                x = x | x >> i;
+            }
+            return x + 1;
+        },
 
-		dispose : function( _gl ){
-			this.cache.use(_gl.__GUID__);
-			_gl.deleteTexture( this.cache.get("webgl_texture") );
-		},
+        dispose : function( _gl ){
+            this.cache.use(_gl.__GUID__);
+            _gl.deleteTexture( this.cache.get("webgl_texture") );
+        },
 
-		isRenderable : function(){},
-		
-		isPowerOfTwo : function(){},
-	} )
+        isRenderable : function(){},
+        
+        isPowerOfTwo : function(){},
+    } )
 
-	return Texture;
+    return Texture;
 } );
 /**
  *
@@ -14421,52 +14484,52 @@ define('3d/texture/texture2d',['require','../texture'], function(require){
  */
 define('3d/texture/texturecube',['require','../texture','_'], function(require){
 
-	var Texture = require('../texture'),
-		_ = require('_');
+    var Texture = require('../texture'),
+        _ = require('_');
 
-	var targetMap = {
-		'px' : 'TEXTURE_CUBE_MAP_POSITIVE_X',
-		'py' : 'TEXTURE_CUBE_MAP_POSITIVE_Y',
-		'pz' : 'TEXTURE_CUBE_MAP_POSITIVE_Z',
-		'nx' : 'TEXTURE_CUBE_MAP_NEGATIVE_X',
-		'ny' : 'TEXTURE_CUBE_MAP_NEGATIVE_Y',
-		'nz' : 'TEXTURE_CUBE_MAP_NEGATIVE_Z',
-	}
+    var targetMap = {
+        'px' : 'TEXTURE_CUBE_MAP_POSITIVE_X',
+        'py' : 'TEXTURE_CUBE_MAP_POSITIVE_Y',
+        'pz' : 'TEXTURE_CUBE_MAP_POSITIVE_Z',
+        'nx' : 'TEXTURE_CUBE_MAP_NEGATIVE_X',
+        'ny' : 'TEXTURE_CUBE_MAP_NEGATIVE_Y',
+        'nz' : 'TEXTURE_CUBE_MAP_NEGATIVE_Z',
+    }
 
-	var TextureCube = Texture.derive({
-		image : {
-			px : null,
-			nx : null,
-			py : null,
-			ny : null,
-			pz : null,
-			nz : null
-		},
-		pixels : {
-			px : null,
-			nx : null,
-			py : null,
-			ny : null,
-			pz : null,
-			nz : null
-		}
-	}, {
+    var TextureCube = Texture.derive({
+        image : {
+            px : null,
+            nx : null,
+            py : null,
+            ny : null,
+            pz : null,
+            nz : null
+        },
+        pixels : {
+            px : null,
+            nx : null,
+            py : null,
+            ny : null,
+            pz : null,
+            nz : null
+        }
+    }, {
 
-		update : function( _gl ){
+        update : function( _gl ){
 
-			_gl.bindTexture( _gl.TEXTURE_CUBE_MAP, this.cache.get("webgl_texture") );
+            _gl.bindTexture( _gl.TEXTURE_CUBE_MAP, this.cache.get("webgl_texture") );
 
-			this.beforeUpdate( _gl );
+            this.beforeUpdate( _gl );
 
-			var glFormat = _gl[ this.format.toUpperCase() ],
-				glType = _gl[ this.type.toUpperCase() ];
+            var glFormat = _gl[ this.format.toUpperCase() ],
+                glType = _gl[ this.type.toUpperCase() ];
 
-			_gl.texParameteri( _gl.TEXTURE_CUBE_MAP, _gl.TEXTURE_WRAP_S, _gl[ this.wrapS.toUpperCase() ] );
-			_gl.texParameteri( _gl.TEXTURE_CUBE_MAP, _gl.TEXTURE_WRAP_T, _gl[ this.wrapT.toUpperCase() ] );
+            _gl.texParameteri( _gl.TEXTURE_CUBE_MAP, _gl.TEXTURE_WRAP_S, _gl[ this.wrapS.toUpperCase() ] );
+            _gl.texParameteri( _gl.TEXTURE_CUBE_MAP, _gl.TEXTURE_WRAP_T, _gl[ this.wrapT.toUpperCase() ] );
 
-			_gl.texParameteri( _gl.TEXTURE_CUBE_MAP, _gl.TEXTURE_MAG_FILTER, _gl[ this.magFilter.toUpperCase() ] );
-			_gl.texParameteri( _gl.TEXTURE_CUBE_MAP, _gl.TEXTURE_MIN_FILTER, _gl[ this.minFilter.toUpperCase() ] );
-			
+            _gl.texParameteri( _gl.TEXTURE_CUBE_MAP, _gl.TEXTURE_MAG_FILTER, _gl[ this.magFilter.toUpperCase() ] );
+            _gl.texParameteri( _gl.TEXTURE_CUBE_MAP, _gl.TEXTURE_MIN_FILTER, _gl[ this.minFilter.toUpperCase() ] );
+            
             if( this.cache.miss("anisotropic_ext") ){
                 var ext = _gl.getExtension("MOZ_EXT_texture_filter_anisotropic");
                 if( ! ext){
@@ -14480,55 +14543,55 @@ define('3d/texture/texturecube',['require','../texture','_'], function(require){
                 }
             }
 
-			_.each( this.image, function(img, target){
-				if( img )
-					_gl.texImage2D( _gl[ targetMap[target] ], 0, glFormat, glFormat, glType, img );
-				else
-					_gl.texImage2D( _gl[ targetMap[target] ], 0, glFormat, this.width, this.height, 0, glFormat, glType, this.pixels[target] );
-			}, this);
+            _.each( this.image, function(img, target){
+                if( img )
+                    _gl.texImage2D( _gl[ targetMap[target] ], 0, glFormat, glFormat, glType, img );
+                else
+                    _gl.texImage2D( _gl[ targetMap[target] ], 0, glFormat, this.width, this.height, 0, glFormat, glType, this.pixels[target] );
+            }, this);
 
-			if( !this.NPOT && this.generateMipmaps ){
-				_gl.generateMipmap( _gl.TEXTURE_CUBE_MAP );
-			}
-
-			_gl.bindTexture( _gl.TEXTURE_CUBE_MAP, null );
-		},
-		bind : function( _gl ){
-
-			_gl.bindTexture( _gl.TEXTURE_CUBE_MAP, this.getWebGLTexture(_gl) );
-		},
-		unbind : function( _gl ){
-			_gl.bindTexture( _gl.TEXTURE_CUBE_MAP, null );
-		},
-		// Overwrite the isPowerOfTwo method
-		isPowerOfTwo : function(){
-			if( this.image.px ){
-				return isPowerOfTwo( this.image.px.width ) &&
-						isPowerOfTwo( this.image.px.height );
-            }else{
-            	return isPowerOfTwo( this.width ) &&
-						isPowerOfTwo( this.height );
+            if( !this.NPOT && this.generateMipmaps ){
+                _gl.generateMipmap( _gl.TEXTURE_CUBE_MAP );
             }
 
-			function isPowerOfTwo( value ){
-				return value & (value-1) === 0
-			}
-		},
-		isRenderable : function(){
-			if( this.image.px ){
-				return this.image.px.complete &&
-						this.image.nx.complete &&
-						this.image.py.complete &&
-						this.image.ny.complete &&
-						this.image.pz.complete &&
-						this.image.nz.complete;
-			}else{
-				return this.width && this.height;
-			}
-		}
-	});
+            _gl.bindTexture( _gl.TEXTURE_CUBE_MAP, null );
+        },
+        bind : function( _gl ){
 
-	return TextureCube;
+            _gl.bindTexture( _gl.TEXTURE_CUBE_MAP, this.getWebGLTexture(_gl) );
+        },
+        unbind : function( _gl ){
+            _gl.bindTexture( _gl.TEXTURE_CUBE_MAP, null );
+        },
+        // Overwrite the isPowerOfTwo method
+        isPowerOfTwo : function(){
+            if( this.image.px ){
+                return isPowerOfTwo( this.image.px.width ) &&
+                        isPowerOfTwo( this.image.px.height );
+            }else{
+                return isPowerOfTwo( this.width ) &&
+                        isPowerOfTwo( this.height );
+            }
+
+            function isPowerOfTwo( value ){
+                return value & (value-1) === 0
+            }
+        },
+        isRenderable : function(){
+            if( this.image.px ){
+                return this.image.px.complete &&
+                        this.image.nx.complete &&
+                        this.image.py.complete &&
+                        this.image.ny.complete &&
+                        this.image.pz.complete &&
+                        this.image.nz.complete;
+            }else{
+                return this.width && this.height;
+            }
+        }
+    });
+
+    return TextureCube;
 } );
 define('3d/material',['require','core/base','./shader','util/util','./texture','./texture/texture2d','./texture/texturecube','_'], function(require){
 
@@ -16022,13 +16085,10 @@ define('3d/light/directional',['require','../light','../shader','core/vector3'],
             'directionalLightDirection' : {
                 type : '3f',
                 value : ( function(){
-                    var z = new Vector3(),
-                        m;
+                    var z = new Vector3();
                     return function( instance ){
-                        m = instance.worldMatrix._array;
                         // Direction is target to eye
-                        z.set(-m[8], -m[9], -m[10]);
-                        return z._array;
+                        return z.copy(instance.matrix.forward).negate()._array;
                     }
                 })()
             },
@@ -16047,54 +16107,54 @@ define('3d/light/directional',['require','../light','../shader','core/vector3'],
 } );
 define('3d/light/point',['require','../light','../shader'], function(require){
 
-	var Light = require('../light'),
-		Shader = require('../shader');
+    var Light = require('../light'),
+        Shader = require('../shader');
 
-	var SHADER_STR = [ '@export buildin.header.point_light',
+    var SHADER_STR = [ '@export buildin.header.point_light',
                         
-			        	'uniform vec3 pointLightPosition[ POINT_LIGHT_NUMBER ];',
-						'uniform float pointLightRange[ POINT_LIGHT_NUMBER ];',
-						'uniform vec3 pointLightColor[ POINT_LIGHT_NUMBER ];',
-						'@end;' ].join('\n');
+                        'uniform vec3 pointLightPosition[ POINT_LIGHT_NUMBER ];',
+                        'uniform float pointLightRange[ POINT_LIGHT_NUMBER ];',
+                        'uniform vec3 pointLightColor[ POINT_LIGHT_NUMBER ];',
+                        '@end;' ].join('\n');
 
-	Shader.import(SHADER_STR);
+    Shader.import(SHADER_STR);
 
-	var PointLight = Light.derive(function(){
+    var PointLight = Light.derive(function(){
 
-		return {
-			range : 100,
+        return {
+            range : 100,
 
-			castShadow : false,
-		}
-	}, {
+            castShadow : false,
+        }
+    }, {
 
-		type : 'POINT_LIGHT',
+        type : 'POINT_LIGHT',
 
-		uniformTemplates : {
-			'pointLightPosition' : {
-				type : '3f',
-				value : function( instance ){
-					return instance.getWorldPosition()._array;
-				}
-			},
-			'pointLightRange' : {
-				type : '1f',
-				value : function( instance ){
-					return instance.range;
-				}
-			},
-			'pointLightColor' : {
-				type : '3f',
-				value : function( instance ){
-					var color = instance.color,
-						intensity = instance.intensity;
-					return [ color[0]*intensity, color[1]*intensity, color[1]*intensity ];
-				}
-			}
-		}
-	})
+        uniformTemplates : {
+            'pointLightPosition' : {
+                type : '3f',
+                value : function( instance ){
+                    return instance.getWorldPosition()._array;
+                }
+            },
+            'pointLightRange' : {
+                type : '1f',
+                value : function( instance ){
+                    return instance.range;
+                }
+            },
+            'pointLightColor' : {
+                type : '3f',
+                value : function( instance ){
+                    var color = instance.color,
+                        intensity = instance.intensity;
+                    return [ color[0]*intensity, color[1]*intensity, color[1]*intensity ];
+                }
+            }
+        }
+    })
 
-	return PointLight;
+    return PointLight;
 } );
 define('3d/light/spot',['require','../light','../shader','core/vector3'], function(require){
 
@@ -16160,13 +16220,10 @@ define('3d/light/spot',['require','../light','../shader','core/vector3'], functi
             'spotLightDirection' : {
                 type : '3f',
                 value : ( function(){
-                    var z = new Vector3(),
-                        m;
+                    var z = new Vector3();
                     return function( instance ){
-                        m = instance.worldMatrix._array;
                         // Direction is target to eye
-                        z.set(-m[8], -m[9], -m[10]);
-                        return z._array;
+                        return z.copy(instance.matrix.forward).negate()._array;
                     }
                 })()
             },
@@ -16192,6 +16249,8 @@ define('3d/plugin/firstpersoncontrol',['require','core/base','core/vector3','cor
     var Vector3 = require("core/vector3");
     var Matrix4 = require("core/matrix4");
     var Quaternion = require("core/quaternion");
+
+    var upVector = new Vector3(0, 1, 0);
 
     var FirstPersonControl = Base.derive(function(){
         return {
@@ -16263,11 +16322,12 @@ define('3d/plugin/firstpersoncontrol',['require','core/base','core/vector3','cor
             var rotateQuat = new Quaternion();
             
             return function(){
+                
+                var camera = this.camera;
 
                 var position = this.camera.position,
-                    xAxis = this._getXAxis(true),
-                    zAxis = this._getZAxis(true),
-                    yAxis = this._getYAxis(true);
+                    xAxis = camera.matrix.right.normalize(),
+                    zAxis = camera.matrix.forward.normalize();
 
                 if( this._moveForward){
                     // Opposite direction of z
@@ -16283,10 +16343,9 @@ define('3d/plugin/firstpersoncontrol',['require','core/base','core/vector3','cor
                     position.scaleAndAdd(xAxis, this.speed/2);
                 }
 
-                var camera = this.camera;
 
-                camera.rotateAround(camera.position, camera.up, -this._offsetPitch * Math.PI / 180);
-                var xAxis = this._getXAxis(true);
+                camera.rotateAround(camera.position, upVector, -this._offsetPitch * Math.PI / 180);
+                var xAxis = camera.matrix.right;
                 camera.rotateAround(camera.position, xAxis, -this._offsetRoll * Math.PI / 180);
 
                 this._offsetRoll = this._offsetPitch = 0;
@@ -16358,43 +16417,7 @@ define('3d/plugin/firstpersoncontrol',['require','core/base','core/vector3','cor
                     this._moveRight = false;
                     break; 
             }
-        },
-
-        _getXAxis : (function(){
-            var axis = new Vector3();
-            return function( normalize ){
-                var m = this.camera.matrix._array;
-                axis.set(m[0], m[1], m[2]);
-                if( normalize ){
-                    axis.normalize();
-                }
-                return axis;
-            }
-        })(),
-
-        _getZAxis : (function(){
-            var axis = new Vector3();
-            return function( normalize ){
-                var m = this.camera.matrix._array;
-                axis.set(m[8], m[9], m[10]);
-                if( normalize ){
-                    axis.normalize()
-                }
-                return axis;
-            }
-        })(),
-
-        _getYAxis : (function(){
-             var axis = new Vector3();
-            return function( normalize ){
-                var m = this.camera.matrix._array;
-                axis.set(m[4], m[5], m[6]);
-                if( normalize ){
-                    axis.normalize();
-                }
-                return axis;
-            }
-        })()
+        }
     })
 
     function bindOnce( func, context){
@@ -16407,6 +16430,128 @@ define('3d/plugin/firstpersoncontrol',['require','core/base','core/vector3','cor
     }
 
     return FirstPersonControl;
+} );
+/**
+ * @export{class} OrbitControl
+ */
+define('3d/plugin/orbitcontrol',['require','core/base','core/vector3','core/matrix4','core/quaternion'], function(require){
+
+    var Base = require("core/base");
+    var Vector3 = require("core/vector3");
+    var Matrix4 = require("core/matrix4");
+    var Quaternion = require("core/quaternion");
+
+    var upVector = new Vector3(0, 1, 0);
+
+    var OrbitControl = Base.derive(function(){
+        return {
+            
+            camera : null,
+            canvas : null,
+
+            sensitivity : 1,
+
+            origin : new Vector3(),
+
+            // Rotate around origin
+            _offsetPitch : 0,
+            _offsetRoll : 0,
+
+            // Pan the origin
+            _panX : 0,
+            _panY : 0,
+
+            // Offset of mouse move
+            _offsetX : 0,
+            _offsetY : 0,
+
+            // Zoom with mouse wheel
+            _forward : 0
+        }
+    }, {
+
+        enable : function(){
+
+            this.camera.on("beforeupdate", this._beforeUpdateCamera, this);
+
+            this.canvas.addEventListener("mousedown", bindOnce(this._mouseDown, this), false);
+            this.canvas.addEventListener("mousewheel", bindOnce(this._mouseWheel, this), false);
+        },
+
+        disable : function(){
+            this.camera.off("beforeupdate", this._beforeUpdateCamera);
+            this.canvas.removeEventListener("mousedown", bindOnce(this._mouseDown, this));
+            this._mouseUp();
+        },
+
+        _mouseWheel : function(e){
+            var delta = e.wheelDelta // Webkit 
+                        || -e.detail; // Firefox
+
+            this._forward += delta * this.sensitivity;
+        },
+
+        _mouseDown : function(e){
+            document.addEventListener("mousemove", bindOnce(this._mouseMove, this), false);
+            document.addEventListener("mouseup", bindOnce(this._mouseUp, this), false);
+            document.addEventListener("mouseout", bindOnce(this._mouseOut, this), false);
+
+            this._offsetX = e.pageX;
+            this._offsetY = e.pageY;
+        },
+
+        _mouseMove : function(e){
+            var dx = e.pageX - this._offsetX,
+                dy = e.pageY - this._offsetY;
+
+            this._offsetPitch += dx * this.sensitivity / 100;
+            this._offsetRoll += dy * this.sensitivity / 100;
+
+            this._offsetX = e.pageX;
+            this._offsetY = e.pageY;
+        },
+
+        _mouseUp : function(){
+
+            document.removeEventListener("mousemove", bindOnce(this._mouseMove, this));
+            document.removeEventListener("mouseup", bindOnce(this._mouseUp, this));
+            document.removeEventListener("mouseout", bindOnce(this._mouseOut, this));
+        },
+
+        _mouseOut : function(){
+            this._mouseUp();
+        },
+
+        _beforeUpdateCamera : function(){
+
+            var camera = this.camera;
+
+            // Rotate
+            camera.rotateAround(this.origin, upVector, -this._offsetPitch);            
+            var xAxis = camera.matrix.right;
+            camera.rotateAround(this.origin, xAxis, -this._offsetRoll);
+            this._offsetRoll = this._offsetPitch = 0;
+
+            // Zoom
+            var zAxis = camera.matrix.forward.normalize();
+            var distance = camera.position.distance(this.origin);
+            camera.position.scaleAndAdd(zAxis, distance * this._forward / 2000);
+            this._forward = 0;
+
+            // Pan
+        }
+    });
+
+    function bindOnce( func, context){
+        if( ! func.__bindfuc__){
+            func.__bindfuc__ = function(){
+                return func.apply(context, arguments); 
+            }
+        }
+        return func.__bindfuc__;
+    }
+
+    return OrbitControl;
 } );
 define('text!3d/shader/source/basic.essl',[],function () { return '@export buildin.basic.vertex\n\nuniform mat4 worldViewProjection : WORLDVIEWPROJECTION;\n\nuniform vec2 uvRepeat : [1.0, 1.0];\n\nattribute vec3 position : POSITION;\nattribute vec2 texcoord : TEXCOORD_0;\nattribute vec3 normal : NORMAL;\n\nattribute vec3 barycentric;\n\nvarying vec2 v_Texcoord;\nvarying vec3 v_Barycentric;\n\nvoid main(){\n\n    gl_Position = worldViewProjection * vec4( position, 1.0 );\n\n    v_Texcoord = texcoord * uvRepeat;\n    v_Barycentric = barycentric;\n}\n\n@end\n\n\n\n\n@export buildin.basic.fragment\n\nvarying vec2 v_Texcoord;\nuniform sampler2D diffuseMap;\nuniform vec3 color : [1.0, 1.0, 1.0];\nuniform float alpha : 1.0;\n\n// Uniforms for wireframe\nuniform float lineWidth : 0.0;\nuniform vec3 lineColor : [0.0, 0.0, 0.0];\nvarying vec3 v_Barycentric;\n\n@import buildin.util.edge_factor\n\nvoid main(){\n\n    gl_FragColor = vec4(color, alpha);\n    \n    #ifdef DIFFUSEMAP_ENABLED\n        vec4 tex = texture2D( diffuseMap, v_Texcoord );\n        gl_FragColor.rgb *= tex.rgb;\n    #endif\n    \n    if( lineWidth > 0.01){\n        gl_FragColor.xyz = gl_FragColor.xyz * mix(lineColor, vec3(1.0), edgeFactor(lineWidth));\n    }\n}\n\n@end';});
 
@@ -16796,27 +16941,22 @@ define('3d/prepass/shadowmap',['require','core/base','core/vector3','../shader',
                 camera.position.set(0, 0, 0);
                 switch(target){
                     case 'px':
-                        camera.up.set(0, -1, 0);
-                        camera.lookAt( new Vector3(1, 0, 0) );
+                        camera.lookAt( px, ny );
                         break;
                     case 'nx':
-                        camera.up.set(0, -1, 0);
-                        camera.lookAt( new Vector3(-1, 0, 0) );
+                        camera.lookAt( nx, ny );
                         break;
                     case 'py':
-                        camera.up.set(0, 0, 1);
-                        camera.lookAt( new Vector3(0, 1, 0) );
+                        camera.lookAt( py, pz );
                         break;
                     case 'ny':
-                        camera.up.set(0, 0, -1);
-                        camera.lookAt( new Vector3(0, -1, 0) );
+                        camera.lookAt( ny, nz );
                         break;
                     case 'pz':
-                        camera.up.set(0, -1, 0);
-                        camera.lookAt( new Vector3(0, 0, 1) );
+                        camera.lookAt( pz, ny );
+                        break;
                     case 'nz':
-                        camera.up.set(0, -1, 0);
-                        camera.lookAt( new Vector3(0, 0, -1) );
+                        camera.lookAt( nz, ny );
                         break;
                 }
                 camera.position.copy( light.position );
@@ -16831,6 +16971,14 @@ define('3d/prepass/shadowmap',['require','core/base','core/vector3','../shader',
         }
     });
     
+    var px = new Vector3(1, 0, 0);
+    var nx = new Vector3(-1, 0, 0);
+    var py = new Vector3(0, 1, 0);
+    var ny = new Vector3(0, -1, 0);
+    var pz = new Vector3(0, 0, 1);
+    var nz = new Vector3(0, 0, -1);
+
+
     function createEmptyArray(size, value){
         var arr = [];
         for(var i = 0; i < size; i++){
@@ -18123,7 +18271,7 @@ define('util/color',['require'], function(require){
 define('util/xmlparser',['require'], function(require){
 
 });
-define('src/qtek',['require','2d/camera','2d/node','2d/renderable/arc','2d/renderable/circle','2d/renderable/image','2d/renderable/line','2d/renderable/path','2d/renderable/polygon','2d/renderable/rectangle','2d/renderable/roundedrectangle','2d/renderable/sector','2d/renderable/text','2d/renderable/textbox','2d/renderer','2d/scene','2d/style','2d/util','3d/camera','3d/camera/orthographic','3d/camera/perspective','3d/compositor','3d/compositor/graph/graph','3d/compositor/graph/node','3d/compositor/graph/scenenode','3d/compositor/graph/texturepool','3d/compositor/pass','3d/debug/pointlight','3d/debug/renderinfo','3d/framebuffer','3d/geometry','3d/geometry/cube','3d/geometry/plane','3d/geometry/sphere','3d/light','3d/light/ambient','3d/light/directional','3d/light/point','3d/light/spot','3d/material','3d/mesh','3d/node','3d/plugin/firstpersoncontrol','3d/prepass/shadowmap','3d/renderer','3d/scene','3d/shader','3d/shader/library','3d/texture','3d/texture/texture2d','3d/texture/texturecube','3d/util/mesh','core/base','core/cache','core/event','core/matrix3','core/matrix4','core/mixin/derive','core/mixin/dirty','core/mixin/notifier','core/quaternion','core/request','core/vector2','core/vector3','core/vector4','loader/three/json','text','util/color','util/util','util/xmlparser','glmatrix'], function(require){
+define('src/qtek',['require','2d/camera','2d/node','2d/renderable/arc','2d/renderable/circle','2d/renderable/image','2d/renderable/line','2d/renderable/path','2d/renderable/polygon','2d/renderable/rectangle','2d/renderable/roundedrectangle','2d/renderable/sector','2d/renderable/text','2d/renderable/textbox','2d/renderer','2d/scene','2d/style','2d/util','3d/camera','3d/camera/orthographic','3d/camera/perspective','3d/compositor','3d/compositor/graph/graph','3d/compositor/graph/node','3d/compositor/graph/scenenode','3d/compositor/graph/texturepool','3d/compositor/pass','3d/debug/pointlight','3d/debug/renderinfo','3d/framebuffer','3d/geometry','3d/geometry/cube','3d/geometry/plane','3d/geometry/sphere','3d/light','3d/light/ambient','3d/light/directional','3d/light/point','3d/light/spot','3d/material','3d/mesh','3d/node','3d/plugin/firstpersoncontrol','3d/plugin/orbitcontrol','3d/prepass/shadowmap','3d/renderer','3d/scene','3d/shader','3d/shader/library','3d/texture','3d/texture/texture2d','3d/texture/texturecube','3d/util/mesh','core/base','core/cache','core/event','core/matrix3','core/matrix4','core/mixin/derive','core/mixin/dirty','core/mixin/notifier','core/quaternion','core/request','core/vector2','core/vector3','core/vector4','loader/three/json','text','util/color','util/util','util/xmlparser','glmatrix'], function(require){
 	
 	var exportsObject =  {
 	"2d": {
@@ -18185,7 +18333,8 @@ define('src/qtek',['require','2d/camera','2d/node','2d/renderable/arc','2d/rende
 		"Mesh": require('3d/mesh'),
 		"Node": require('3d/node'),
 		"plugin": {
-			"FirstPersonControl": require('3d/plugin/firstpersoncontrol')
+			"FirstPersonControl": require('3d/plugin/firstpersoncontrol'),
+			"OrbitControl": require('3d/plugin/orbitcontrol')
 		},
 		"prepass": {
 			"ShadowMap": require('3d/prepass/shadowmap')
