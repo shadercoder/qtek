@@ -415,7 +415,7 @@ var requirejs, require, define;
     };
 }());
 
-define("build/almond", function(){});
+define("../build/almond", function(){});
 
 ;
 define("2d/camera", function(){});
@@ -6261,6 +6261,7 @@ ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 
+
 /**
  * @class 2 Dimensional Vector
  * @name vec2
@@ -11459,7 +11460,7 @@ define('core/vector3',['require','glmatrix'], function(require){
                 }
             },
 
-            _array :{
+            _array : {
                 writable : false,
                 configurable : false,
                 value : vec3.fromValues(x, y, z)
@@ -12620,9 +12621,6 @@ define('3d/camera/perspective',['require','../camera'], function(require){
 
     return Perspective;
 } );
-;
-define("3d/compositor", function(){});
-
 define('3d/compositor/graph/graph',['require','core/base','_'], function( require ){
 
     var Base = require("core/base");
@@ -12630,33 +12628,30 @@ define('3d/compositor/graph/graph',['require','core/base','_'], function( requir
 
     var Graph = Base.derive( function(){
         return {
-
-            _nodes : [],
-
-            _finalNode : null
+            nodes : []
         }
     }, {
 
         
         add : function( node ){
 
-            this._nodes.push( node );
+            this.nodes.push( node );
 
             this.dirty("graph");
         },
 
         remove : function( node ){
-            _.without( this._nodes, node );
+            _.without( this.nodes, node );
             this.dirty("graph");
         },
 
         update : function(){
-            for(var i = 0; i < this._nodes.length; i++){
-                this._nodes[i].clear();
+            for(var i = 0; i < this.nodes.length; i++){
+                this.nodes[i].clear();
             }
             // Traverse all the nodes and build the graph
-            for(var i = 0; i < this._nodes.length; i++){
-                var node = this._nodes[i];
+            for(var i = 0; i < this.nodes.length; i++){
+                var node = this.nodes[i];
 
                 if( ! node.inputs){
                     continue;
@@ -12671,9 +12666,6 @@ define('3d/compositor/graph/graph',['require','core/base','_'], function( requir
                         console.warn("Pin of "+fromPinInfo.node+"."+fromPinInfo.pin+" not exist");
                     }
                 }
-                if( ! node.outputs ){
-                    this._finalNode = node;
-                }
             }
 
         },
@@ -12681,8 +12673,8 @@ define('3d/compositor/graph/graph',['require','core/base','_'], function( requir
         findPin : function( info ){
             var node;
             if( typeof(info.node) === 'string'){
-                for( var i = 0; i < this._nodes.length; i++){
-                    var tmp = this._nodes[i];
+                for( var i = 0; i < this.nodes.length; i++){
+                    var tmp = this.nodes[i];
                     if( tmp.name === info.node ){
                         node = tmp;
                     }
@@ -12700,25 +12692,40 @@ define('3d/compositor/graph/graph',['require','core/base','_'], function( requir
             }
         },
 
-        load : function( json ){
+        fromJSON : function( json ){
 
-        },
+        }
+    })
+    
+    return Graph;
+});
+define('3d/compositor',['require','./compositor/graph/graph'],function(require){
 
+    var Graph = require("./compositor/graph/graph");
+
+    var Compositor = Graph.derive(function(){
+        return {
+        }
+    }, {
         render : function( renderer ){
             if( this.isDirty("graph") ){
                 this.update();
                 this.fresh("graph");
             }
-            for(var i = 0; i < this._nodes.length; i++){
-                this._nodes[i].updateReference();
-            }
-            if( this._finalNode ){
-                this._finalNode.render( renderer );
+            var finaNode;
+            for(var i = 0; i < this.nodes.length; i++){
+                var node = this.nodes[i];
+                // Find output node
+                if( ! node.outputs){
+                    node.render(renderer);
+                }
+                // Update the reference number of each output texture
+                node.updateReference();
             }
         }
     })
-    
-    return Graph;
+
+    return Compositor;
 });
 define('3d/scene',['require','./node'], function(require){
 
@@ -13583,9 +13590,6 @@ define('3d/shader',['require','core/base','glmatrix','util/util','_'], function(
         mat2 = glMatrix.mat2
         mat3 = glMatrix.mat3,
         mat4 = glMatrix.mat4,
-        vec2 = glMatrix.vec2,
-        vec3 = glMatrix.vec3,
-        vec4 = glMatrix.vec4,
         util = require("util/util"),
         _ = require("_");
 
@@ -14085,6 +14089,7 @@ define('3d/shader',['require','core/base','glmatrix','util/util','_'], function(
             function _uniformParser(str, type, symbol, isArray, semanticWrapper, semantic){
                 if( type && symbol ){
                     var uniformType = uniformTypeMap[type];
+                    var isConfigurable = true;
                     if( uniformType ){
                         if( type === "sampler2D" || type === "samplerCube" ){
                             // Texture is default disabled
@@ -14098,22 +14103,32 @@ define('3d/shader',['require','core/base','glmatrix','util/util','_'], function(
                         }
                         if( semantic ){
                             if( availableSemantics.indexOf(semantic) < 0 ){
-                                var defaultValueFunc = self._parseDefaultValue( type, semantic );
-                                if( ! defaultValueFunc)
-                                    console.warn('Unkown semantic "' + semantic + '"');
-                                else
-                                    semantic = "";
-                            }else{
+                                // The uniform is not configurable, which means it will not appear
+                                // in the material uniform properties
+                                if(semantic === "unconfigurable"){
+                                    isConfigurable = false;
+                                }else{
+                                    var defaultValueFunc = self._parseDefaultValue( type, semantic );
+                                    if( ! defaultValueFunc)
+                                        console.warn('Unkown semantic "' + semantic + '"');
+                                    else
+                                        semantic = "";
+                                }
+                            }
+                            else{
                                 self.semantics[ semantic ] = {
                                     symbol : symbol,
                                     type : uniformType
                                 }
+                                isConfigurable = false;
                             }
-                        }   
-                        uniforms[ symbol ] = {
-                            type : uniformType,
-                            value : isArray ? uniformValueConstructor['array'] : ( defaultValueFunc || uniformValueConstructor[ type ] ),
-                            semantic : semantic || null
+                        }
+                        if(isConfigurable){
+                            uniforms[ symbol ] = {
+                                type : uniformType,
+                                value : isArray ? uniformValueConstructor['array'] : ( defaultValueFunc || uniformValueConstructor[ type ] ),
+                                semantic : semantic || null
+                            }
                         }
                     }
                     return ["uniform", type, symbol, isArray].join(" ")+";\n";
@@ -14491,8 +14506,8 @@ define('3d/webglinfo',[], function(){
                             "OES_element_index_uint",
                             "WEBGL_compressed_texture_s3tc",
                             'WEBGL_depth_texture',
-                            "EXT_texture_filter_anisotropic",
-                            "EXT_draw_buffers"];
+                            "EXT_texture_filter_anisotropic"];
+                            // "EXT_draw_buffers"];
 
     var initialized = false;
 
@@ -14785,11 +14800,6 @@ define('3d/material',['require','core/base','./shader','util/util','./texture','
 
             // Set uniforms
             _.each( this.uniforms, function( uniform, symbol ){
-                // Only set the none-semantic uniform
-                // The semantic uniform will be set by system
-                if( uniform.semantic ){
-                    return;
-                }
                 if( uniform.value === null ){
                     return;
                 }
@@ -15624,6 +15634,9 @@ define('3d/framebuffer',['require','core/base','./texture/texture2d','./texture/
 
     return FrameBuffer;
 } );
+/**
+ * @export{class} TexturePool
+ */
 define('3d/compositor/graph/texturepool',['require','../../texture/texture2d','_'], function(require){
     
     var Texture2D = require("../../texture/texture2d");
@@ -15726,23 +15739,32 @@ define('3d/compositor/graph/texturepool',['require','../../texture/texture2d','_
  *  name : "xxx",
     shader : shader,
  *  inputs :{ 
-                "texture" : {
-                    node : "xxx",
-                    pin : "diffuse"
-                }
-             }
+        "texture" : {
+            node : "xxx",
+            pin : "diffuse"
+        }
+    },
+    // Optional, only use for the node in group
+    groupInputs : {
+        // Group input pin name : node input pin name
+        "texture" : "texture"
+    },
     outputs : {
-                diffuse : {
-                    attachment : "COLOR_ATTACHMENT0"
-                    parameters : {
-                        format : "RGBA",
-                        width : 512,
-                        height : 512
-                    }
+            diffuse : {
+                attachment : "COLOR_ATTACHMENT0"
+                parameters : {
+                    format : "RGBA",
+                    width : 512,
+                    height : 512
                 }
             }
-
-   }
+        }
+    },
+    // Optional, only use for the node in group
+    groupOutputs : {
+        // Node output pin name : group output pin name
+        "diffuse" : "diffuse"
+    }
  * Multiple outputs is reserved for MRT support
  *
  * TODO blending 
@@ -15771,13 +15793,13 @@ define('3d/compositor/graph/node',['require','core/base','../pass','../../frameb
             //  node : [Node],
             //  pin : 'xxxx'    
             // }
-            _inputLinks : {},
+            inputLinks : {},
             // Example:
             // outputName : [{
             //  node : [Node],
             //  pin : 'xxxx'    
             // }]
-            _outputLinks : {},
+            outputLinks : {},
 
             _textures : {},
 
@@ -15804,8 +15826,8 @@ define('3d/compositor/graph/node',['require','core/base','../pass','../../frameb
 
         render : function( renderer ){
             var _gl = renderer.gl;
-            for( var inputName in this._inputLinks ){
-                var link = this._inputLinks[inputName];
+            for( var inputName in this.inputLinks ){
+                var link = this.inputLinks[inputName];
                 var inputTexture = link.node.getOutput( renderer, link.pin );
                 this.pass.setUniform( inputName, inputTexture );
             }
@@ -15835,8 +15857,8 @@ define('3d/compositor/graph/node',['require','core/base','../pass','../../frameb
                 this.pass.render( renderer, this.frameBuffer );
             }
             
-            for( var inputName in this._inputLinks ){
-                var link = this._inputLinks[inputName];
+            for( var inputName in this.inputLinks ){
+                var link = this.inputLinks[inputName];
                 link.node.removeReference( link.pin );
             }
         },
@@ -15871,7 +15893,7 @@ define('3d/compositor/graph/node',['require','core/base','../pass','../../frameb
             if( this._outputReferences[name] === 0){
                 // Output of this node have alreay been used by all other nodes
                 // Put the texture back to the pool.
-                texturePool.put( this._textures[name] );
+                texturePool.put(this._textures[name]);
                 this._textures[name] = null;
             }
         },
@@ -15879,27 +15901,27 @@ define('3d/compositor/graph/node',['require','core/base','../pass','../../frameb
         link : function( inputPinName, fromNode, fromPinName){
 
             // The relationship from output pin to input pin is one-on-multiple
-            this._inputLinks[ inputPinName ] = {
+            this.inputLinks[ inputPinName ] = {
                 node : fromNode,
                 pin : fromPinName
             }
-            if( ! fromNode._outputLinks[ fromPinName ] ){
-                fromNode._outputLinks[ fromPinName ] = [];
+            if( ! fromNode.outputLinks[ fromPinName ] ){
+                fromNode.outputLinks[ fromPinName ] = [];
             }
-            fromNode._outputLinks[ fromPinName ].push( {
+            fromNode.outputLinks[ fromPinName ].push( {
                 node : this,
                 pin : inputPinName
             } )
         },
 
         clear : function(){
-            this._inputLinks = {};
-            this._outputLinks = {};
+            this.inputLinks = {};
+            this.outputLinks = {};
         },
 
         updateReference : function( ){
-            for( var name in this._outputLinks ){
-                this._outputReferences[ name ] = this._outputLinks[name].length;
+            for( var name in this.outputLinks ){
+                this._outputReferences[ name ] = this.outputLinks[name].length;
             }
         }
     })
@@ -15907,14 +15929,107 @@ define('3d/compositor/graph/node',['require','core/base','../pass','../../frameb
     return Node;
 });
 /**
+ * Node Group
+ */
+define('3d/compositor/graph/group',['require','./node','./graph'],function(require){
+
+    var Node = require("./node");
+    var Graph = require("./graph");
+
+    var Group = Node.derive(function(){
+        return {
+            nodes : [],
+
+            _textures : {}
+        }
+    }, {
+        add : function(node){
+            return Graph.prototype.add.call(this, node);
+        },
+
+        remove : function(node){
+            return Graph.prototype.remove.call(this, node);
+        },
+
+        update : function(){
+            return Graph.prototype.update.call(this);
+        },
+
+        findPin : function(info){
+            return Graph.prototype.findPin.call(this, info);
+        },
+
+        render : function(renderer){
+            if(this.isDirty("graph")){
+                this.update();
+                this.fresh("graph");
+            }
+            
+            var groupInputTextures = {};
+
+            for(var inputName in this.inputLinks){
+                var link = this.inputLinks[inputName];
+                var inputTexture = link.node.getOutput(renderer, link.pin);
+                groupInputTextures[inputName] = inputTexture;
+            }
+
+            for(var i = 0; i < this.nodes.length; i++){
+                var node = this.nodes[i];
+                // Update the reference number of each output texture
+                node.updateReference();
+                // Set the input texture to portal node of group
+                if(node.groupInputs){
+                    this._updateGroupInputs(node, groupInputTextures);
+                }
+            }
+            for(var i = 0; i < this.nodes.length; i++){
+                var node = this.nodes[i];
+                if(node.groupOutputs){
+                    this._updateGroupOutputs(node, renderer);
+                }
+                // Direct output
+                if( ! node.outputs){
+                    node.render(renderer);
+                }
+            }
+
+            for( var inputName in this.inputLinks ){
+                var link = this.inputLinks[inputName];
+                link.node.removeReference( link.pin );
+            }
+        },
+
+        _updateGroupInputs : function(node, groupInputTextures){
+            for(var name in groupInputTextures){
+                var texture = groupInputTextures[name];
+                if(node.groupInputs[name]){
+                    var pin  = node.groupInputs[name];
+                    node.pass.setUniform(pin, texture);
+                }
+            }
+        },
+
+        _updateGroupOutputs : function(node, renderer){
+            for(var name in node.groupOutputs){
+                var groupOutputPinName = node.groupOutputs[name];
+                var texture = node.getOutput(renderer, name);
+                this._textures[groupOutputPinName] = texture;
+            }
+        }
+    });
+
+    return Group;
+});
+/**
  * @export{class} SceneNode
  */
-define('3d/compositor/graph/scenenode',['require','./node','../pass','../../framebuffer','./texturepool'], function( require ){
+define('3d/compositor/graph/scenenode',['require','./node','../pass','../../framebuffer','./texturepool','../../webglinfo'], function( require ){
 
     var Node = require("./node");
     var Pass = require("../pass");
     var FrameBuffer = require("../../framebuffer");
     var texturePool = require("./texturepool");
+    var WebGLInfo = require('../../webglinfo');
 
     var SceneNode = Node.derive( function(){
         return {
@@ -15928,6 +16043,8 @@ define('3d/compositor/graph/scenenode',['require','./node','../pass','../../fram
         }
     }, {
         render : function( renderer ){
+            
+            var _gl = renderer.gl;
 
             if( ! this.outputs){
                 renderer.render( this.scene, this.camera );
@@ -15947,6 +16064,20 @@ define('3d/compositor/graph/scenenode',['require','./node','../pass','../../fram
                     frameBuffer.attach( renderer.gl, texture, attachment);
                 }
                 frameBuffer.bind( renderer );
+
+                // MRT Support in chrome
+                // https://www.khronos.org/registry/webgl/sdk/tests/conformance/extensions/ext-draw-buffers.html
+                var ext = WebGLInfo.getExtension("EXT_draw_buffers");
+                if(ext){
+                    var bufs = [];
+                    for( var attachment in this.outputs){
+                        attachment = parseInt(attachment);
+                        if(attachment >= _gl.COLOR_ATTACHMENT0 && attachment <= _gl.COLOR_ATTACHMENT0 + 8){
+                            bufs.push(attachment);
+                        }
+                    }
+                    ext.drawBuffersEXT(bufs);
+                }
 
                 if( this.material ){
                     this.scene.material = this.material;
@@ -16281,7 +16412,7 @@ define('3d/light/ambient',['require','../light','../shader'], function(require){
         Shader = require('../shader');
 
     var SHADER_STR = [ '@export buildin.header.ambient_light',
-                        'uniform vec3 ambientLightColor[ AMBIENT_LIGHT_NUMBER ];',
+                        'uniform vec3 ambientLightColor[ AMBIENT_LIGHT_NUMBER ] : unconfigurable;',
                         '@end;' ].join('\n');
 
     Shader.import(SHADER_STR);
@@ -16315,8 +16446,8 @@ define('3d/light/directional',['require','../light','../shader','core/vector3'],
     var Vector3 = require('core/vector3');
 
     var SHADER_STR = [ '@export buildin.header.directional_light',
-                        'uniform vec3 directionalLightDirection[ DIRECTIONAL_LIGHT_NUMBER ];',
-                        'uniform vec3 directionalLightColor[ DIRECTIONAL_LIGHT_NUMBER ];',
+                        'uniform vec3 directionalLightDirection[ DIRECTIONAL_LIGHT_NUMBER ] : unconfigurable;',
+                        'uniform vec3 directionalLightColor[ DIRECTIONAL_LIGHT_NUMBER ] : unconfigurable;',
                         '@end;' ].join('\n');
 
     Shader.import(SHADER_STR);
@@ -16369,9 +16500,9 @@ define('3d/light/point',['require','../light','../shader'], function(require){
 
     var SHADER_STR = [ '@export buildin.header.point_light',
                         
-                        'uniform vec3 pointLightPosition[ POINT_LIGHT_NUMBER ];',
-                        'uniform float pointLightRange[ POINT_LIGHT_NUMBER ];',
-                        'uniform vec3 pointLightColor[ POINT_LIGHT_NUMBER ];',
+                        'uniform vec3 pointLightPosition[ POINT_LIGHT_NUMBER ] : unconfigurable;',
+                        'uniform float pointLightRange[ POINT_LIGHT_NUMBER ] : unconfigurable;',
+                        'uniform vec3 pointLightColor[ POINT_LIGHT_NUMBER ] : unconfigurable;',
                         '@end;' ].join('\n');
 
     Shader.import(SHADER_STR);
@@ -16420,13 +16551,13 @@ define('3d/light/spot',['require','../light','../shader','core/vector3'], functi
     var Vector3 = require('core/vector3');
 
     var SHADER_STR = [ '@export buildin.header.spot_light',
-                        'uniform vec3 spotLightPosition[SPOT_LIGHT_NUMBER];',
-                        'uniform vec3 spotLightDirection[SPOT_LIGHT_NUMBER];',
-                        'uniform float spotLightRange[SPOT_LIGHT_NUMBER];',
-                        'uniform float spotLightUmbraAngleCosine[SPOT_LIGHT_NUMBER];',
-                        'uniform float spotLightPenumbraAngleCosine[SPOT_LIGHT_NUMBER];',
-                        'uniform float spotLightFalloffFactor[SPOT_LIGHT_NUMBER];',
-                        'uniform vec3 spotLightColor[SPOT_LIGHT_NUMBER];',
+                        'uniform vec3 spotLightPosition[SPOT_LIGHT_NUMBER] : unconfigurable;',
+                        'uniform vec3 spotLightDirection[SPOT_LIGHT_NUMBER] : unconfigurable;',
+                        'uniform float spotLightRange[SPOT_LIGHT_NUMBER] : unconfigurable;',
+                        'uniform float spotLightUmbraAngleCosine[SPOT_LIGHT_NUMBER] : unconfigurable;',
+                        'uniform float spotLightPenumbraAngleCosine[SPOT_LIGHT_NUMBER] : unconfigurable;',
+                        'uniform float spotLightFalloffFactor[SPOT_LIGHT_NUMBER] : unconfigurable;',
+                        'uniform vec3 spotLightColor[SPOT_LIGHT_NUMBER] : unconfigurable;',
                         '@end;' ].join('\n');
 
     Shader.import(SHADER_STR);
@@ -16845,7 +16976,7 @@ define('text!3d/shader/source/phong.essl',[],function () { return '\n// http://e
 
 define('text!3d/shader/source/wireframe.essl',[],function () { return '@export buildin.wireframe.vertex\n\nuniform mat4 worldViewProjection : WORLDVIEWPROJECTION;\nuniform mat4 world : WORLD;\n\nattribute vec3 position : POSITION;\nattribute vec3 barycentric;\n\nvarying vec3 v_Barycentric;\n\nvoid main(){\n\n    gl_Position = worldViewProjection * vec4( position, 1.0 );\n\n    v_Barycentric = barycentric;\n}\n\n@end\n\n\n@export buildin.wireframe.fragment\n\nuniform vec3 color : [0.0, 0.0, 0.0];\n\nuniform float alpha : 1.0;\nuniform float lineWidth : 1.5;\n\nvarying vec3 v_Barycentric;\n\n#extension GL_OES_standard_derivatives : enable\n\n@import buildin.util.edge_factor\n\nvoid main(){\n\n    gl_FragColor.rgb = color;\n    gl_FragColor.a = ( 1.0-edgeFactor(lineWidth) ) * alpha;\n}\n\n@end';});
 
-define('text!3d/shader/source/util.essl',[],function () { return '// Use light attenuation formula in\n// http://blog.slindev.com/2011/01/10/natural-light-attenuation/\n@export buildin.util.calculate_attenuation\n\nuniform float attenuationFactor : 5.0;\n\nfloat calculateAttenuation(float dist, float range){\n    float attenuation = 1.0;\n    if( range > 0.0){\n        attenuation = dist*dist/(range*range);\n        float att_s = attenuationFactor;\n        attenuation = 1.0/(attenuation*att_s+1.0);\n        att_s = 1.0/(att_s+1.0);\n        attenuation = attenuation - att_s;\n        attenuation /= 1.0 - att_s;\n    }\n    return attenuation;\n}\n\n@end\n\n//http://codeflow.org/entries/2012/aug/02/easy-wireframe-display-with-barycentric-coordinates/\n@export buildin.util.edge_factor\n\nfloat edgeFactor(float width){\n    vec3 d = fwidth(v_Barycentric);\n    vec3 a3 = smoothstep(vec3(0.0), d * width, v_Barycentric);\n    return min(min(a3.x, a3.y), a3.z);\n}\n\n@end\n\n// http://aras-p.info/blog/2009/07/30/encoding-floats-to-rgba-the-final/\n// http://www.gamedev.net/topic/442138-packing-a-float-into-a-a8r8g8b8-texture-shader/\n@export buildin.util.pack_depth\nvec4 packDepth( const in float depth ){\n\n    const vec4 bitShifts = vec4( 256.0 * 256.0 * 256.0, 256.0 * 256.0, 256.0, 1.0 );\n    const vec4 bitMask = vec4( 0.0, 1.0 / 256.0, 1.0 / 256.0, 1.0 / 256.0 );\n\n    vec4 rgba = fract( depth * bitShifts );\n\n    rgba -= rgba.xxyz * bitMask;\n\n    return rgba;\n}\n@end\n\n@export buildin.util.unpack_depth\nfloat unpackDepth( const in vec4 rgba ){\n    const vec4 bitShifts = vec4(1.0/(256.0*256.0*256.0), 1.0/(256.0*256.0), 1.0/256.0, 1.0);\n    return dot(rgba, bitShifts);\n}\n@end\n\n@export buildin.util.pack_depth_half\nvec2 packDepthHalf( const in float depth ){\n    const vec2 bitShifts = vec2(256.0, 1.0);\n    const vec4 bitMask = vec4(0.0, 1.0/256.0);\n\n    vec2 rg = fract(depth*bitShifts);\n    rg -= rg.xx * bitMask;\n\n    return rg;\n}\n@end\n\n@export buildin.util.unpack_depth_half\nfloat unpackDepthHalf( const in vec2 rg ){\n    const vec4 bitShifts = vec2(1.0/256.0, 1.0);\n    return dot(rg, bitShifts);\n}\n@end';});
+define('text!3d/shader/source/util.essl',[],function () { return '// Use light attenuation formula in\n// http://blog.slindev.com/2011/01/10/natural-light-attenuation/\n@export buildin.util.calculate_attenuation\n\nuniform float attenuationFactor : 5.0;\n\nfloat calculateAttenuation(float dist, float range){\n    float attenuation = 1.0;\n    if( range > 0.0){\n        attenuation = dist*dist/(range*range);\n        float att_s = attenuationFactor;\n        attenuation = 1.0/(attenuation*att_s+1.0);\n        att_s = 1.0/(att_s+1.0);\n        attenuation = attenuation - att_s;\n        attenuation /= 1.0 - att_s;\n    }\n    return attenuation;\n}\n\n@end\n\n//http://codeflow.org/entries/2012/aug/02/easy-wireframe-display-with-barycentric-coordinates/\n@export buildin.util.edge_factor\n\nfloat edgeFactor(float width){\n    vec3 d = fwidth(v_Barycentric);\n    vec3 a3 = smoothstep(vec3(0.0), d * width, v_Barycentric);\n    return min(min(a3.x, a3.y), a3.z);\n}\n\n@end\n\n// Pack depth\n// http://devmaster.net/posts/3002/shader-effects-shadow-mapping\n@export buildin.util.pack_depth\nvec4 packDepth( const in float depth ){\n\n    const vec4 bias = vec4(1.0 / 255.0, 1.0 / 255.0, 1.0 / 255.0, 0.0);\n\n    float r = depth;\n    float g = fract(r * 255.0);\n    float b = fract(g * 255.0);\n    float a = fract(b * 255.0);\n    vec4 colour = vec4(r, g, b, a);\n    \n    return colour - (colour.yzww * bias);\n}\n@end\n\n@export buildin.util.unpack_depth\nfloat unpackDepth( const in vec4 colour ){\n    const vec4 bitShifts = vec4(1.0, 1.0 / 255.0, 1.0 / (255.0 * 255.0), 1.0 / (255.0 * 255.0 * 255.0));\n    return dot(colour, bitShifts);\n}\n@end\n\n@export buildin.util.pack_depth_half\nvec2 packDepthHalf( const in float depth ){\n    const vec2 bitShifts = vec2(256.0, 1.0);\n    const vec4 bitMask = vec4(0.0, 1.0/256.0);\n\n    vec2 rg = fract(depth*bitShifts);\n    rg -= rg.xx * bitMask;\n\n    return rg;\n}\n@end\n\n@export buildin.util.unpack_depth_half\nfloat unpackDepthHalf( const in vec2 rg ){\n    const vec4 bitShifts = vec2(1.0/256.0, 1.0);\n    return dot(rg, bitShifts);\n}\n@end';});
 
 /**
  * @export{object} library
@@ -16951,9 +17082,6 @@ define('3d/prepass/shadowmap',['require','core/base','core/vector3','../shader',
 
     var ShadowMapPlugin = Base.derive(function(){
         return {
-
-            technique : "VSM",  //"NORMAL", "PCF", "VSM"
-
             _textures : {},
 
             _cameras : {},
@@ -16971,35 +17099,20 @@ define('3d/prepass/shadowmap',['require','core/base','core/vector3','../shader',
 
         }
     }, function(){
-        if( this.technique == "VSM"){
-            this._depthMaterial =  new Material({
-                shader : new Shader({
-                    vertex : Shader.source("buildin.vsm.depth.vertex"),
-                    fragment : Shader.source("buildin.vsm.depth.fragment")
-                })
-            });
-            // Point light write the distance instance of depth projected
-            // http://http.developer.nvidia.com/GPUGems/gpugems_ch12.html
-            this._pointLightDepthMaterial = new Material({
-                shader : new Shader({
-                    vertex : Shader.source("buildin.vsm.distance.vertex"),
-                    fragment : Shader.source("buildin.vsm.distance.fragment")
-                })
+        this._depthMaterial =  new Material({
+            shader : new Shader({
+                vertex : Shader.source("buildin.vsm.depth.vertex"),
+                fragment : Shader.source("buildin.vsm.depth.fragment")
             })
-        }else{
-            this._depthMaterial = new Material({
-                shader : new Shader({
-                    vertex : Shader.source("buildin.sm.depth.vertex"),
-                    fragment : Shader.source("buildin.sm.depth.fragment")
-                })
+        });
+        // Point light write the distance instance of depth projected
+        // http://http.developer.nvidia.com/GPUGems/gpugems_ch12.html
+        this._pointLightDepthMaterial = new Material({
+            shader : new Shader({
+                vertex : Shader.source("buildin.vsm.distance.vertex"),
+                fragment : Shader.source("buildin.vsm.distance.fragment")
             })
-            this._pointLightDepthMaterial = new Material({
-                shader : new Shader({
-                    vertex : Shader.source("buildin.sm.distance.vertex"),
-                    fragment : Shader.source("buildin.sm.distance.fragment")
-                })
-            })
-        }
+        })
     }, {
 
         render : function( renderer, scene ){
@@ -17175,12 +17288,20 @@ define('3d/prepass/shadowmap',['require','core/base','core/vector3','../shader',
                     texture = new TextureCube({
                         width : resolution,
                         height : resolution,
+                        // minFilter : "NEAREST",
+                        // magFilter : "NEAREST",
+                        // generateMipmaps : false,
                         type : 'FLOAT'
                     })
                 }else{
                     texture = new Texture2d({
                         width : resolution,
                         height : resolution,
+                        // It seems the min filter and mag filter must
+                        // be nearest in the chrome canary if the type is float
+                        // minFilter : "NEAREST",
+                        // magFilter : "NEAREST",
+                        // generateMipmaps : false,
                         type : 'FLOAT'
                     })   
                 }
@@ -17473,8 +17594,8 @@ define('3d/renderer',['require','core/base','_','glmatrix','util/util','./light'
         updateLightUnforms : function(lights) {
             
             var lightUniforms = this._scene.lightUniforms;
-            for (var symbol in this._scene.lightUniforms) {
-                lightUniforms[symbol].length = 0;
+            for(var symbol in lightUniforms){
+                lightUniforms[symbol].value.length = 0;
             }
             for (var i = 0; i < lights.length; i++) {
                 
@@ -17484,20 +17605,24 @@ define('3d/renderer',['require','core/base','_','glmatrix','util/util','./light'
 
                     var uniformTpl = light.uniformTemplates[symbol];
                     if( ! lightUniforms[symbol] ){
-                        lightUniforms[ symbol] = [];
+                        lightUniforms[ symbol] = {
+                            type : "",
+                            value : []
+                        }
                     }
                     var value = uniformTpl.value( light );
                     var lu = lightUniforms[symbol];
+                    lu.type = uniformTpl.type + "v";
                     switch(uniformTpl.type){
                         case "1i":
                         case "1f":
-                            lu.push(value);
+                            lu.value.push(value);
                             break;
                         case "2f":
                         case "3f":
                         case "4f":
                             for(var j =0; j < value.length; j++){
-                                lu.push(value[j]);
+                                lu.value.push(value[j]);
                             }
                             break;
                         default:
@@ -17544,16 +17669,15 @@ define('3d/renderer',['require','core/base','_','glmatrix','util/util','./light'
                     }
 
                     shader.bind( _gl );
+
+                    // Set lights uniforms
+                    for (var symbol in scene.lightUniforms ) {
+                        var lu = scene.lightUniforms[symbol];
+                        shader.setUniform(_gl, lu.type, symbol, lu.value);
+                    }
                     prevShaderID = shader.__GUID__;
                 }
                 if (prevMaterialID !== material.__GUID__) {
-                    // Set lights uniforms
-                    for (var symbol in scene.lightUniforms ) {
-                        var uniform = material.uniforms[symbol];
-                        if( uniform ){
-                            uniform.value = scene.lightUniforms[symbol];
-                        }
-                    }
 
                     material.bind( _gl );
                     prevMaterialID = material.__GUID__;
@@ -17755,6 +17879,12 @@ define('3d/skeleton',['require','core/base','core/matrix4'], function(require){
 
     return Skeleton;
 } );
+;
+define("3d/texture/compressed2d", function(){});
+
+;
+define("3d/texture/compressedcube", function(){});
+
 /**
  *
  * @export{object} mesh
@@ -18760,9 +18890,9 @@ define('core/vector4',['require','glmatrix'], function(require){
  * Load three.js JSON Format model
  *
  * Format specification : https://github.com/mrdoob/three.js/wiki/JSON-Model-format-3.1
- * @export{class} JSON
+ * @export{class} Model
  */
-define('loader/three/json',['require','core/base','core/request','3d/shader','3d/material','3d/geometry','3d/mesh','3d/node','3d/texture/texture2d','3d/texture/texturecube','3d/shader/library','3d/skeleton','3d/bone','core/vector3','core/quaternion','_','glmatrix'], function(require){
+define('loader/three/model',['require','core/base','core/request','3d/shader','3d/material','3d/geometry','3d/mesh','3d/node','3d/texture/texture2d','3d/texture/texturecube','3d/shader/library','3d/skeleton','3d/bone','core/vector3','core/quaternion','_','glmatrix'], function(require){
 
     var Base = require('core/base');
 
@@ -18785,7 +18915,7 @@ define('loader/three/json',['require','core/base','core/request','3d/shader','3d
     var vec3 = glMatrix.vec3;
     var vec2 = glMatrix.vec2;
 
-    var Loader = Base.derive(function(){
+    var Loader = Node.derive(function(){
         return {
             textureRootPath : "",
 
@@ -18811,6 +18941,52 @@ define('loader/three/json',['require','core/base','core/request','3d/shader','3d
             })
         },
         parse : function(data){
+            
+            var geometryList = this.parseGeometry(data);
+
+            var dSkinIndices = data.skinIndices,
+                dSkinWeights = data.skinWeights;
+            var skinned = dSkinIndices && dSkinIndices.length
+                        && dSkinWeights && dSkinWeights.length;
+
+            if(skinned){
+                var skeleton = this.parseSkeleton(data);
+                var boneNumber = skeleton.bones.length;
+            }else{
+                var boneNumber = 0;
+            }
+
+            if(skinned){
+                var skeleton = this.parseSkeleton(data);
+                var boneNumber = skeleton.bones.length;
+            }else{
+                var boneNumber = 0;
+            }
+
+            var meshList = [];
+            for(var i = 0; i < data.materials.length; i++){
+                var geometry = geometryList[i];
+                if( geometry 
+                    && geometry.faces.length 
+                    && geometry.attributes.position.value.length ){
+                    var material = this.parseMaterial(data.materials[i], boneNumber);
+                    var mesh = new Mesh({
+                        geometry : geometryList[i],
+                        material : material
+                    }) ;
+                    if( skinned){
+                        mesh.skeleton = skeleton;
+                    }
+                    meshList.push(mesh);
+                }
+            }
+            
+            this.trigger('load', meshList);
+            return meshList;
+        },
+
+        parseGeometry : function(data){
+
             var geometryList = [];
             var cursorList = [];
             
@@ -19088,33 +19264,7 @@ define('loader/three/json',['require','core/base','core/request','3d/shader','3d
                 }
             }
 
-            if(skinned){
-                var skeleton = this.parseSkeleton(data);
-                var boneNumber = skeleton.bones.length;
-            }else{
-                var boneNumber = 0;
-            }
-
-            var meshList = [];
-            for(var i = 0; i < data.materials.length; i++){
-                var geometry = geometryList[i];
-                if( geometry 
-                    && geometry.faces.length 
-                    && geometry.attributes.position.value.length ){
-                    var material = this.parseMaterial(data.materials[i], boneNumber);
-                    var mesh = new Mesh({
-                        geometry : geometryList[i],
-                        material : material
-                    }) ;
-                    if( skinned){
-                        mesh.skeleton = skeleton;
-                    }
-                    meshList.push(mesh);
-                }
-            }
-            
-            this.trigger('load', meshList);
-            return meshList;
+            return geometryList;
         },
 
         parseSkeleton : function(data){
@@ -19277,6 +19427,67 @@ define('loader/three/json',['require','core/base','core/request','3d/shader','3d
 
     return Loader
 } );
+define('loader/three/scene',['require','core/base','core/request','3d/scene','./model','3d/light/ambient','3d/light/directional','3d/light/spot','3d/light/point','3d/node','3d/texture/texture2d','3d/texture/texturecube','3d/mesh','3d/material','3d/geometry'],function(require){
+
+    var Base = require("core/base");
+    var request = require("core/request");
+    var Scene = require("3d/scene");
+    var Model = require("./model");
+    var AmbientLight = require("3d/light/ambient");
+    var DirectionalLight = require("3d/light/directional");
+    var SpotLight = require("3d/light/spot");
+    var PointLight = require("3d/light/point");
+    var Node = require("3d/node");
+    var Texture2D = require("3d/texture/texture2d");
+    var TextureCube = require("3d/texture/texturecube");
+    var Mesh = require("3d/mesh");
+    var Material = require("3d/material");
+    var Geometry = require("3d/geometry");
+
+    var SceneLoader = Base.derive(function(){
+        return {
+            textureRootPath : "",
+            textureNumber : 0
+        }
+    }, {
+
+        load : function(url){
+            var self = this;
+
+            this.textureNumber = 0;
+
+            request.get({
+                url : url,
+                onprogress : function(percent, loaded, total){
+                    self.trigger("progress", percent, loaded, total);
+                },
+                onerror : function(e){
+                    self.trigger("error", e);
+                },
+                responseType : "text",
+                onload : function(data){
+                    self.parse( JSON.parse(data) );
+                }
+            })
+        },
+        parse : function(data){
+            var scene = new Scene();
+            this.parseHierarchy(root, scene);
+        },
+
+        parseHierarchy : function(parentObjData, parentNode){
+            
+            for(var name in parentObjData){
+                var childData = parentObjData[name];
+                if(childData.geometry && childData.material){
+                    var child = new Mesh();
+                }else{
+                    var child = new Node();
+                }
+            }
+        }
+    })
+});
 define('util/color',['require'], function(require){
 
 	
@@ -19284,7 +19495,7 @@ define('util/color',['require'], function(require){
 define('util/xmlparser',['require'], function(require){
 
 });
-define('src/qtek',['require','2d/camera','2d/node','2d/renderable/arc','2d/renderable/circle','2d/renderable/image','2d/renderable/line','2d/renderable/path','2d/renderable/polygon','2d/renderable/rectangle','2d/renderable/roundedrectangle','2d/renderable/sector','2d/renderable/text','2d/renderable/textbox','2d/renderer','2d/scene','2d/style','2d/util','3d/bone','3d/camera','3d/camera/orthographic','3d/camera/perspective','3d/compositor','3d/compositor/graph/graph','3d/compositor/graph/node','3d/compositor/graph/scenenode','3d/compositor/graph/texturenode','3d/compositor/graph/texturepool','3d/compositor/pass','3d/debug/pointlight','3d/debug/renderinfo','3d/framebuffer','3d/geometry','3d/geometry/cube','3d/geometry/plane','3d/geometry/sphere','3d/light','3d/light/ambient','3d/light/directional','3d/light/point','3d/light/spot','3d/material','3d/mesh','3d/node','3d/plugin/firstpersoncontrol','3d/plugin/orbitcontrol','3d/prepass/shadowmap','3d/renderer','3d/scene','3d/shader','3d/shader/library','3d/skeleton','3d/texture','3d/texture/texture2d','3d/texture/texturecube','3d/util/mesh','3d/webglinfo','animation/animation','animation/controller','animation/easing','core/base','core/cache','core/event','core/matrix3','core/matrix4','core/mixin/derive','core/mixin/dirty','core/mixin/notifier','core/quaternion','core/request','core/vector2','core/vector3','core/vector4','loader/three/json','text','util/color','util/util','util/xmlparser','glmatrix'], function(require){
+define('qtek',['require','2d/camera','2d/node','2d/renderable/arc','2d/renderable/circle','2d/renderable/image','2d/renderable/line','2d/renderable/path','2d/renderable/polygon','2d/renderable/rectangle','2d/renderable/roundedrectangle','2d/renderable/sector','2d/renderable/text','2d/renderable/textbox','2d/renderer','2d/scene','2d/style','2d/util','3d/bone','3d/camera','3d/camera/orthographic','3d/camera/perspective','3d/compositor','3d/compositor/graph/graph','3d/compositor/graph/group','3d/compositor/graph/node','3d/compositor/graph/scenenode','3d/compositor/graph/texturenode','3d/compositor/graph/texturepool','3d/compositor/pass','3d/debug/pointlight','3d/debug/renderinfo','3d/framebuffer','3d/geometry','3d/geometry/cube','3d/geometry/plane','3d/geometry/sphere','3d/light','3d/light/ambient','3d/light/directional','3d/light/point','3d/light/spot','3d/material','3d/mesh','3d/node','3d/plugin/firstpersoncontrol','3d/plugin/orbitcontrol','3d/prepass/shadowmap','3d/renderer','3d/scene','3d/shader','3d/shader/library','3d/skeleton','3d/texture','3d/texture/compressed2d','3d/texture/compressedcube','3d/texture/texture2d','3d/texture/texturecube','3d/util/mesh','3d/webglinfo','animation/animation','animation/controller','animation/easing','core/base','core/cache','core/event','core/matrix3','core/matrix4','core/mixin/derive','core/mixin/dirty','core/mixin/notifier','core/quaternion','core/request','core/vector2','core/vector3','core/vector4','loader/three/model','loader/three/scene','util/color','util/util','util/xmlparser','glmatrix'], function(require){
 	
 	var exportsObject =  {
 	"2d": {
@@ -19319,10 +19530,11 @@ define('src/qtek',['require','2d/camera','2d/node','2d/renderable/arc','2d/rende
 		"compositor": {
 			"graph": {
 				"Graph": require('3d/compositor/graph/graph'),
+				"Group": require('3d/compositor/graph/group'),
 				"Node": require('3d/compositor/graph/node'),
 				"SceneNode": require('3d/compositor/graph/scenenode'),
 				"TextureNode": require('3d/compositor/graph/texturenode'),
-				"Texturepool": require('3d/compositor/graph/texturepool')
+				"TexturePool": require('3d/compositor/graph/texturepool')
 			},
 			"Pass": require('3d/compositor/pass')
 		},
@@ -19363,6 +19575,8 @@ define('src/qtek',['require','2d/camera','2d/node','2d/renderable/arc','2d/rende
 		"Skeleton": require('3d/skeleton'),
 		"Texture": require('3d/texture'),
 		"texture": {
+			"Compressed2d": require('3d/texture/compressed2d'),
+			"Compressedcube": require('3d/texture/compressedcube'),
 			"Texture2D": require('3d/texture/texture2d'),
 			"TextureCube": require('3d/texture/texturecube')
 		},
@@ -19395,10 +19609,10 @@ define('src/qtek',['require','2d/camera','2d/node','2d/renderable/arc','2d/rende
 	},
 	"loader": {
 		"three": {
-			"JSON": require('loader/three/json')
+			"Model": require('loader/three/model'),
+			"Scene": require('loader/three/scene')
 		}
 	},
-	"Text": require('text'),
 	"util": {
 		"Color": require('util/color'),
 		"Util": require('util/util'),
@@ -19411,7 +19625,7 @@ define('src/qtek',['require','2d/camera','2d/node','2d/renderable/arc','2d/rende
     
     return exportsObject;
 });
-var qtek = require("src/qtek");
+var qtek = require("qtek");
 
 for(var name in qtek){
 	_exports[name] = qtek[name];
