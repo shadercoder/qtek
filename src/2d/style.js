@@ -34,7 +34,7 @@ define(function(require){
                                     'shadowColor']
                         };
 
-    var shadowSyntaxRegex = /([0-9]+)\s+([0-9]+)\s+([0-9]+)\s+([a-zA-Z0-9\(\)\s,#]+)/;
+    var shadowSyntaxRegex = /([0-9\-]+)\s+([0-9\-]+)\s+([0-9]+)\s+([a-zA-Z0-9\(\)\s,#]+)/;
     
     var Style = Base.derive({}, {
 
