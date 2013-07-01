@@ -12,6 +12,8 @@ define( function(require){
 
             height : 0,
 
+            clearColor : '',
+
             _latestRenderedScene : null
         }
     }, function(){
@@ -42,11 +44,19 @@ define( function(require){
 
         resize : function(width, height){
             this.canvas.width = width;
-            this.canvas.height = height
+            this.canvas.height = height;
+
+            this.width = width;
+            this.height = height;
         },
 
-        render : function( scene ){
-            this.context.clearRect(0, 0, this.width, this.height);
+        render : function( scene ) {
+            if (this.clearColor) {
+                this.context.fillStyle = this.clearColor;
+                this.context.fillRect(0, 0, this.width, this.height);
+            } else {
+                this.context.clearRect(0, 0, this.width, this.height);
+            }
 
             scene.render( this.context );
 
