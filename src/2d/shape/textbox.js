@@ -11,8 +11,7 @@ define(function(require){
 
     var Node = require('../node');
     var util = require('../util');
-    var glmatrix = require('glmatrix');
-    var vec2 = glmatrix.vec2;
+    var Vector2 = require("core/vector2");
     var Text = require('./text');
     var _ = require('_');
 
@@ -23,7 +22,7 @@ define(function(require){
             textBaseline    : 'top',
             font            : '',
 
-            start           : [0, 0],
+            start           : new Vector2(),
             width           : 0,
             wordWrap        : false,
             wordBreak       : false,
@@ -87,7 +86,7 @@ define(function(require){
                     // in the head of new line
                     txt = new Text({
                         text : wordText, //append last word
-                        start : vec2.add([], this.start, [0, this.lineHeight*texts.length])
+                        start : this.start.clone().add(new Vector2(0, this.lineHeight*texts.length))
                     })
                     this.extendCommonProperties(txt);
                     texts.push( txt );

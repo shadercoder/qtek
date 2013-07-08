@@ -2,12 +2,11 @@ define(function(require){
 
     var Node = require('../node');
     var util = require('../util');
-    var glmatrix = require('glmatrix');
-    var vec2 = glmatrix.vec2;
+    var Vector2 = require("core/vector2");
 
     var Arc = Node.derive( function(){
         return {
-            center      : [0, 0],
+            center      : new Vector2(),
             radius      : 0,
             startAngle  : 0,
             endAngle    : Math.PI*2,
@@ -20,10 +19,10 @@ define(function(require){
         },
         draw : function(contex){
 
-            var center = this.fixAA ? util.fixPos( this.center ) : this.center;
+            var center = this.fixAA ? util.fixPos(this.center) : this.center;
 
             ctx.beginPath();
-            ctx.arc(center[0], center[1], this.radius, this.startAngle, this.endAngle,  ! this.clockwise);
+            ctx.arc(center.x, center.y, this.radius, this.startAngle, this.endAngle,  ! this.clockwise);
             if(this.stroke){
                 ctx.stroke();
             }

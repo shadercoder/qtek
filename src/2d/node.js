@@ -5,9 +5,8 @@
 define(function(require){
     
     var Base = require("core/base");
-    var glmatrix = require('glmatrix');
-    var vec2 = glmatrix.vec2;
-    var mat2d = glmatrix.mat2d;
+    var Vector2 = require("core/vector2");
+    var Matrix2d = require("core/matrix2d");
     var Style = require("./style");
 
     var Node = Base.derive( function(){
@@ -15,27 +14,32 @@ define(function(require){
             //a flag to judge if mouse is over the element
             __mouseover__ : false,
             
-            id : 0,
+            name : '',
             
             //Axis Aligned Bounding Box
-            AABB : [vec2.fromValues(0, 0), vec2.fromValues(0, 0)],
+            AABB : {
+                min : new Vector2(),
+                max : new Vector2()
+            },
             // z index
             z : 0,
-            // GooJS.Style
+            
             style : null,
             
-            position : vec2.fromValues(0, 0),
+            position : new Vector2(0, 0),
             rotation : 0,
-            scale : vec2.fromValues(1, 1),
+            scale : new Vector2(1, 1),
 
-            _transform : mat2d.create(),
+            autoUpdate : true,
+            transform : new Matrix2d(),
             // inverse matrix of transform matrix
-            _transformInverse : mat2d.create(),
+            transformInverse : new Matrix2d(),
+            _prevRotation : 0,
 
             // visible flag
             visible : true,
 
-            children : {},
+            children : [],
             // virtual width of the stroke line for intersect
             intersectLineWidth : 0,
 
@@ -49,67 +53,76 @@ define(function(require){
             // flag of fill when drawing the element
             fill : true,
             // flag of stroke when drawing the element
-            stroke : true,
+            stroke : false,
             // fix aa problem
             // https://developer.mozilla.org/en-US/docs/HTML/Canvas/Tutorial/Applying_styles_and_colors?redirectlocale=en-US&redirectslug=Canvas_tutorial%2FApplying_styles_and_colors#section_8
             fixAA : true
         }
     }, function(){
-        
         this.__GUID__ = genGUID();
-
     }, {
         updateTransform : function(){
-            var transform = this._transform;
-            mat2d.identity( transform );
-            if( this.scale)
-                mat2d.scale(transform, transform, this.scale);
-            if( this.rotation)
-                mat2d.rotate(transform, transform, this.rotation);
-            if( this.position)
-                mat2d.translate(transform, transform, this.position);
-            
-            return transform;
+            var transform = this.transform;
+            if( ! this.scale._dirty &&
+                ! this.position._dirty &&
+                this.rotation === this._prevRotation){
+                return;
+            }
+            if( ! this.autoUpdate){
+                return;
+            }
+            transform.identity();
+            transform.scale(this.scale);
+            transform.rotate(this.rotation);
+            transform.translate(this.position);
+
+            this._prevRotation = this.rotation;
         },
         updateTransformInverse : function(){
-            mat2d.invert(this._transformInverse, this._transformInverse);
+            this.transformInverse.copy(this.transform).invert();
         },
         // intersect with the bounding box
         intersectAABB : function(x, y){
             var AABB = this.AABB;
-            return  (AABB[0][0] < x && x < AABB[1][0]) && (AABB[0][1] < y && y< AABB[1][1]);
+            return  (AABB.min.x < x && x < AABB.max.x) && (AABB.min.y < y && y< AABB.max.y);
         },
-
         add : function(elem){
-            if( elem ){
-                this.children[elem.__GUID__] = elem;
+            if(elem){
+                this.children.push(elem);
                 elem.parent = this;
             }
         },
         remove : function(elem){
-            this.children[elem.__GUID__] = null;
-            elem.parent = null;
+            if(elem){
+                this.children.splice(this.children.indexOf(elem), 1);
+            }
         },
 
         draw : function(context){},
 
         render : function(context){
             
+            this.trigger("beforerender", context);
+
             var renderQueue = this._getSortedRenderQueue();
+            // TODO : some style should not be inherited ?
             context.save();
-            if( this.style ){
-                if( ! this.style instanceof Style ){
+            if(this.style){
+                if(!this.style instanceof Style){
                     for(var name in this.style ){
-                        this.style[ name ].bind(context);
+                        this.style[name].bind(context);
                     }
                 }else{
                     this.style.bind(context);
                 }
             }
-            var m = this.updateTransform();
+            this.updateTransform();
+            var m = this.transform._array;
             context.transform( m[0], m[1], m[2], m[3], m[4], m[5]);
 
-            this.draw( context );
+            this.trigger("beforedraw", context);
+            this.draw(context);
+            this.trigger("afterdraw", context);
 
             //clip from current path;
             this.clip && context.clip();
@@ -118,6 +131,8 @@ define(function(require){
                 renderQueue[i].render( context );
             }
             context.restore();
+
+            this.trigger("afterrender", context);
         },
 
         traverse : function(callback){

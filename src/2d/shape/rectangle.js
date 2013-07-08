@@ -1,26 +1,27 @@
 define(function(require){
 
-    var Node = require('../node'),
-        util = require('../util'),
-        glmatrix = require('glmatrix'),
-        vec2 = glmatrix.vec2;
+    var Node = require('../node');
+    var util = require('../util');
+    var Vector2 = require("core/vector2");
 
     var Rectangle = Node.derive( function(){
         return {
-            start : [0, 0],
-            size : [0, 0]
+            start : new Vector2(0, 0),
+            size : new Vector2(0, 0)
         }
     }, {
         computeAABB : function(){
-            var end = vec2.add([], this.start, this.size);
-            this.AABB = util.computeAABB([this.start, end]);
+            return {
+                min : this.start.clone(),
+                max : this.size.clone().add(this.start)
+            }
         },
         draw : function(ctx){
 
             var start = this.fixAA ? util.fixPos(this.start) : this.start;
 
             ctx.beginPath();
-            ctx.rect(start[0], start[1], this.size[0], this.size[1]);
+            ctx.rect(start.x, start.y, this.size.x, this.size.y);
             if(this.stroke){
                 ctx.stroke();
             }

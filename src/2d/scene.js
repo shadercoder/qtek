@@ -5,7 +5,6 @@ define( function(require){
     var Scene = Node.derive(function(){
         return {}
     },{
-
     });
 
     return Scene;

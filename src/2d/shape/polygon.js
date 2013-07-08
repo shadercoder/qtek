@@ -2,8 +2,7 @@ define(function(require){
 
     var Node = require('../node');
     var util = require('../util');
-    var glmatrix = require('glmatrix');
-    var vec2 = glmatrix.vec2;
+    var Vector2 = require("core/vector2");
 
     var Polygon = Node.derive( function(){
         return {
@@ -19,9 +18,9 @@ define(function(require){
 
             ctx.beginPath();
             
-            ctx.moveTo(points[0][0], points[0][1]);
+            ctx.moveTo(points[0].x, points[0].y);
             for(var i =1; i < points.length; i++){
-                ctx.lineTo(points[i][0], points[i][1]);
+                ctx.lineTo(points[i].x, points[i].y);
             }
             ctx.closePath();
             if(this.stroke){
@@ -40,12 +39,13 @@ define(function(require){
             var len = this.points.length;
             var angle = 0;
             var points = this.points;
-            var vec1, vec2, j, piece;
+            var vec1 = new Vector2();
+            var vec2 = new Vector2();
             for(var i =0; i < len; i++){
-                vec1 = vec2.normalize([], [points[i][0]-x, points[i][1]-y]);
-                j = (i+1)%len;
-                vec2 =  vec2.normalize([], [points[j][0]-x, points[j][1]-y]);
-                piece = Math.acos(vec2.dot(vec1, vec2));
+                vec1.set(x, y).sub(points[i]).normalize().negate();
+                var j = (i+1)%len;
+                vec2.set(x, y).sub(points[j]).normalize().negate();
+                var piece = Math.acos(vec1.dot(vec2));
                 angle += piece;
             }
             return Math.length(angle - 2*Math.PI) < 0.001;

@@ -2,21 +2,23 @@ define(function(require){
 
     var Node = require('../node');
     var util = require('../util');
-    var glmatrix = require('glmatrix');
-    var vec2 = glmatrix.vec2;
+    var Vector2 = require("core/vector2");
 
     var Text = Node.derive( function(){
         return {
             text : '',
-            start : [0, 0],
-            size : [0, 0],
+            start : new Vector2(),
+            size : new Vector2(),
             font : '',
             textAlign : '',
             textBaseline : ''
         }
     }, {
         computeAABB : function(){
-            this.AABB = util.computeAABB( [this.start, [this.start[0]+this.size[0], this.start[1]+this.size[1]]] );
+            this.AABB = {
+                min : this.start.clone(),
+                max : this.start.clone().add(this.size)
+            }
         },
         draw : function(ctx){
             var start = this.fixAA ? util.fixPos(this.start) : this.start;
@@ -30,20 +32,20 @@ define(function(require){
                 ctx.textBaseline = this.textBaseline
             }
             if(this.fill){
-                this.size.length && this.size[0] ?
-                    ctx.fillText(this.text, start[0], start[1], this.size[0]) :
-                    ctx.fillText(this.text, start[0], start[1]);
+                this.size.length && this.size.x ?
+                    ctx.fillText(this.text, start.x, start.y, this.size.x) :
+                    ctx.fillText(this.text, start.x, start.y);
             }
             if(this.stroke){
-                this.size.length && this.size[0] ?
-                    ctx.strokeText(this.text, start[0], start[1], this.size[0]) :
-                    ctx.strokeText(this.text, start[0], start[1]);
+                this.size.length && this.size.x ?
+                    ctx.strokeText(this.text, start.x, start.y, this.size.x) :
+                    ctx.strokeText(this.text, start.x, start.y);
             }
         },
         resize : function(ctx){
-            if(! this.size[0] || this.needResize){
-                this.size[0] = ctx.measureText(this.text).width;
-                this.size[1] = ctx.measureText('m').width;
+            if(! this.size.x || this.needResize){
+                this.size.x = ctx.measureText(this.text).width;
+                this.size.y = ctx.measureText('m').width;
             }
         },
         intersect : function(x, y){

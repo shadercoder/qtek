@@ -2,12 +2,11 @@ define(function(require){
 
     var Node = require('../node');
     var util = require('../util');
-    var glmatrix = require('glmatrix');
-    var vec2 = glmatrix.vec2;
+    var Vector2 = require("core/vector2");
 
     var Sector = Node.derive( function(){
         return {
-            center      : [0, 0],
+            center      : new Vector2(),
             innerRadius : 0,
             outerRadius : 0,
             startAngle  : 0,
@@ -17,7 +16,10 @@ define(function(require){
     }, {
         computeAABB : function(){
             // TODO
-            this.AABB = [0, 0];
+            this.AABB = {
+                min : new Vector2(),
+                max : new Vector2()
+            }
         },
         intersect : function(x, y){
 
@@ -26,14 +28,14 @@ define(function(require){
             var r1 = this.innerRadius;
             var r2 = this.outerRadius;
             var c = this.center;
-            var v = vec2.sub([], [x, y], c);
-            var r = vec2.length(v);
+            var v = new Vector2(x, y).sub(c);
+            var r = v.length();
             var pi2 = Math.PI * 2;
 
             if(r < r1 || r > r2){
                 return false;
             }
-            var angle = Math.atan2(v[1], v[0]);
+            var angle = Math.atan2(v.y, v.x);
 
             //need to constraint the angle between 0 - 360
             if(angle < 0){
@@ -41,7 +43,6 @@ define(function(require){
             }
             
             if(this.clockwise){
-                
                 return angle < endAngle && angle > startAngle;
             }else{
                 startAngle =  pi2 - startAngle;
@@ -62,17 +63,17 @@ define(function(require){
                 endAngle =  Math.PI*2 - endAngle;
             }
 
-            var startInner = vec2.add([], c, [r1 * Math.cos(startAngle), r1 * Math.sin(startAngle)]);
-            var startOuter = vec2.add([], c, [r2 * Math.cos(startAngle), r2 * Math.sin(startAngle)]);
-            var endInner = vec2.add([], c, [r1 * Math.cos(endAngle), r1 * Math.sin(endAngle)]);
-            var endOuter = vec2.add([], c, [r2 * Math.cos(endAngle), r2 * Math.sin(endAngle)]);
+            var startInner = new Vector2(r1 * Math.cos(startAngle), r1 * Math.sin(startAngle)).add(c);
+            var startOuter = new Vector2(r2 * Math.cos(startAngle), r2 * Math.sin(startAngle)).add(c);
+            var endInner = new Vector2(r1 * Math.cos(endAngle), r1 * Math.sin(endAngle)).add(c);
+            var endOuter = new Vector2(r2 * Math.cos(endAngle), r2 * Math.sin(endAngle)).add(c);
 
             ctx.beginPath();
-            ctx.moveTo(startInner[0], startInner[1]);
-            ctx.lineTo(startOuter[0], startOuter[1]);
-            ctx.arc(c[0], c[1], r2, startAngle, endAngle, ! this.clockwise);
-            ctx.lineTo(endInner[0], endInner[1]);
-            ctx.arc(c[0], c[1], r1, endAngle, startAngle, this.clockwise);
+            ctx.moveTo(startInner.x, startInner.y);
+            ctx.lineTo(startOuter.x, startOuter.y);
+            ctx.arc(c.x, c.y, r2, startAngle, endAngle, ! this.clockwise);
+            ctx.lineTo(endInner.x, endInner.y);
+            ctx.arc(c.x, c.y, r1, endAngle, startAngle, this.clockwise);
             ctx.endPath();
 
             if(this.stroke){

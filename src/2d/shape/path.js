@@ -2,8 +2,7 @@ define(function(require){
 
     var Node = require('../node');
     var util = require('../util');
-    var glmatrix = require('glmatrix');
-    var vec2 = glmatrix.vec2;
+    var Vector2 = require("core/vector2");
 
     var Path = Node.derive( function(){
         return {
@@ -12,7 +11,10 @@ define(function(require){
         }
     }, {
         computeAABB : function(){
-            this.AABB = [[0, 0], [0, 0]];
+            this.AABB = {
+                min : new Vector2(),
+                max : new Vector2()
+            };
         },
         draw : function(ctx){
             
@@ -26,21 +28,19 @@ define(function(require){
             
             var l = this.segments.length;
             var segs = this.segments;
-
+            
             ctx.beginPath();
-            ctx.moveTo(segs[0].point[0], segs[0].point[1]);
+            ctx.moveTo(segs[0].point.x, segs[0].point.y);
             for(var i =1; i < l; i++){
-
                 if(segs[i-1].handleOut || segs[i].handleIn){
                     var prevHandleOut = segs[i-1].handleOut || segs[i-1].point;
                     var handleIn = segs[i].handleIn || segs[i].point;
-                    ctx.bezierCurveTo(prevHandleOut[0], prevHandleOut[1],
-                            handleIn[0], handleIn[1], segs[i].point[0], segs[i].point[1]);
+                    ctx.bezierCurveTo(prevHandleOut.x, prevHandleOut.y,
+                            handleIn.x, handleIn.y, segs[i].point.x, segs[i].point.y);
                 }
                 else{
-                    ctx.lineTo(segs[i].point[0], segs[i].point[1]);
+                    ctx.lineTo(segs[i].point.x, segs[i].point.y);
                 }
-
             }
             if(this.fill){
                 ctx.fill();
@@ -60,16 +60,16 @@ define(function(require){
                 segs[i].style && segs[i].style.bind(ctx);
 
                 ctx.beginPath();
-                ctx.moveTo(segs[i].point[0], segs[i].point[1]);
+                ctx.moveTo(segs[i].point.x, segs[i].point.y);
 
                 if(segs[i].handleOut || segs[i+1].handleIn){
                     var handleOut = segs[i].handleOut || segs[i].point;
                     var nextHandleIn = segs[i+1].handleIn || segs[i+1].point;
-                    ctx.bezierCurveTo(handleOut[0], handleOut[1],
-                            nextHandleIn[0], nextHandleIn[1], segs[i+1].point[0], segs[i+1].point[1]);
+                    ctx.bezierCurveTo(handleOut.x, handleOut.y,
+                            nextHandleIn.x, nextHandleIn.y, segs[i+1].point.x, segs[i+1].point.y);
                 }
                 else{
-                    ctx.lineTo(segs[i+1].point[0], segs[i+1].point[1]);
+                    ctx.lineTo(segs[i+1].point.x, segs[i+1].point.y);
                 }
 
                 if(this.stroke){
@@ -86,33 +86,36 @@ define(function(require){
             var middlePoints = [];
             var segs = this.segments;
 
+            var m = [];
             function computeVector(a, b, c){
-                var m = vec2.scale([], vec2.add([], b, c), 0.5);
-                return vec2.sub([], a, m);
+                m.copy(b).add(c).scale(0.5);
+                return m.sub(a).negate();
             }
 
             for(var i = 0; i < len; i++){
                 var point = segs[i].point;
                 var nextPoint = (i == len-1) ? segs[0].point : segs[i+1].point;
-                middlePoints.push(
-                        vec2.scale([], vec2.add([], point, nextPoint), 0.5));
+                middlePoints.push(new Vector2().copy(point).add(nextPoint).scale(0.5));
             }
 
+            var middleMiddlePoint = new Vector2();
+            var v1 = new Vector2();
+            var v2 = new Vector2();
             for(var i = 0; i < len; i++){
                 var point = segs[i].point;
                 var middlePoint = middlePoints[i];
                 var prevMiddlePoint = (i == 0) ? middlePoints[len-1] : middlePoints[i-1];
                 var degree = segs[i].smoothLevel || degree || 1;
-                var middleMiddlePoint = vec2.scale([], vec2.add([], middlePoint, prevMiddlePoint), 0.5);
-                var v1 = vec2.sub([], middlePoint, middleMiddlePoint);
-                var v2 = vec2.sub([], prevMiddlePoint, middleMiddlePoint);
+                middleMiddlePoint.copy(middlePoint).add(prevMiddlePoint).scale(0.5);
+                v1.copy(middlePoint).sub(middleMiddlePoint);
+                v2.copy(prevMiddlePoint).sub(middleMiddlePoint);
 
                 var dv = computeVector(point, prevMiddlePoint, middlePoint);
                 //use degree to scale the handle length
                 vec2.scale(v2, v2, degree);
                 vec2.scale(v1, v1, degree);
-                segs[i].handleIn = vec2.add([], vec2.add([], middleMiddlePoint, v2), dv);
-                segs[i].handleOut = vec2.add([], vec2.add([], middleMiddlePoint, v1), dv);
+                segs[i].handleIn = prevMiddlePoint.add(dv).clone();
+                segs[i].handleOut = middlePoint.add(dv).clone();
             }
             segs[0].handleOut = segs[0].handleIn = null;
             segs[len-1].handleIn = segs[len-1].handleOut = null;

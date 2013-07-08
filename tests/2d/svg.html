@@ -1,0 +1,44 @@
+<html>
+<head>
+    <title></title>
+    <meta charset="utf-8">
+    <script type="text/javascript" src="../../thirdparty/require.js"></script>
+</head>
+<body>
+    <canvas id="Main"></canvas>
+    <script type="text/javascript">
+        requirejs.config({
+            'baseUrl' : '../../src',
+            'paths' : {
+                '_' : '../thirdparty/lodash.compat',
+                'glmatrix' : '../thirdparty/gl-matrix'
+            },
+            'shim' : {
+                '_' : {
+                    exports : '_'
+                }
+            }
+        })
+
+        require(['qtek',
+                'text!../tests/2d/assets/Ghostscript_Tiger.svg'], function(qtek, tiger){
+            var qtek2d = qtek['2d'];
+
+            var svgLoader = new qtek.loader.SVG();
+            var node = svgLoader.parse(tiger);
+
+            var renderer = new qtek2d.Renderer({
+                canvas : document.getElementById("Main"),
+                width : 1024,
+                height : 600
+            });
+            var scene = new qtek2d.Scene();
+            scene.add(node);
+
+            console.profile("render");
+            renderer.render(scene);
+            console.profileEnd("render");
+        });
+    </script>
+</body>
+</html>

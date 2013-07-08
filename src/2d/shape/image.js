@@ -2,8 +2,7 @@ define(function(require) {
 
     var Node = require('../node');
     var util = require('../util');
-    var glmatrix = require('glmatrix');
-    var vec2 = glmatrix.vec2;
+    var Vector2 = require("core/vector2");
     var _ = require("_");
 
     var _imageCache = {};
@@ -11,14 +10,18 @@ define(function(require) {
     var QTImage = Node.derive( function() {
         return {
             img     : null,
-            start   : [0, 0],
-            size    : 0,
+            start   : new Vector2(),
+            size    : null,
             onload  : function() {}
         }
     }, {
         computeAABB : function() {
-
-            this.AABB = util.computeAABB([this.start, [this.start[0]+this.size[0], this.start[1]+this.size[1]]]);
+            if(this.size){
+                this.AABB = {
+                    min : this.start.clone(),
+                    max : this.start.clone().add(this.size)
+                }   
+            }
         },
         draw : function(ctx) {
 
@@ -26,13 +29,12 @@ define(function(require) {
 
             if (this.img) {
                 this.size ? 
-                    ctx.drawImage(this.img, start[0], start[1], this.size[0], this.size[1]) :
-                    ctx.drawImage(this.img, start[0], start[1]);
+                    ctx.drawImage(this.img, start.x, start.y, this.size.x, this.size.y) :
+                    ctx.drawImage(this.img, start.x, start.y);
             }
 
         },
         intersect : function(x, y) {
-
             return this.intersectAABB(x, y);
         }
     });
