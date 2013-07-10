@@ -21,9 +21,9 @@ define(function(require){
             var center = this.fixAA ? util.fixPos(this.center) : this.center;
 
             ctx.save();
-            ctx.scale(0, this.radius.y / this.radius.x);
+            ctx.scale(1, this.radius.y / this.radius.x);
             ctx.beginPath();
-            ctx.arc(center.x, center.y, this.radius, 0, 2*Math.PI, false);
+            ctx.arc(center.x, center.y, this.radius.x, 0, 2*Math.PI, false);
             
             if (this.stroke) {
                 ctx.stroke();

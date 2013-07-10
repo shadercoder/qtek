@@ -1,60 +1,63 @@
-define(function(require){
+define(function(require) {
 
     var Node = require('../node');
     var util = require('../util');
     var Vector2 = require("core/vector2");
 
-    var Path = Node.derive( function(){
+    var Path = Node.derive( function() {
         return {
             segments : [],
-            globalStyle : true
+            globalStyle : true,
+            closePath : false
         }
     }, {
-        computeAABB : function(){
+        computeAABB : function() {
             this.AABB = {
                 min : new Vector2(),
                 max : new Vector2()
             };
         },
-        draw : function(ctx){
+        draw : function(ctx) {
             
-            if(this.globalStyle){
+            if (this.globalStyle) {
                 this.drawWithSameStyle(ctx);
-            }else{
+            } else {
                 this.drawWithDifferentStyle(ctx);
             }
         },
-        drawWithSameStyle : function(ctx){
+        drawWithSameStyle : function(ctx) {
             
             var l = this.segments.length;
             var segs = this.segments;
             
             ctx.beginPath();
             ctx.moveTo(segs[0].point.x, segs[0].point.y);
-            for(var i =1; i < l; i++){
-                if(segs[i-1].handleOut || segs[i].handleIn){
+            for (var i =1; i < l; i++) {
+                if (segs[i-1].handleOut || segs[i].handleIn) {
                     var prevHandleOut = segs[i-1].handleOut || segs[i-1].point;
                     var handleIn = segs[i].handleIn || segs[i].point;
                     ctx.bezierCurveTo(prevHandleOut.x, prevHandleOut.y,
                             handleIn.x, handleIn.y, segs[i].point.x, segs[i].point.y);
-                }
-                else{
+                } else {
                     ctx.lineTo(segs[i].point.x, segs[i].point.y);
                 }
             }
-            if(this.fill){
+            if (this.closePath) {
+                ctx.closePath();
+            }
+            if (this.fill) {
                 ctx.fill();
             }
-            if(this.stroke){
+            if (this.stroke) {
                 ctx.stroke();
             }   
         },
-        drawWithDifferentStyle : function(ctx){
+        drawWithDifferentStyle : function(ctx) {
             
             var l = this.segments.length;
             var segs = this.segments;
 
-            for(var i =0; i < l-1; i++){
+            for (var i =0; i < l-1; i++) {
 
                 ctx.save();
                 segs[i].style && segs[i].style.bind(ctx);
@@ -62,37 +65,36 @@ define(function(require){
                 ctx.beginPath();
                 ctx.moveTo(segs[i].point.x, segs[i].point.y);
 
-                if(segs[i].handleOut || segs[i+1].handleIn){
+                if (segs[i].handleOut || segs[i+1].handleIn) {
                     var handleOut = segs[i].handleOut || segs[i].point;
                     var nextHandleIn = segs[i+1].handleIn || segs[i+1].point;
                     ctx.bezierCurveTo(handleOut.x, handleOut.y,
                             nextHandleIn.x, nextHandleIn.y, segs[i+1].point.x, segs[i+1].point.y);
-                }
-                else{
+                } else {
                     ctx.lineTo(segs[i+1].point.x, segs[i+1].point.y);
                 }
 
-                if(this.stroke){
+                if (this.stroke) {
                     ctx.stroke();
                 }
-                if(this.fill){
+                if (this.fill) {
                     ctx.fill();
                 }
                 ctx.restore();
             }
         },
-        smooth : function(degree){
+        smooth : function(degree) {
             var len = this.segments.length;
             var middlePoints = [];
             var segs = this.segments;
 
             var m = [];
-            function computeVector(a, b, c){
+            function computeVector(a, b, c) {
                 m.copy(b).add(c).scale(0.5);
                 return m.sub(a).negate();
             }
 
-            for(var i = 0; i < len; i++){
+            for (var i = 0; i < len; i++) {
                 var point = segs[i].point;
                 var nextPoint = (i == len-1) ? segs[0].point : segs[i+1].point;
                 middlePoints.push(new Vector2().copy(point).add(nextPoint).scale(0.5));
@@ -101,7 +103,7 @@ define(function(require){
             var middleMiddlePoint = new Vector2();
             var v1 = new Vector2();
             var v2 = new Vector2();
-            for(var i = 0; i < len; i++){
+            for (var i = 0; i < len; i++) {
                 var point = segs[i].point;
                 var middlePoint = middlePoints[i];
                 var prevMiddlePoint = (i == 0) ? middlePoints[len-1] : middlePoints[i-1];
@@ -121,8 +123,8 @@ define(function(require){
             segs[len-1].handleIn = segs[len-1].handleOut = null;
             
         },
-        pushPoints : function(points){
-            for(var i = 0; i < points.length; i++){
+        pushPoints : function(points) {
+            for (var i = 0; i < points.length; i++) {
                 this.segments.push({
                     point : points[i],
                     handleIn : null,

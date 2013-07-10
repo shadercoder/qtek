@@ -21,19 +21,31 @@
         })
 
         require(['qtek',
-                'text!../tests/2d/assets/Ghostscript_Tiger.svg'], function(qtek, tiger){
+                'text!../tests/2d/assets/complex2.svg'], function(qtek, svgData){
             var qtek2d = qtek['2d'];
 
             var svgLoader = new qtek.loader.SVG();
-            var node = svgLoader.parse(tiger);
+            var node = svgLoader.parse(svgData);
 
+            var canvas = document.getElementById("Main");
             var renderer = new qtek2d.Renderer({
-                canvas : document.getElementById("Main"),
+                canvas : canvas,
                 width : 1024,
                 height : 600
             });
+
             var scene = new qtek2d.Scene();
             scene.add(node);
+            node.style = new qtek2d.Style({
+                globalCompositeOperation : 'xor'
+            });
+            if(window.devicePixelRatio == 2) {
+                canvas.width *= 2;
+                canvas.height *= 2;
+                canvas.style.width = canvas.width/2;
+                canvas.style.height = canvas.height/2;
+                scene.scale.set(2, 2);
+            }
 
             console.profile("render");
             renderer.render(scene);

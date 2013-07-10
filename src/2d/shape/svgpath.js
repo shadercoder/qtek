@@ -6,7 +6,7 @@ define(function(require){
 
     var Node = require("2d/node");
 
-    var commandList = ['m', 'M', 'z', 'Z', 'l', 'L', 'h', 'H', 'v', 'V', 'c', 'C', 's', 'S', 'q', 'Q', 't', 'T', 'a', 'A'];
+    var availableCommands = {'m':1,'M':1,'z':1,'Z':1,'l':1,'L':1,'h':1,'H':1,'v':1,'V':1,'c':1,'C':1,'s':1,'S':1,'q':1,'Q':1,'t':1,'T':1,'a':1,'A':1}
 
     var SVGPath = Node.derive({
         description : ''
@@ -23,11 +23,10 @@ define(function(require){
             var y2 = 0;
 
             // pre process
-            var d = this.description.replace(/\s*,\s*/g, ',');
-            d = d.replace(/(-)/g, ',$1');
-            d = d.replace(/([mMzZlLhHvVcCsSqQtTaA])/g, ',$1,');
-            d = d.replace(/,,/g, ',');
-            d = d.split(',');
+            var d = this.description.replace(/\s*,\s*/g, ' ');
+            d = d.replace(/(-)/g, ' $1');
+            d = d.replace(/([mMzZlLhHvVcCsSqQtTaA])/g, ' $1 ');
+            d = d.split(/\s+/);
 
             var command = "";
             // Save the previous command specially for shorthand/smooth curveto(s/S, t/T)
@@ -43,7 +42,8 @@ define(function(require){
                     next = d[++offset];
                     continue;
                 }
-                if (commandList.indexOf(next) >= 0) {
+                if (availableCommands[next]) {
+                    prevCommand = command;
                     command = next;
                     offset++;
                 }
@@ -68,6 +68,7 @@ define(function(require){
                         if (this.stroke) {
                             ctx.stroke();
                         }
+                        next = d[offset];
                         ctx.beginPath();
                         break;
                     case "l":
@@ -118,7 +119,7 @@ define(function(require){
                         if (prevCommand === "c" || prevCommand === "C" ||
                             prevCommand === "s" || prevCommand === "S") {
                             // Reflection of the second control point on the previous command
-                            x1 = x * 2 - x2; 
+                            x1 = x * 2 - x2;
                             y1 = y * 2 - y2;
                         } else {
                             x1 = x;
@@ -193,7 +194,7 @@ define(function(require){
                         console.warn("Elliptical arc is not supported yet");
                         break;
                     default:
-                        next = pick();
+                        pick();
                         continue;
                 }
             }

@@ -3,11 +3,18 @@
  * @config  fillStyle | fill,
  * @config  strokeStyle | stroke,
  * @config  lineWidth,
+ * @config  lineCap,
+ * @config  lineJoin,
+ * @config  lineDash,
+ * @config  lineDashOffset,
+ * @config  miterLimit,
  * @config  shadowColor,
  * @config  shadowOffsetX,
  * @config  shadowOffsetY,
  * @config  shadowBlur,
- * @config  globalAlpha | alpha
+ * @config  globalAlpha | alpha,
+ * @config  globalCompositeOperation,
+ * @config  alpha,
  * @config  shadow
  */
 define(function(require){
@@ -18,16 +25,23 @@ define(function(require){
     var _styles = ['fillStyle', 
                     'strokeStyle', 
                     'lineWidth', 
+                    'lineCap',
+                    'lineJoin',
+                    'miterLimit',
                     'shadowColor', 
                     'shadowOffsetX', 
                     'shadowOffsetY',
                     'shadowBlur',
                     'globalAlpha',
-                    'font'];
+                    'globalCompositeOperation',
+                    'font',
+                    'textAlign',
+                    'textBaseline'];
     var _styleAlias = {          //extend some simplify style name
                          'fill' : 'fillStyle',
                          'stroke' : 'strokeStyle',
                          'alpha' : 'globalAlpha',
+                         'composite' : 'globalCompositeOperation',
                          'shadow' : ['shadowOffsetX', 
                                     'shadowOffsetY', 
                                     'shadowBlur', 
@@ -40,15 +54,12 @@ define(function(require){
 
         bind : function(ctx){
 
-            var styles = _styles;
-            var styleAlias = _styleAlias;
-
-            for( var alias in styleAlias ){
-                if( this.hasOwnProperty(alias) ){
-                    var name = styleAlias[alias];
+            for (var alias in _styleAlias) {
+                if (this[alias] || this[alias] === 0) {
+                    var name = _styleAlias[alias];
                     var value = this[alias];
                     // composite styles, like shadow, the value can be "0 0 10 #000"
-                    if( alias == "shadow" ){
+                    if (alias == "shadow") {
                         var res = shadowSyntaxRegex.exec(trim(value));
                         if( ! res )
                             continue;
@@ -58,16 +69,28 @@ define(function(require){
                                 ctx[ name[idx] ] = item;
                             }
                         }, this)
-                    }else{
+                    } else {
                         ctx[ name ] = value;
                     }
                 }
             }
-            _.each(styles, function(styleName){
-                if( this.hasOwnProperty( styleName ) ){
+            _.each(_styles, function(styleName) {
+                if (this[styleName] || this[styleName] === 0) {
                     ctx[styleName] = this[styleName];
-                }   
-            }, this)
+                }
+            }, this);
+
+            // Set line dash individually
+            if (this.lineDash) {
+                if (ctx.setLineDash) {
+                    ctx.setLineDash(this.lineDash);
+                    if (typeof(this.lineDashOffset) === 'number') {
+                        ctx.lineDashOffset = this.lineDashOffset;
+                    }
+                } else {
+                    console.warn("Browser not support setLineDash method");
+                }
+            }
         }
     })
 

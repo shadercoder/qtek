@@ -145,15 +145,12 @@ define(function(require){
             }
         },
 
-        intersect : function(x, y, eventName){
-
-        },
+        intersect : function(x, y, eventName){},
 
         _getSortedRenderQueue : function(){
-            var renderQueue = [];
-            for(var guid in this.children ){
-                renderQueue.push( this.children[guid] );
-            }
+            
+            var renderQueue = this.children.slice();
+
             renderQueue.sort( function(x, y){
                 if( x.z === y.z)
                     return x.__GUID__ > y.__GUID__ ? 1 : -1;

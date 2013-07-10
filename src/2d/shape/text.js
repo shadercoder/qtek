@@ -8,10 +8,7 @@ define(function(require){
         return {
             text : '',
             start : new Vector2(),
-            size : new Vector2(),
-            font : '',
-            textAlign : '',
-            textBaseline : ''
+            size : new Vector2()
         }
     }, {
         computeAABB : function(){
@@ -22,15 +19,7 @@ define(function(require){
         },
         draw : function(ctx){
             var start = this.fixAA ? util.fixPos(this.start) : this.start;
-            if(this.font){
-                ctx.font = this.font;
-            }
-            if(this.textAlign){
-                ctx.textAlign = this.textAlign;
-            }
-            if(this.textBaseline){
-                ctx.textBaseline = this.textBaseline
-            }
+            
             if(this.fill){
                 this.size.length && this.size.x ?
                     ctx.fillText(this.text, start.x, start.y, this.size.x) :

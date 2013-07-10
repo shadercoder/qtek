@@ -44,18 +44,20 @@
             });
             rrect.size.set(200, 200);
             rrect.position.set(100, 100);
+            rrect.rotation = 0.4;
             scene.add(rrect);
             // Text;
             var text = new TextBox({
                 text : "All the world \'s a stage, and all the men and women merely players. They have their exits and their entrances; And one man in his time plays many parts.",
                 wordWrap : true,
-                width : 200,
+                width : 180,
                 lineHeight : 30,
                 style : new Style({
                     fill : "black",
                     shadow : "0 0 0 black"
                 })
-            })
+            });
+            text.start.set(10, 10);
             rrect.add(text);
             renderer.render( scene );
         })
