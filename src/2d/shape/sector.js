@@ -1,10 +1,10 @@
-define(function(require){
+define(function(require) {
 
     var Node = require('../node');
     var util = require('../util');
     var Vector2 = require("core/vector2");
 
-    var Sector = Node.derive( function(){
+    var Sector = Node.derive(function() {
         return {
             center      : new Vector2(),
             innerRadius : 0,
@@ -14,14 +14,29 @@ define(function(require){
             clockwise   : true
         }
     }, {
-        computeBoundingBox : function(){
-            // TODO
-            this.boundingBox = {
-                min : new Vector2(),
-                max : new Vector2()
-            }
+        computeBoundingBox : function() {
+            var min = new Vector2();
+            var max = new Vector2();
+
+            util.computeArcBoundingBox(
+                this.center, this.innerRadius, this.startAngle, 
+                this.endAngle, this.clockwise, min, max
+            );
+            this.boundingBox.min
+                .set(99999, 99999)
+                .min(min);
+            this.boundingBox.max
+                .set(-99999, -99999)
+                .max(max);
+
+            util.computeArcBoundingBox(
+                this.center, this.outerRadius, this.startAngle, 
+                this.endAngle, this.clockwise, min, max
+            );
+            this.boundingBox.min.min(min);
+            this.boundingBox.max.max(max);
         },
-        intersect : function(x, y){
+        intersect : function(x, y) {
 
             var startAngle = this.startAngle;
             var endAngle = this.endAngle;
@@ -32,33 +47,33 @@ define(function(require){
             var r = v.length();
             var pi2 = Math.PI * 2;
 
-            if(r < r1 || r > r2){
+            if (r < r1 || r > r2) {
                 return false;
             }
             var angle = Math.atan2(v.y, v.x);
 
             //need to constraint the angle between 0 - 360
-            if(angle < 0){
+            if (angle < 0) {
                 angle = angle+pi2;
             }
             
-            if(this.clockwise){
+            if (this.clockwise) {
                 return angle < endAngle && angle > startAngle;
-            }else{
+            } else {
                 startAngle =  pi2 - startAngle;
                 endAngle = pi2 - endAngle;
                 return angle > endAngle && angle < startAngle;
             }   
         },
-        draw : function(ctx){
+        draw : function(ctx) {
 
             var startAngle = this.startAngle;
             var endAngle = this.endAngle;
             var r1 = this.innerRadius;
             var r2 = this.outerRadius;
-            var c = this.fixAA ? util.fixPos( this.center ) : this.center;
+            var c = this.center;
 
-            if( ! this.clockwise ){
+            if (! this.clockwise) {
                 startAngle =  Math.PI*2 - startAngle;
                 endAngle =  Math.PI*2 - endAngle;
             }
@@ -74,12 +89,12 @@ define(function(require){
             ctx.arc(c.x, c.y, r2, startAngle, endAngle, ! this.clockwise);
             ctx.lineTo(endInner.x, endInner.y);
             ctx.arc(c.x, c.y, r1, endAngle, startAngle, this.clockwise);
-            ctx.endPath();
+            ctx.closePath();
 
-            if(this.stroke){
+            if (this.stroke) {
                 ctx.stroke();
             }
-            if(this.fill){
+            if (this.fill) {
                 ctx.fill();
             }
         }

@@ -28,7 +28,6 @@ define(function(require) {
                     ctx.drawImage(this.img, this.start.x, this.start.y, this.size.x, this.size.y) :
                     ctx.drawImage(this.img, this.start.x, this.start.y);
             }
-
         },
         intersect : function(x, y) {
             return this.intersectBoundingBox(x, y);

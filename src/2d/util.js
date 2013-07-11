@@ -109,12 +109,43 @@ define(function(require) {
         computeArcBoundingBox : (function(){
             var start = new Vector2();
             var end = new Vector2();
-            return function(center, radius, startAngle, endAngle, closeWise, min, max) {
+            // At most 4 extremities
+            var extremities = [new Vector2(), new Vector2(), new Vector2(), new Vector2()];
+            return function(center, radius, startAngle, endAngle, clockwise, min, max) {
+                clockwise = clockwise ? 1 : -1;
+                start
+                    .set(Math.cos(startAngle), Math.sin(startAngle) * clockwise)
+                    .scale(radius)
+                    .add(center);
+                end
+                    .set(Math.cos(endAngle), Math.sin(endAngle) * clockwise)
+                    .scale(radius)
+                    .add(center);
                 
-                start.set(Math.cos(startAngle), Math.sin(startAngle)).add(center);
-                end.set(Math.cos(endAngle), Math.sin(endAngle)).add(center);
-                
-                
+                startAngle = startAngle % (Math.PI * 2);
+                if (startAngle < 0) {
+                    startAngle = startAngle + Math.PI * 2;
+                }
+                endAngle = endAngle % (Math.PI * 2);
+                if (endAngle < 0) {
+                    endAngle = endAngle + Math.PI * 2;
+                }
+
+                if (startAngle > endAngle) {
+                    endAngle += Math.PI * 2;
+                }
+                var number = 0;
+                for (var angle = 0; angle < endAngle; angle += Math.PI / 2) {
+                    if (angle > startAngle) {
+                        extremities[number++]
+                            .set(Math.cos(angle), Math.sin(angle) * clockwise)
+                            .scale(radius)
+                            .add(center);
+                    }
+                }
+                var tmp = extremities.slice(0, number)
+                tmp.push(start, end);
+                util.computeBoundingBox(tmp, min, max);
             }
         })()
     }

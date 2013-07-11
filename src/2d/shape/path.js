@@ -24,7 +24,9 @@ define(function(require) {
 
             var min = this.boundingBox.min;
             var max = this.boundingBox.max;
-
+            min.set(999999, 999999);
+            max.set(-999999, -999999);
+            
             for (var i = 1; i < l; i++) {
                 if (segs[i-1].handleOut || segs[i].handleIn) {
                     var bb = util.computeCubeBezierBoundingBox(

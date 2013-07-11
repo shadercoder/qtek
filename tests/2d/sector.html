@@ -1,0 +1,59 @@
+<html>
+<head>
+    <title></title>
+    <meta charset="utf-8">
+    <script type="text/javascript" src="../../thirdparty/require.js"></script>
+</head>
+<body>
+    <canvas id="Main"></canvas>
+    <script type="text/javascript">
+        requirejs.config({
+            'baseUrl' : '../../src',
+            'paths' : {
+                '_' : '../thirdparty/lodash.compat',
+                'glmatrix' : '../thirdparty/gl-matrix'
+            },
+            'shim' : {
+                '_' : {
+                    exports : '_'
+                }
+            }
+        });
+
+        require(['qtek'], function(qtek){
+            var qtek2d = qtek['2d'];
+
+            var layer = new qtek2d.Layer({
+                canvas : document.getElementById("Main"),
+                width : 1000,
+                height : 600
+            });
+
+            var startAngle = Math.random() * Math.PI * 2;
+            var sector = new qtek2d.shape.Sector({
+                innerRadius : 80,
+                outerRadius : 200,
+                center : new qtek.core.Vector2(300, 200),
+                startAngle : startAngle,
+                endAngle : startAngle + Math.random() * Math.PI * 2,
+                clockwise : false
+            });
+            layer.add(sector);
+
+            layer.render();
+            
+            sector.computeBoundingBox();
+            var bb = sector.boundingBox;
+            layer.add(new qtek2d.shape.Rectangle({
+                start : bb.min,
+                fill : false,
+                stroke : true,
+                position : sector.position,
+                size : bb.max.clone().sub(bb.min)
+            }));
+
+            layer.render();
+        });
+    </script>
+</body>
+</html>

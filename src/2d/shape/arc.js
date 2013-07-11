@@ -13,11 +13,11 @@ define(function(require){
         }
     }, {
         computeBoundingBox : function() {
-            // TODO
-            this.boundingBox = {
-                min : new Vector2(),
-                max : new Vector2()
-            }
+             util.computeArcBoundingBox(
+                this.center, this.radius, this.startAngle, 
+                this.endAngle, this.clockwise,
+                this.boundingBox.min, this.boundingBox.max
+            );
         },
         draw : function(contex) {
 
