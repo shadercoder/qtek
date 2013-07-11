@@ -1,8 +1,15 @@
+/**
+ *
+ * Inspired by path in paper.js
+ */
 define(function(require) {
 
     var Node = require('../node');
     var util = require('../util');
     var Vector2 = require("core/vector2");
+
+    var minTmp = new Vector2();
+    var maxTmp = new Vector2();
 
     var Path = Node.derive( function() {
         return {
@@ -11,14 +18,34 @@ define(function(require) {
             closePath : false
         }
     }, {
-        computeAABB : function() {
-            this.AABB = {
-                min : new Vector2(),
-                max : new Vector2()
-            };
+        computeBoundingBox : function() {
+            var l = this.segments.length;
+            var segs = this.segments;
+
+            var min = this.boundingBox.min;
+            var max = this.boundingBox.max;
+
+            for (var i = 1; i < l; i++) {
+                if (segs[i-1].handleOut || segs[i].handleIn) {
+                    var bb = util.computeCubeBezierBoundingBox(
+                                segs[i-1].point,
+                                segs[i-1].handleOut || segs[i-1].point,
+                                segs[i].handleIn || segs[i].point,
+                                segs[i].point,
+                                minTmp, maxTmp
+                            );
+                    min.min(minTmp);
+                    max.max(maxTmp);
+                } else {
+                    min.min(segs[i-1].point);
+                    min.min(segs[i].point);
+
+                    max.max(segs[i-1].point);
+                    max.max(segs[i].point);
+                }
+            }
         },
         draw : function(ctx) {
-            
             if (this.globalStyle) {
                 this.drawWithSameStyle(ctx);
             } else {
@@ -84,11 +111,12 @@ define(function(require) {
             }
         },
         smooth : function(degree) {
+
             var len = this.segments.length;
             var middlePoints = [];
             var segs = this.segments;
 
-            var m = [];
+            var m = new Vector2();
             function computeVector(a, b, c) {
                 m.copy(b).add(c).scale(0.5);
                 return m.sub(a).negate();
@@ -114,10 +142,10 @@ define(function(require) {
 
                 var dv = computeVector(point, prevMiddlePoint, middlePoint);
                 //use degree to scale the handle length
-                vec2.scale(v2, v2, degree);
-                vec2.scale(v1, v1, degree);
-                segs[i].handleIn = prevMiddlePoint.add(dv).clone();
-                segs[i].handleOut = middlePoint.add(dv).clone();
+                v2.scale(degree);
+                v1.scale(degree);
+                segs[i].handleIn = middleMiddlePoint.clone().add(v2).add(dv);
+                segs[i].handleOut = middleMiddlePoint.clone().add(v1).add(dv);
             }
             segs[0].handleOut = segs[0].handleIn = null;
             segs[len-1].handleIn = segs[len-1].handleOut = null;

@@ -1,30 +1,34 @@
-define(function(require){
+define(function(require) {
 
     var Node = require('../node');
     var util = require('../util');
     var Vector2 = require("core/vector2");
 
-    var Line = Node.derive(function(){
+    var Line = Node.derive(function() {
         return {
             start : new Vector2(),
             end : new Vector2(),
             width : 0   //virtual width of the line for intersect computation 
         }
     }, {
-        computeAABB : function(){
+        computeBoundingBox : function() {
 
-            this.AABB = util.computeAABB([this.start, this.end]);
+            this.boundingBox = util.computeBoundingBox(
+                                    [this.start, this.end],
+                                    this.boundingBox.min,
+                                    this.boundingBox.max
+                                );
             
-            if(this.AABB.min.x == this.AABB.max.x){ //line is vertical
-                this.AABB.min.x -= this.width/2;
-                this.AABB.max.x += this.width/2;
+            if (this.boundingBox.min.x == this.boundingBox.max.x) { //line is vertical
+                this.boundingBox.min.x -= this.width/2;
+                this.boundingBox.max.x += this.width/2;
             }
-            if(this.AABB.min.y == this.AABB.max.y){ //line is horizontal
-                this.AABB.min.y -= this.width/2;
-                this.AABB.max.y += this.width/2;
+            if (this.boundingBox.min.y == this.boundingBox.max.y) { //line is horizontal
+                this.boundingBox.min.y -= this.width/2;
+                this.boundingBox.max.y += this.width/2;
             }
         },
-        draw : function(ctx){
+        draw : function(ctx) {
             
             var start = this.fixAA ? util.fixPos(this.start) : this.start,
                 end = this.fixAA ? util.fixPos(this.end) : this.end;
@@ -35,13 +39,13 @@ define(function(require){
             ctx.stroke();
 
         },
-        intersect : function(){
+        intersect : function() {
             var a = new Vector2();
             var ba = new Vector2();
             var bc = new Vector2();
 
-            return function(x, y){
-                if(!this.intersectAABB(x, y)){
+            return function(x, y) {
+                if (!this.intersectBoundingBox(x, y)) {
                     return false;
                 }
                 var b = this.start;

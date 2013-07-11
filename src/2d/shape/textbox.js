@@ -10,12 +10,11 @@
 define(function(require) {
 
     var Node = require('../node');
-    var util = require('../util');
     var Vector2 = require("core/vector2");
     var Text = require('./text');
     var _ = require('_');
 
-    var TextBox = Node.derive( function() {
+    var TextBox = Node.derive(function() {
         return {
             start           : new Vector2(),
             width           : 0,
@@ -30,7 +29,7 @@ define(function(require) {
         // to verify if the text is changed
         this._oldText = "";
     }, {
-        computeAABB : function() {
+        computeBoundingBox : function() {
             // TODO
         },
         draw : function(ctx) {
@@ -38,14 +37,14 @@ define(function(require) {
                 this._oldText = this.text;
 
                 //set font for measureText
-                if (this.font ) {
+                if (this.font) {
                     ctx.font = this.font;
                 }
                 if (this.wordBreak) {
-                    this._texts = this.computeWordBreak( ctx );
+                    this._texts = this.computeWordBreak(ctx);
                 }
                 else if (this.wordWrap) {
-                    this._texts = this.computeWordWrap( ctx );
+                    this._texts = this.computeWordWrap(ctx);
                 }
                 else{
                     var txt = new Text({
@@ -63,8 +62,8 @@ define(function(require) {
             })
             ctx.restore();
         },
-        computeWordWrap : function( ctx ) {
-            if ( ! this.text) {
+        computeWordWrap : function(ctx) {
+            if (! this.text) {
                 return;
             }
             var words = this.text.split(' ');
@@ -77,11 +76,11 @@ define(function(require) {
 
             var wordHeight = ctx.measureText("m").width;
 
-            for( var i = 0; i < len; i++) {
+            for(var i = 0; i < len; i++) {
                 wordText = i == len-1 ? words[i] : words[i]+' ';
-                wordWidth = ctx.measureText( wordText ).width;
-                if ( lineWidth + wordWidth > this.width ||
-                    ! txt ) {    //first line
+                wordWidth = ctx.measureText(wordText).width;
+                if (lineWidth + wordWidth > this.width ||
+                    ! txt) {    //first line
                     // create a new text line and put current word
                     // in the head of new line
                     txt = new Text({
@@ -89,7 +88,7 @@ define(function(require) {
                         start : this.start.clone().add(new Vector2(0, this.lineHeight*(texts.length+1) - wordHeight))
                     })
                     this.extendCommonProperties(txt);
-                    texts.push( txt );
+                    texts.push(txt);
 
                     lineWidth = wordWidth;
                 }else{
@@ -99,8 +98,8 @@ define(function(require) {
             }
             return texts;
         },
-        computeWordBreak : function( ctx ) {
-            if ( ! this.text) {
+        computeWordBreak : function(ctx) {
+            if (! this.text) {
                 return;
             }
             var len = this.text.length;
@@ -109,14 +108,14 @@ define(function(require) {
             var lineWidth = ctx.measureText(this.text[0]).width;
             var texts = [];
             var txt;
-            
+
             var wordHeight = ctx.measureText("m").width;
 
             for (var i = 0; i < len; i++) {
                 letter = this.text[i];
-                letterWidth = ctx.measureText( letter ).width;
-                if ( lineWidth + letterWidth > this.width || 
-                    ! txt ) {    //first line
+                letterWidth = ctx.measureText(letter).width;
+                if (lineWidth + letterWidth > this.width || 
+                    ! txt) {    //first line
                     var txt = new Text({
                         text : letter,
                         start : this.start.clone().add(new Vector2(0, this.lineHeight*(texts.length+1) - wordHeight))
@@ -140,9 +139,8 @@ define(function(require) {
             })
         },
         intersect : function(x, y) {
-            
         }
-    } )
+    })
 
     return TextBox;
 })

@@ -1,10 +1,9 @@
 define(function(require){
 
     var Node = require('../node');
-    var util = require('../util');
     var Vector2 = require("core/vector2");
 
-    var Arc = Node.derive( function(){
+    var Arc = Node.derive( function() {
         return {
             center      : new Vector2(),
             radius      : 0,
@@ -13,20 +12,21 @@ define(function(require){
             clockwise   : true
         }
     }, {
-        computeAABB : function(){
+        computeBoundingBox : function() {
             // TODO
-            this.AABB = [[0, 0], [0, 0]];
+            this.boundingBox = {
+                min : new Vector2(),
+                max : new Vector2()
+            }
         },
-        draw : function(contex){
-
-            var center = this.fixAA ? util.fixPos(this.center) : this.center;
+        draw : function(contex) {
 
             ctx.beginPath();
-            ctx.arc(center.x, center.y, this.radius, this.startAngle, this.endAngle,  ! this.clockwise);
-            if(this.stroke){
+            ctx.arc(this.center.x, this.center.y, this.radius, this.startAngle, this.endAngle,  ! this.clockwise);
+            if (this.stroke) {
                 ctx.stroke();
             }
-            if(this.fill){
+            if (this.fill) {
                 ctx.fill();
             }   
         },

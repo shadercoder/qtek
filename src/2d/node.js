@@ -2,14 +2,14 @@
  * Node of the scene tree
  * And it is the base class of all elements
  */
-define(function(require){
+define(function(require) {
     
     var Base = require("core/base");
     var Vector2 = require("core/vector2");
     var Matrix2d = require("core/matrix2d");
     var Style = require("./style");
 
-    var Node = Base.derive( function(){
+    var Node = Base.derive(function() {
         return {
             //a flag to judge if mouse is over the element
             __mouseover__ : false,
@@ -17,7 +17,7 @@ define(function(require){
             name : '',
             
             //Axis Aligned Bounding Box
-            AABB : {
+            boundingBox : {
                 min : new Vector2(),
                 max : new Vector2()
             },
@@ -58,17 +58,17 @@ define(function(require){
             // https://developer.mozilla.org/en-US/docs/HTML/Canvas/Tutorial/Applying_styles_and_colors?redirectlocale=en-US&redirectslug=Canvas_tutorial%2FApplying_styles_and_colors#section_8
             fixAA : true
         }
-    }, function(){
+    }, function() {
         this.__GUID__ = genGUID();
     }, {
-        updateTransform : function(){
+        updateTransform : function() {
             var transform = this.transform;
-            if( ! this.scale._dirty &&
+            if (! this.scale._dirty &&
                 ! this.position._dirty &&
-                this.rotation === this._prevRotation){
+                this.rotation === this._prevRotation) {
                 return;
             }
-            if( ! this.autoUpdate){
+            if (! this.autoUpdate) {
                 return;
             }
             transform.identity();
@@ -78,47 +78,47 @@ define(function(require){
 
             this._prevRotation = this.rotation;
         },
-        updateTransformInverse : function(){
+        updateTransformInverse : function() {
             this.transformInverse.copy(this.transform).invert();
         },
         // intersect with the bounding box
-        intersectAABB : function(x, y){
-            var AABB = this.AABB;
-            return  (AABB.min.x < x && x < AABB.max.x) && (AABB.min.y < y && y< AABB.max.y);
+        intersectBoundingBox : function(x, y) {
+            var boundingBox = this.boundingBox;
+            return  (boundingBox.min.x < x && x < boundingBox.max.x) && (boundingBox.min.y < y && y< boundingBox.max.y);
         },
-        add : function(elem){
-            if(elem){
+        add : function(elem) {
+            if (elem) {
                 this.children.push(elem);
                 elem.parent = this;
             }
         },
-        remove : function(elem){
-            if(elem){
+        remove : function(elem) {
+            if (elem) {
                 this.children.splice(this.children.indexOf(elem), 1);
             }
         },
 
-        draw : function(context){},
+        draw : function(context) {},
 
-        render : function(context){
+        render : function(context) {
             
             this.trigger("beforerender", context);
 
             var renderQueue = this._getSortedRenderQueue();
             // TODO : some style should not be inherited ?
             context.save();
-            if(this.style){
-                if(!this.style instanceof Style){
-                    for(var name in this.style ){
+            if (this.style) {
+                if (!this.style instanceof Style) {
+                    for (var name in this.style) {
                         this.style[name].bind(context);
                     }
-                }else{
+                } else {
                     this.style.bind(context);
                 }
             }
             this.updateTransform();
             var m = this.transform._array;
-            context.transform( m[0], m[1], m[2], m[3], m[4], m[5]);
+            context.transform(m[0], m[1], m[2], m[3], m[4], m[5]);
 
             this.trigger("beforedraw", context);
             this.draw(context);
@@ -127,43 +127,60 @@ define(function(require){
             //clip from current path;
             this.clip && context.clip();
 
-            for(var i = 0; i < renderQueue.length; i++){
-                renderQueue[i].render( context );
+            for (var i = 0; i < renderQueue.length; i++) {
+                renderQueue[i].render(context);
             }
             context.restore();
 
             this.trigger("afterrender", context);
         },
 
-        traverse : function(callback){
-            var stopTraverse = callback && callback( this );
-            if( ! stopTraverse ){
+        traverse : function(callback) {
+            var stopTraverse = callback && callback(this);
+            if (! stopTraverse) {
                 var children = this.children;
-                for( var i = 0, len = children.length; i < len; i++){
-                    children[i].traverse( callback );
+                for (var i = 0, len = children.length; i < len; i++) {
+                    children[i].traverse(callback);
                 }
             }
         },
 
-        intersect : function(x, y, eventName){},
+        intersect : function(x, y, eventName) {},
 
-        _getSortedRenderQueue : function(){
-            
+        // Get transformed bounding rect
+        getBoundingRect : function() {
+
+            return {
+                left : null,
+                top : null,
+                width : null,
+                height : null
+            }
+        },
+
+        getWidth : function() {
+
+        },
+
+        getHeight : function() {
+
+        },
+
+        _getSortedRenderQueue : function() {
             var renderQueue = this.children.slice();
-
-            renderQueue.sort( function(x, y){
-                if( x.z === y.z)
+            renderQueue.sort(function(x, y) {
+                if (x.z === y.z)
                     return x.__GUID__ > y.__GUID__ ? 1 : -1;
                 return x.z > y.z ? 1 : -1 ;
-            } );
+            });
             return renderQueue; 
         }
     })
 
-    var genGUID = (function(){
+    var genGUID = (function() {
         var guid = 0;
         
-        return function(){
+        return function() {
             return ++guid;
         }
     })()

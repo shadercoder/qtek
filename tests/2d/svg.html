@@ -5,7 +5,7 @@
     <script type="text/javascript" src="../../thirdparty/require.js"></script>
 </head>
 <body>
-    <canvas id="Main"></canvas>
+    <div id="Main"></div>
     <script type="text/javascript">
         requirejs.config({
             'baseUrl' : '../../src',
@@ -21,34 +21,60 @@
         })
 
         require(['qtek',
-                'text!../tests/2d/assets/complex2.svg'], function(qtek, svgData){
+                'text!../tests/2d/assets/tiger.svg'], function(qtek, svgData){
             var qtek2d = qtek['2d'];
 
             var svgLoader = new qtek.loader.SVG();
             var node = svgLoader.parse(svgData);
 
-            var canvas = document.getElementById("Main");
-            var renderer = new qtek2d.Renderer({
-                canvas : canvas,
+            var container = document.getElementById("Main");
+            var stage = new qtek2d.Stage({
+                container : container,
                 width : 1024,
                 height : 600
             });
+            var layer = stage.createLayer();
 
-            var scene = new qtek2d.Scene();
-            scene.add(node);
+            layer.add(node);
             node.style = new qtek2d.Style({
-                globalCompositeOperation : 'xor'
+                // globalCompositeOperation : 'xor'
             });
+
+            var canvas = layer.canvas;
             if(window.devicePixelRatio == 2) {
                 canvas.width *= 2;
                 canvas.height *= 2;
                 canvas.style.width = canvas.width/2;
                 canvas.style.height = canvas.height/2;
-                scene.scale.set(2, 2);
+                layer.scale.set(2, 2);
             }
+            
+            // Bounding box
+            var bbHelpers = [];
+            console.profile("compute bounding box");
+            node.traverse(function(current){
+                if(current.instanceof(qtek2d.shape.SVGPath)){
+                    current.computeBoundingBox();
+                    var bb = current.boundingBox;
+                    var rect = new qtek2d.shape.Rectangle({
+                        start : bb.min,
+                        fill : false,
+                        stroke : true,
+                        style : new qtek2d.Style({
+                            stroke : 'black',
+                            lineWidth : 0.5
+                        }),
+                        size : bb.max.clone().sub(bb.min)
+                    });
+                    bbHelpers.push(rect);
+
+                    current.add(rect);
+                }
+            });
+            console.profileEnd("compute bounding box");
 
             console.profile("render");
-            renderer.render(scene);
+            layer.render()
             console.profileEnd("render");
         });
     </script>

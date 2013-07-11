@@ -2,48 +2,122 @@
  *
  * @export{object}
  */
-define(function(require){
+define(function(require) {
     
     var Vector2 = require("core/vector2");
+    var glMatrix = require("glmatrix");
+    var vec2 = glMatrix.vec2;
 
-    return {
-        fixPos: function(pos){
+    var tmp = new Vector2();
+
+    var util =  {
+        fixPos: function(pos) {
             pos.x += 0.5;
             pos.y += 0.5;
             return pos;
         },
-        fixPosArray : function( poslist ){
+        fixPosArray : function(poslist) {
             var len = poslist.length;
-            for(var i = 0; i < len; i++){
+            for(var i = 0; i < len; i++) {
                 this.fixPos(poslist[i]);
             }
             return poslist;
         },
-        computeAABB : function( points ){
+        computeBoundingBox : function(points, min, max) {
             var left = points[0].x;
-            var right = points[1].x;
+            var right = points[0].x;
             var top = points[0].y;
-            var bottom = points[1].y;
+            var bottom = points[0].y;
             
-            for(var i = 1; i < points.length; i++){
+            for (var i = 1; i < points.length; i++) {
                 var p = points[i];
-                if(p.x < left){
+                if (p.x < left) {
                     left = p.x;
                 }
-                if(p.x > right){
+                if (p.x > right) {
                     right = p.x;
                 }
-                if(p.y < top){
+                if (p.y < top) {
                     top = p.y;
                 }
-                if(p.y > bottom){
+                if (p.y > bottom) {
                     bottom = p.y;
                 }
             }
-            return {
-                min : new Vector2(left, top),
-                max : new Vector2(right, bottom)
+            min.set(left, top);
+            max.set(right, bottom);
+        },
+
+        // http://pomax.github.io/bezierinfo/#extremities
+        computeCubeBezierBoundingBox : function(p0, p1, p2, p3, min, max) {
+            var seg = (p0.dist(p1) + p2.dist(p3) + p0.dist(p3)) / 20;
+
+            min.copy(p0).min(p3);
+            max.copy(p0).max(p3);
+
+            for (var i = 1; i < seg; i++) {
+                var t = i / seg;
+                var t2 = t * t;
+                var ct = 1 - t;
+                var ct2 = ct * ct;
+                var x = ct2 * ct * p0.x + 3 * ct2 * t * p1.x + 3 * ct * t2 * p2.x + t2 * t * p3.x;
+                var y = ct2 * ct * p0.y + 3 * ct2 * t * p1.y + 3 * ct * t2 * p2.y + t2 * t * p3.y;
+
+                tmp.set(x, y);
+                min.min(tmp);
+                max.max(tmp);
             }
-        }
+        },
+
+        // http://pomax.github.io/bezierinfo/#extremities
+        computeQuadraticBezierBoundingBox : function(p0, p1, p2, min, max) {
+            // Find extremities, where derivative in x dim or y dim is zero
+            var tmp = (p0.x + p2.x - 2 * p1.x);
+            // p1 is center of p0 and p2 in x dim
+            if (tmp === 0) {
+                var t1 = 0.5;
+            } else {
+                var t1 = (p0.x - p1.x) / tmp;
+            }
+
+            tmp = (p0.y + p2.y - 2 * p1.y);
+            // p1 is center of p0 and p2 in y dim
+            if (tmp === 0) {
+                var t2 = 0.5;
+            } else {
+                var t2 = (p0.y - p1.y) / tmp;
+            }
+
+            t1 = Math.max(Math.min(t1, 1), 0);
+            t2 = Math.max(Math.min(t2, 1), 0);
+
+            var ct1 = 1-t1;
+            var ct2 = 1-t2;
+
+            var x1 = ct1 * ct1 * p0.x + 2 * ct1 * t1 * p1.x + t1 * t1 * p2.x;
+            var y1 = ct1 * ct1 * p0.y + 2 * ct1 * t1 * p1.y + t1 * t1 * p2.y;
+
+            var x2 = ct2 * ct2 * p0.x + 2 * ct2 * t2 * p1.x + t2 * t2 * p2.x;
+            var y2 = ct2 * ct2 * p0.y + 2 * ct2 * t2 * p1.y + t2 * t2 * p2.y;
+
+            return util.computeBoundingBox(
+                        [p0.clone(), p2.clone(), new Vector2(x1, y1), new Vector2(x2, y2)],
+                        min, max
+                    );
+        },
+
+        computeArcBoundingBox : (function(){
+            var start = new Vector2();
+            var end = new Vector2();
+            return function(center, radius, startAngle, endAngle, closeWise, min, max) {
+                
+                start.set(Math.cos(startAngle), Math.sin(startAngle)).add(center);
+                end.set(Math.cos(endAngle), Math.sin(endAngle)).add(center);
+                
+                
+            }
+        })()
     }
+
+    return util;
 } )

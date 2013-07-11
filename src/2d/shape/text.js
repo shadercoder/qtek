@@ -1,44 +1,43 @@
-define(function(require){
+define(function(require) {
 
     var Node = require('../node');
     var util = require('../util');
     var Vector2 = require("core/vector2");
 
-    var Text = Node.derive( function(){
+    var Text = Node.derive( function() {
         return {
             text : '',
             start : new Vector2(),
             size : new Vector2()
         }
     }, {
-        computeAABB : function(){
-            this.AABB = {
+        computeBoundingBox : function() {
+            this.boundingBox = {
                 min : this.start.clone(),
                 max : this.start.clone().add(this.size)
             }
         },
-        draw : function(ctx){
-            var start = this.fixAA ? util.fixPos(this.start) : this.start;
-            
-            if(this.fill){
+        draw : function(ctx) {
+            var start = this.start;
+            if (this.fill) {
                 this.size.length && this.size.x ?
                     ctx.fillText(this.text, start.x, start.y, this.size.x) :
                     ctx.fillText(this.text, start.x, start.y);
             }
-            if(this.stroke){
+            if (this.stroke) {
                 this.size.length && this.size.x ?
                     ctx.strokeText(this.text, start.x, start.y, this.size.x) :
                     ctx.strokeText(this.text, start.x, start.y);
             }
         },
-        resize : function(ctx){
-            if(! this.size.x || this.needResize){
+        resize : function(ctx) {
+            if (! this.size.x || this.needResize) {
                 this.size.x = ctx.measureText(this.text).width;
                 this.size.y = ctx.measureText('m').width;
             }
         },
-        intersect : function(x, y){
-            return this.intersectAABB(x, y);
+        intersect : function(x, y) {
+            return this.intersectBoundingBox(x, y);
         }
     })
 

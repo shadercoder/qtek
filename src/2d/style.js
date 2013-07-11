@@ -17,7 +17,7 @@
  * @config  alpha,
  * @config  shadow
  */
-define(function(require){
+define(function(require) {
     
     var Base = require('core/base');
     var _ = require('_');
@@ -52,7 +52,7 @@ define(function(require){
     
     var Style = Base.derive({}, {
 
-        bind : function(ctx){
+        bind : function(ctx) {
 
             for (var alias in _styleAlias) {
                 if (this[alias] || this[alias] === 0) {
@@ -61,11 +61,11 @@ define(function(require){
                     // composite styles, like shadow, the value can be "0 0 10 #000"
                     if (alias == "shadow") {
                         var res = shadowSyntaxRegex.exec(trim(value));
-                        if( ! res )
+                        if (! res)
                             continue;
                         value = res.slice(1);
-                        _.each( value, function(item, idx){
-                            if( name[idx] ){
+                        _.each(value, function(item, idx) {
+                            if (name[idx]) {
                                 ctx[ name[idx] ] = item;
                             }
                         }, this)
@@ -94,7 +94,7 @@ define(function(require){
         }
     })
 
-    function trim(str){
+    function trim(str) {
         return (str || '').replace(/^(\s|\u00A0)+|(\s|\u00A0)+$/g, '');
     }
 

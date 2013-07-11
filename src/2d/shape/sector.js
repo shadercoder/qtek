@@ -14,9 +14,9 @@ define(function(require){
             clockwise   : true
         }
     }, {
-        computeAABB : function(){
+        computeBoundingBox : function(){
             // TODO
-            this.AABB = {
+            this.boundingBox = {
                 min : new Vector2(),
                 max : new Vector2()
             }

@@ -1,33 +1,33 @@
 /**
  * @export{class} RoundedRectangle
  */
-define(function(require){
+define(function(require) {
 
     var Node = require('../node');
     var util = require('../util');
     var Vector2 = require("core/vector2");
 
-    var RoundedRectange = Node.derive( function(){
+    var RoundedRectange = Node.derive(function() {
         return {
             start   : new Vector2(),
             size    : new Vector2(),
             radius  : 0
         }
     }, {
-        computeAABB : function(){
-            return {
+        computeBoundingBox : function() {
+            this.boundingBox = {
                 min : this.start.clone(),
                 max : this.size.clone().add(this.start)
             }
         },
-        draw : function(ctx){
+        draw : function(ctx) {
 
-            if( this.radius.constructor == Number){
+            if (this.radius.constructor == Number) {
                 // topleft, topright, bottomright, bottomleft
                 var radius = [this.radius, this.radius, this.radius, this.radius];
-            }else if( this.radius.length == 2){
+            } else if (this.radius.length == 2) {
                 var radius = [this.radius[0], this.radius[1], this.radius[0], this.radius[1]];
-            }else{
+            } else {
                 var radius = this.radius;
             }
 
@@ -38,28 +38,28 @@ define(function(require){
             var v3 = new Vector2().copy(start).add(size);                        //right bottom
             var v4 = new Vector2().copy(start).add(new Vector2(0, size.y));     //left bottom
             ctx.beginPath();
-            ctx.moveTo( v1.x, v1.y );
+            ctx.moveTo(v1.x, v1.y);
             radius[1] ? 
-                ctx.arcTo( v2.x, v2.y, v3.x, v3.y, radius[1]) :
-                ctx.lineTo( v2.x, v2.y );
+                ctx.arcTo(v2.x, v2.y, v3.x, v3.y, radius[1]) :
+                ctx.lineTo(v2.x, v2.y);
             radius[2] ?
-                ctx.arcTo( v3.x, v3.y, v4.x, v4.y, radius[2]) :
-                ctx.lineTo( v3.x, v3.y );
+                ctx.arcTo(v3.x, v3.y, v4.x, v4.y, radius[2]) :
+                ctx.lineTo(v3.x, v3.y);
             radius[3] ?
-                ctx.arcTo( v4.x, v4.y, start.x, start.y, radius[3]) :
-                ctx.lineTo( v4.x, v4.y );
+                ctx.arcTo(v4.x, v4.y, start.x, start.y, radius[3]) :
+                ctx.lineTo(v4.x, v4.y);
             radius[0] ? 
-                ctx.arcTo( start.x, start.y, v2.x, v2.y, radius[0]) :
-                ctx.lineTo( start.x, start.y);
+                ctx.arcTo(start.x, start.y, v2.x, v2.y, radius[0]) :
+                ctx.lineTo(start.x, start.y);
             
-            if( this.stroke ){
+            if (this.stroke) {
                 ctx.stroke();
             }
-            if( this.fill ){
+            if (this.fill) {
                 ctx.fill();
             }
         },
-        intersect : function(x, y){
+        intersect : function(x, y) {
             // TODO
             return false;
         }

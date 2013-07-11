@@ -25,12 +25,11 @@
                 TextBox = qtek2d.shape.TextBox,
                 Style = qtek2d.Style;
 
-            var renderer = new qtek2d.Renderer({
+            var layer = new qtek2d.Layer({
                 canvas : document.getElementById("Main"),
                 width : 500,
                 height:500
             });
-            var scene = new qtek2d.Scene();
             // Rounded Rectangle
             var rrect = new RoundedRectangle({
                 radius : [10, 0, 0, 10],
@@ -45,7 +44,7 @@
             rrect.size.set(200, 200);
             rrect.position.set(100, 100);
             rrect.rotation = 0.4;
-            scene.add(rrect);
+            layer.add(rrect);
             // Text;
             var text = new TextBox({
                 text : "All the world \'s a stage, and all the men and women merely players. They have their exits and their entrances; And one man in his time plays many parts.",
@@ -59,7 +58,8 @@
             });
             text.start.set(10, 10);
             rrect.add(text);
-            renderer.render( scene );
+
+            layer.render();
         })
         
     </script>

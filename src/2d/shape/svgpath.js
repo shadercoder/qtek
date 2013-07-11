@@ -2,16 +2,120 @@
  * 
  * @export{class} SVGPath
  */
-define(function(require){
+define(function(require) {
 
     var Node = require("2d/node");
+    var util = require("2d/util");
+    var Vector2 = require("core/vector2");
 
     var availableCommands = {'m':1,'M':1,'z':1,'Z':1,'l':1,'L':1,'h':1,'H':1,'v':1,'V':1,'c':1,'C':1,'s':1,'S':1,'q':1,'Q':1,'t':1,'T':1,'a':1,'A':1}
 
-    var SVGPath = Node.derive({
-        description : ''
+    var SVGPath = Node.derive(function() {
+        return {
+            description : '',
+            _ops : []
+        }
     }, {
         draw : function(ctx) {
+            if (!this._ops.length) {
+                this.parse();
+            }
+
+            ctx.beginPath();
+            for (var i = 0; i < this._ops.length; i++) {
+                var op = this._ops[i];
+                switch(op[0]) {
+                    case 'm':
+                        ctx.moveTo(op[1], op[2]);
+                        break;
+                    case 'l':
+                        ctx.lineTo(op[1], op[2]);
+                        break;
+                    case 'c':
+                        ctx.bezierCurveTo(op[1], op[2], op[3], op[4], op[5], op[6]);
+                        break;
+                    case 'q':
+                        ctx.quadraticCurveTo(op[1], op[2], op[3], op[4]);
+                        break;
+                    case 'z':
+                        ctx.closePath();
+                        if (this.fill) {
+                            ctx.fill();
+                        }
+                        if (this.stroke) {
+                            ctx.stroke();
+                        }
+                        ctx.beginPath();
+                        break;
+                }
+            }
+            if (this.fill) {
+                ctx.fill();
+            }
+            if (this.stroke) {
+                ctx.stroke();
+            }
+        },
+
+        computeBoundingBox : (function() {
+            // Temp variables
+            var current = new Vector2();
+            var p1 = new Vector2();
+            var p2 = new Vector2();
+            var p3 = new Vector2();
+
+            var minTmp = new Vector2();
+            var maxTmp = new Vector2();
+
+            return function() {
+                if (!this._ops.length) {
+                    this.parse();
+                }
+                var min = new Vector2(999999, 999999);
+                var max = new Vector2(-999999, -999999);
+
+                for (var i = 0; i < this._ops.length; i++) {
+                    var op = this._ops[i];
+                    switch(op[0]) {
+                        case 'm':
+                            current.set(op[1], op[2]);
+                            break;
+                        case 'l':
+                            p1.set(op[1], op[2]);
+                            current.copy(p1);
+                            min.min(current).min(p1);
+                            max.max(current).max(p1);
+                            break;
+                        case 'c':
+                            p1.set(op[1], op[2]);
+                            p2.set(op[3], op[4]);
+                            p3.set(op[5], op[6]);
+                            util.computeCubeBezierBoundingBox(current, p1, p2, p3, minTmp, maxTmp);
+                            current.copy(p3);
+                            min.min(minTmp);
+                            max.max(maxTmp);
+                            break;
+                        case 'q':
+                            p1.set(op[1], op[2]);
+                            p2.set(op[3], op[4]);
+                            var bb = util.computeQuadraticBezierBoundingBox(current, p1, p2, minTmp, maxTmp);
+                            current.copy(p2);
+                            min.min(minTmp);
+                            min.max(maxTmp);
+                            break;
+                        case 'z':
+                            break;
+                    }
+                }
+
+                this.boundingBox = {
+                    min : min,
+                    max : max
+                }
+            }
+        })(),
+
+        parse : function(description) {
             // point x, y
             var x = 0;
             var y = 0;
@@ -23,7 +127,8 @@ define(function(require){
             var y2 = 0;
 
             // pre process
-            var d = this.description.replace(/\s*,\s*/g, ' ');
+            description = description || this.description;
+            var d = description.replace(/\s*,\s*/g, ' ');
             d = d.replace(/(-)/g, ' $1');
             d = d.replace(/([mMzZlLhHvVcCsSqQtTaA])/g, ' $1 ');
             d = d.split(/\s+/);
@@ -35,10 +140,9 @@ define(function(require){
             var len = d.length;
             var next = d[0];
 
-            ctx.beginPath();
             while (offset <= len) {
                 // Skip empty
-                if(!next){
+                if(!next) {
                     next = d[++offset];
                     continue;
                 }
@@ -48,54 +152,47 @@ define(function(require){
                     offset++;
                 }
                 // http://www.w3.org/TR/SVG/paths.html
-                switch(command) {
+                switch (command) {
                     case "m":
                         x = pickValue() + x;
                         y = pickValue() + y;
-                        ctx.moveTo(x, y);
+                        this._ops.push(['m', x, y]);
                         break;
                     case "M":
                         x = pickValue();
                         y = pickValue();
-                        ctx.moveTo(x, y);
+                        this._ops.push(['m', x, y]);
                         break;
                     case "z":
                     case "Z":
-                        ctx.closePath();
-                        if (this.fill) {
-                            ctx.fill();
-                        }
-                        if (this.stroke) {
-                            ctx.stroke();
-                        }
                         next = d[offset];
-                        ctx.beginPath();
+                        this._ops.push(['z']);
                         break;
                     case "l":
                         x = pickValue() + x;
                         y = pickValue() + y;
-                        ctx.lineTo(x, y);
+                        this._ops.push(['l', x, y]);
                         break;
                     case "L":
                         x = pickValue();
                         y = pickValue();
-                        ctx.lineTo(x, y);
+                        this._ops.push(['l', x, y]);
                         break;
                     case "h":
                         x = pickValue() + x;
-                        ctx.lineTo(x, y);
+                        this._ops.push(['l', x, y]);
                         break;
                     case "H":
                         x = pickValue();
-                        ctx.lineTo(x, y);
+                        this._ops.push(['l', x, y]);
                         break;
                     case "v":
                         y = pickValue() + y;
-                        ctx.lineTo(x, y);
+                        this._ops.push(['l', x, y]);
                         break;
                     case "V":
                         y = pickValue();
-                        ctx.lineTo(x, y);
+                        this._ops.push(['l', x, y]);
                         break;
                     case "c":
                         x1 = pickValue() + x;
@@ -104,7 +201,7 @@ define(function(require){
                         y2 = pickValue() + y;
                         x = pickValue() + x;
                         y = pickValue() + y;
-                        ctx.bezierCurveTo(x1, y1, x2, y2, x, y);
+                        this._ops.push(['c', x1, y1, x2, y2, x, y]);
                         break;
                     case "C":
                         x1 = pickValue();
@@ -113,7 +210,7 @@ define(function(require){
                         y2 = pickValue();
                         x = pickValue();
                         y = pickValue();
-                        ctx.bezierCurveTo(x1, y1, x2, y2, x, y);
+                        this._ops.push(['c', x1, y1, x2, y2, x, y]);
                         break;
                     case "s":
                         if (prevCommand === "c" || prevCommand === "C" ||
@@ -129,7 +226,7 @@ define(function(require){
                         y2 = pickValue() + y;
                         x = pickValue() + x;
                         y = pickValue() + y;
-                        ctx.bezierCurveTo(x1, y1, x2, y2, x, y);
+                        this._ops.push(['c', x1, y1, x2, y2, x, y]);
                         break;
                     case "S":
                         if (prevCommand === "c" || prevCommand === "C" ||
@@ -145,21 +242,21 @@ define(function(require){
                         y2 = pickValue();
                         x = pickValue();
                         y = pickValue();
-                        ctx.bezierCurveTo(x1, y1, x2, y2, x, y);
+                        this._ops.push(['c', x1, y1, x2, y2, x, y]);
                         break;
                     case "q":
                         x1 = pickValue() + x;
                         y1 = pickValue() + y;
                         x = pickValue() + x;
                         y = pickValue() + y;
-                        ctx.quadraticBezierCurveTo(x1, y1, x, y);
+                        this._ops.push(['q', x1, y1, x, y]);
                         break;
                     case "Q":
                         x1 = pickValue();
                         y1 = pickValue();
                         x = pickValue();
                         y = pickValue();
-                        ctx.quadraticBezierCurveTo(x1, y1, x, y);
+                        this._ops.push(['q', x1, y1, x, y]);
                         break;
                     case "t":
                         if (prevCommand === "q" || prevCommand === "Q" ||
@@ -173,7 +270,7 @@ define(function(require){
                         }
                         x = pickValue() + x;
                         y = pickValue() + y;
-                        ctx.quadraticBezierCurveTo(x1, y1, x, y);
+                        this._ops.push(['q', x1, y1, x, y]);
                         break;
                     case "T":
                         if (prevCommand === "q" || prevCommand === "Q" ||
@@ -187,7 +284,7 @@ define(function(require){
                         }
                         x = pickValue();
                         y = pickValue();
-                        ctx.quadraticBezierCurveTo(x1, y1, x, y);
+                        this._ops.push(['q', x1, y1, x, y]);
                         break;
                     case "a":
                     case "A":
@@ -197,13 +294,6 @@ define(function(require){
                         pick();
                         continue;
                 }
-            }
-            
-            if (this.fill) {
-                ctx.fill();
-            }
-            if (this.stroke) {
-                ctx.stroke();
             }
             
             function pick() {
