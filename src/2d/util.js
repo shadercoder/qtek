@@ -105,7 +105,7 @@ define(function(require) {
                         min, max
                     );
         },
-
+        // http://stackoverflow.com/questions/1336663/2d-bounding-box-of-a-sector
         computeArcBoundingBox : (function(){
             var start = new Vector2();
             var end = new Vector2();

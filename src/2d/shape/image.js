@@ -8,10 +8,9 @@ define(function(require) {
     
     var QTImage = Node.derive(function() {
         return {
-            img     : null,
+            image     : null,
             start   : new Vector2(),
-            size    : null,
-            onload  : function() {}
+            size    : null
         }
     }, {
         computeBoundingBox : function() {
@@ -23,10 +22,10 @@ define(function(require) {
             }
         },
         draw : function(ctx) {
-            if (this.img) {
+            if (this.image) {
                 this.size ? 
-                    ctx.drawImage(this.img, this.start.x, this.start.y, this.size.x, this.size.y) :
-                    ctx.drawImage(this.img, this.start.x, this.start.y);
+                    ctx.drawImage(this.image, this.start.x, this.start.y, this.size.x, this.size.y) :
+                    ctx.drawImage(this.image, this.start.x, this.start.y);
             }
         },
         intersect : function(x, y) {

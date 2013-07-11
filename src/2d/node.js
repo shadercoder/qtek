@@ -8,11 +8,12 @@ define(function(require) {
     var Vector2 = require("core/vector2");
     var Matrix2d = require("core/matrix2d");
     var Style = require("./style");
+    var util = require("util/util");
 
     var Node = Base.derive(function() {
         return {
-            //a flag to judge if mouse is over the element
-            __mouseover__ : false,
+
+            __GUID__ : util.genGUID(),
             
             name : '',
             
@@ -58,8 +59,6 @@ define(function(require) {
             // https://developer.mozilla.org/en-US/docs/HTML/Canvas/Tutorial/Applying_styles_and_colors?redirectlocale=en-US&redirectslug=Canvas_tutorial%2FApplying_styles_and_colors#section_8
             fixAA : true
         }
-    }, function() {
-        this.__GUID__ = genGUID();
     }, {
         updateTransform : function() {
             var transform = this.transform;
@@ -176,14 +175,6 @@ define(function(require) {
             return renderQueue; 
         }
     })
-
-    var genGUID = (function() {
-        var guid = 0;
-        
-        return function() {
-            return ++guid;
-        }
-    })()
 
     return Node;
 })

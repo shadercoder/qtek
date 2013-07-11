@@ -3,7 +3,7 @@ define(function(require){
     var Node = require('../node');
     var Vector2 = require("core/vector2");
 
-    var Arc = Node.derive( function() {
+    var Arc = Node.derive(function() {
         return {
             center      : new Vector2(),
             radius      : 0,

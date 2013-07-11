@@ -288,6 +288,13 @@ define(function(require) {
                         break;
                     case "a":
                     case "A":
+                        pickValue();
+                        pickValue();
+                        pickValue();
+                        pickValue();
+                        pickValue();
+                        pickValue();
+                        pickValue();
                         console.warn("Elliptical arc is not supported yet");
                         break;
                     default:

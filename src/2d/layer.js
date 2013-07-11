@@ -33,6 +33,8 @@ define(function(require) {
         this.canvas.style.zIndex = this.z;
 
         this.ctx = this.canvas.getContext('2d');
+
+        this.ctx.__GUID__ = this.__GUID__;
     }, {
         resize : function(width, height) {
             this.canvas.width = width;

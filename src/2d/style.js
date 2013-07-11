@@ -22,64 +22,74 @@ define(function(require) {
     var Base = require('core/base');
     var _ = require('_');
 
-    var _styles = ['fillStyle', 
-                    'strokeStyle', 
-                    'lineWidth', 
-                    'lineCap',
-                    'lineJoin',
-                    'miterLimit',
-                    'shadowColor', 
-                    'shadowOffsetX', 
-                    'shadowOffsetY',
-                    'shadowBlur',
-                    'globalAlpha',
-                    'globalCompositeOperation',
-                    'font',
-                    'textAlign',
-                    'textBaseline'];
-    var _styleAlias = {          //extend some simplify style name
-                         'fill' : 'fillStyle',
-                         'stroke' : 'strokeStyle',
-                         'alpha' : 'globalAlpha',
-                         'composite' : 'globalCompositeOperation',
-                         'shadow' : ['shadowOffsetX', 
-                                    'shadowOffsetY', 
-                                    'shadowBlur', 
-                                    'shadowColor']
-                        };
-
     var shadowSyntaxRegex = /([0-9\-]+)\s+([0-9\-]+)\s+([0-9]+)\s+([a-zA-Z0-9\(\)\s,#]+)/;
     
     var Style = Base.derive({}, {
 
         bind : function(ctx) {
-
-            for (var alias in _styleAlias) {
-                if (this[alias] || this[alias] === 0) {
-                    var name = _styleAlias[alias];
-                    var value = this[alias];
-                    // composite styles, like shadow, the value can be "0 0 10 #000"
-                    if (alias == "shadow") {
-                        var res = shadowSyntaxRegex.exec(trim(value));
-                        if (! res)
-                            continue;
-                        value = res.slice(1);
-                        _.each(value, function(item, idx) {
-                            if (name[idx]) {
-                                ctx[ name[idx] ] = item;
-                            }
-                        }, this)
-                    } else {
-                        ctx[ name ] = value;
-                    }
+            // Alias
+            var fillStyle = this.fillStyle || this.fill;
+            var strokeStyle = this.strokeStyle || this.stroke;
+            var globalAlpha = this.globalAlpha || this.alpha;
+            var globalCompositeOperation = this.globalCompositeOperation || this.composite;
+            // parse shadow string
+            if (this.shadow) {
+                var res = shadowSyntaxRegex.exec(trim(this.shadow));
+                if (res) {
+                    var shadowOffsetX = parseInt(res[1]);
+                    var shadowOffsetY = parseInt(res[2]);
+                    var shadowBlur = res[3];
+                    var shadowColor = res[4];
                 }
             }
-            _.each(_styles, function(styleName) {
-                if (this[styleName] || this[styleName] === 0) {
-                    ctx[styleName] = this[styleName];
-                }
-            }, this);
+            shadowOffsetX = this.shadowOffsetX || shadowOffsetX;
+            shadowOffsetY = this.shadowOffsetY || shadowOffsetY;
+            shadowBlur = this.shadowBlur || shadowBlur;
+            shadowColor = this.shadowColor || shadowColor;
 
+            (globalAlpha !== undefined) &&
+                (ctx.globalAlpha = globalAlpha);
+            globalCompositeOperation &&
+                (ctx.globalCompositeOperation = globalCompositeOperation);
+            (this.lineWidth !== undefined) &&
+                (ctx.lineWidth = this.lineWidth);
+            (this.lineCap !== undefined) && 
+                (ctx.lineCap = this.lineCap);
+            (this.lineJoin !== undefined) &&
+                (ctx.lineJoin = this.lineJoin);
+            (this.miterLimit !== undefined) &&
+                (ctx.miterLimit = this.miterLimit);
+            (shadowOffsetX !== undefined) &&
+                (ctx.shadowOffsetX = shadowOffsetX);
+            (shadowOffsetY !== undefined) &&
+                (ctx.shadowOffsetY = shadowOffsetY);
+            (shadowBlur !== undefined) &&
+                (ctx.shadowBlur = shadowBlur);
+            (shadowColor !== undefined) &&
+                (ctx.shadowColor = shadowColor);
+            this.font &&
+                (ctx.font = this.font);
+            this.textAlign &&
+                (ctx.textAlign = this.textAlign);
+            this.textBaseline &&
+                (ctx.textBaseline = this.textBaseline);
+
+            if (fillStyle) {
+                // Fill style is gradient or pattern
+                if (fillStyle.getInstance) {
+                    ctx.fillStyle = fillStyle.getInstance(ctx);
+                } else {
+                    ctx.fillStyle = fillStyle;
+                }
+            }
+            if (strokeStyle) {
+                // Stroke style is gradient or pattern
+                if (strokeStyle.getInstance) {
+                    ctx.strokeStyle = strokeStyle.getInstance(ctx);
+                } else {
+                    ctx.strokeStyle = strokeStyle;
+                }
+            }
             // Set line dash individually
             if (this.lineDash) {
                 if (ctx.setLineDash) {
