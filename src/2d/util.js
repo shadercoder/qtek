@@ -50,23 +50,69 @@ define(function(require) {
 
         // http://pomax.github.io/bezierinfo/#extremities
         computeCubeBezierBoundingBox : function(p0, p1, p2, p3, min, max) {
-            var seg = (p0.dist(p1) + p2.dist(p3) + p0.dist(p3)) / 20;
+            // var seg = (p0.dist(p1) + p2.dist(p3) + p0.dist(p3)) / 20;
 
-            min.copy(p0).min(p3);
-            max.copy(p0).max(p3);
+            // min.copy(p0).min(p3);
+            // max.copy(p0).max(p3);
 
-            for (var i = 1; i < seg; i++) {
-                var t = i / seg;
-                var t2 = t * t;
-                var ct = 1 - t;
-                var ct2 = ct * ct;
-                var x = ct2 * ct * p0.x + 3 * ct2 * t * p1.x + 3 * ct * t2 * p2.x + t2 * t * p3.x;
-                var y = ct2 * ct * p0.y + 3 * ct2 * t * p1.y + 3 * ct * t2 * p2.y + t2 * t * p3.y;
+            // for (var i = 1; i < seg; i++) {
+            //     var t = i / seg;
+            //     var t2 = t * t;
+            //     var ct = 1 - t;
+            //     var ct2 = ct * ct;
+            //     var x = ct2 * ct * p0.x + 3 * ct2 * t * p1.x + 3 * ct * t2 * p2.x + t2 * t * p3.x;
+            //     var y = ct2 * ct * p0.y + 3 * ct2 * t * p1.y + 3 * ct * t2 * p2.y + t2 * t * p3.y;
 
-                tmp.set(x, y);
-                min.min(tmp);
-                max.max(tmp);
+            //     tmp.set(x, y);
+            //     min.min(tmp);
+            //     max.max(tmp);
+            // }
+            var xDim = util._computeCubeBezierExtremitiesDim(p0.x, p1.x, p2.x, p3.x);
+            var yDim = util._computeCubeBezierExtremitiesDim(p0.y, p1.y, p2.y, p3.y);
+
+            xDim.push(p0.x, p3.x);
+            yDim.push(p0.y, p3.y);
+
+            var left = Math.min.apply(null, xDim);
+            var right = Math.max.apply(null, xDim);
+            var top = Math.min.apply(null, yDim);
+            var bottom = Math.max.apply(null, yDim);
+
+            min.set(left, top);
+            max.set(right, bottom);
+        },
+
+        _computeCubeBezierExtremitiesDim : function(p0, p1, p2, p3) {
+            var extremities = [];
+
+            var b = 6 * p2 - 12 * p1 + 6 * p0;
+            var a = 9 * p1 + 3 * p3 - 3 * p0 - 9 * p2;
+            var c = 3 * p1 - 3 * p0;
+
+            var tmp = b * b - 4 * a * c;
+            if (tmp > 0){
+                var tmpSqrt = Math.sqrt(tmp);
+                var t1 = (-b + tmpSqrt) / (2 * a);
+                var t2 = (-b - tmpSqrt) / (2 * a);
+                extremities.push(t1, t2);
+            } else if(tmp == 0) {
+                extremities.push(-b / (2 * a));
             }
+            var result = [];
+            for (var i = 0; i < extremities.length; i++) {
+                var t = extremities[i];
+                if (Math.abs(2 * a * t + b) > 0.0001 && t < 1 && t > 0) {
+                    var ct = 1 - t;
+                    var val = ct * ct * ct * p0 
+                            + 3 * ct * ct * t * p1
+                            + 3 * ct * t * t * p2
+                            + t * t *t * p3;
+
+                    result.push(val);
+                }
+            }
+
+            return result;
         },
 
         // http://pomax.github.io/bezierinfo/#extremities
@@ -143,9 +189,9 @@ define(function(require) {
                             .add(center);
                     }
                 }
-                var tmp = extremities.slice(0, number)
-                tmp.push(start, end);
-                util.computeBoundingBox(tmp, min, max);
+                var points = extremities.slice(0, number)
+                points.push(start, end);
+                util.computeBoundingBox(points, min, max);
             }
         })()
     }

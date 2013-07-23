@@ -10,10 +10,12 @@ define(function(require) {
     var Vector2 = require("core/vector2");
 
     var Gradient = Base.derive(function(){
-        stops : []
+        return {
+            stops : []
+        }
     }, {
-        addColorStop : function(percent, color){
-            this.stops.push([percent, color]);
+        addColorStop : function(offset, color){
+            this.stops.push([offset, color]);
             this.dirty();
         },
         removeAt : function(idx){

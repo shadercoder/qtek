@@ -420,7 +420,7 @@ define("../build/almond", function(){});
 ;
 define("2d/camera", function(){});
 
-define('core/mixin/derive',[],function(){
+define('core/mixin/derive',[],function() {
 
 /**
  * derive a sub class from base class
@@ -431,9 +431,9 @@ define('core/mixin/derive',[],function(){
  *
  * @export{object}
  */
-function derive(makeDefaultOpt, initialize/*optional*/, proto/*optional*/){
+function derive(makeDefaultOpt, initialize/*optional*/, proto/*optional*/) {
 
-    if( typeof initialize == "object"){
+    if( typeof initialize == "object") {
         proto = initialize;
         initialize = null;
     }
@@ -442,10 +442,10 @@ function derive(makeDefaultOpt, initialize/*optional*/, proto/*optional*/){
     var extendedProto = {
         // instanceof operator cannot work well,
         // so we write a method to simulate it
-        'instanceof' : function(constructor){
+        'instanceof' : function(constructor) {
             var selfConstructor = sub;
-            while(selfConstructor){
-                if( selfConstructor === constructor ){
+            while(selfConstructor) {
+                if( selfConstructor === constructor ) {
                     return true;
                 }
                 selfConstructor = selfConstructor.__super__;
@@ -455,7 +455,7 @@ function derive(makeDefaultOpt, initialize/*optional*/, proto/*optional*/){
 
     var _super = this;
 
-    var sub = function(options){
+    var sub = function(options) {
 
         // call super constructor
         _super.call( this );
@@ -468,17 +468,17 @@ function derive(makeDefaultOpt, initialize/*optional*/, proto/*optional*/){
 
         _.extend( this, options );
 
-        if( this.constructor == sub){
+        if (this.constructor == sub) {
             // find the base class, and the initialize function will be called 
             // in the order of inherit
             var base = sub,
                 initializeChain = [initialize];
-            while(base.__super__){
+            while (base.__super__) {
                 base = base.__super__;
                 initializeChain.unshift( base.__initialize__ );
             }
-            for(var i = 0; i < initializeChain.length; i++){
-                if( initializeChain[i] ){
+            for (var i = 0; i < initializeChain.length; i++) {
+                if( initializeChain[i] ) {
                     initializeChain[i].call( this );
                 }
             }
@@ -515,19 +515,19 @@ return {
  * @method has(eventName)
  * @export{object}
  */
-define('core/mixin/notifier',[],function(){
+define('core/mixin/notifier',[],function() {
 
     return{
-        trigger : function(){
-            if( ! this.__handlers__){
+        trigger : function() {
+            if ( ! this.__handlers__) {
                 return;
             }
             var name = arguments[0];
             var params = Array.prototype.slice.call( arguments, 1 );
 
             var handlers = this.__handlers__[ name ];
-            if( handlers ){
-                for( var i = 0; i < handlers.length; i+=2){
+            if (handlers) {
+                for (var i = 0; i < handlers.length; i+=2) {
                     var handler = handlers[i],
                         context = handlers[i+1];
                     handler.apply(context || this, params);
@@ -535,16 +535,16 @@ define('core/mixin/notifier',[],function(){
             }
         },
         
-        on : function( target, handler, context/*optional*/ ){
+        on : function( target, handler, context/*optional*/ ) {
 
-            if( ! target){
+            if (!target) {
                 return;
             }
             var handlers = this.__handlers__ || ( this.__handlers__={} );
-            if( ! handlers[target] ){
+            if ( ! handlers[target]) {
                 handlers[target] = [];
             }
-            if( handlers[target].indexOf(handler) == -1){
+            if (handlers[target].indexOf(handler) == -1) {
                 // structure in list
                 // [handler,context,handler,context,handler,context..]
                 handlers[target].push( handler );
@@ -554,67 +554,67 @@ define('core/mixin/notifier',[],function(){
             return handler;
         },
 
-        off : function( target, handler ){
+        off : function( target, handler ) {
             
             var handlers = this.__handlers__ || ( this.__handlers__={} );
 
-            if( handlers[target] ){
-                if( handler ){
+            if (handlers[target]) {
+                if (handler) {
                     var arr = handlers[target];
                     // remove handler and context
                     var idx = arr.indexOf(handler);
                     if( idx >= 0)
                         arr.splice( idx, 2 );
-                }else{
+                } else {
                     handlers[target] = [];
                 }
             }
         },
 
-        has : function( target, handler ){
-            if( ! this.__handlers__ ||
-                ! this.__handlers__[target] ){
+        has : function( target, handler ) {
+            if ( ! this.__handlers__ ||
+                ! this.__handlers__[target]) {
                 return false;
             }
-            if( ! handler){
+            if ( ! handler) {
                 return this.__handlers__[target].length;
-            }else{
+            } else {
                 return this.__handlers__[target].indexOf( handler ) !== -1;
             }
         }
     }
     
 });
-define('core/mixin/dirty', {
+define('core/mixin/dirty',{
 
-    dirty : function(propName){
-        if( ! this._dirtyFlag ){
+    dirty : function(propName) {
+        if (!this._dirtyFlag) {
             this._dirtyFlag = {};
         }
         this._dirtyFlag[propName] = true;
     },
     
-    fresh : function(propName){
-        if( ! this._dirtyFlag ){
+    fresh : function(propName) {
+        if (!this._dirtyFlag) {
             this._dirtyFlag = {};
         }
         this._dirtyFlag[propName] = false;
     },
-
     
-    isDirty : function(propName){
-        if( ! this._dirtyFlag){
+    isDirty : function(propName) {
+        if (!this._dirtyFlag) {
             this._dirtyFlag = {};
         }
-        if(typeof(this._dirtyFlag[propName]) === "undefined"){
+        if (typeof(this._dirtyFlag[propName]) === "undefined") {
             return true;
         }
         return this._dirtyFlag[propName];
     },
 
-} );
-define('core/cache',[], function(){
-    var Cache = function(){
+});
+define('core/cache',[],function() {
+
+    var Cache = function() {
 
         this._contextId = "",
 
@@ -626,14 +626,14 @@ define('core/cache',[], function(){
 
     Cache.prototype = {
 
-        use : function( contextId, documentSchema ){
+        use : function(contextId, documentSchema) {
 
-            if( ! this._caches.hasOwnProperty( contextId ) ){
+            if (! this._caches.hasOwnProperty(contextId)) {
                 this._caches[ contextId ] = {};
 
-                if( documentSchema){
-                    for(var name in documentSchema){
-                        this._caches[contextId][ name ] = documentSchema[name];
+                if (documentSchema) {
+                    for (var name in documentSchema) {
+                        this._caches[contextId][name] = documentSchema[name];
                     }   
                 }
             }
@@ -642,35 +642,35 @@ define('core/cache',[], function(){
             this._context = this._caches[ contextId ];
         },
 
-        put : function(key, value){
+        put : function(key, value) {
 
             this._context[ key ] = value;
         },
 
-        get : function(key){
+        get : function(key) {
 
             return this._context[ key ];
         },
 
-        clearContext : function(){
+        clearContext : function() {
             this._caches[ this._contextId ] = {};
             this._context = {};
         },
 
-        'delete' : function( key ){
+        'delete' : function(key) {
             delete this._context[ key ];
         },
 
-        clearAll : function(){
+        clearAll : function() {
             this._caches = {};
         },
 
-        getContext : function(){
+        getContext : function() {
             return this._context;
         },
 
-        miss : function( key ){
-            return ! this._context.hasOwnProperty( key );
+        miss : function(key) {
+            return ! this._context.hasOwnProperty(key);
         }
     }
 
@@ -678,7 +678,7 @@ define('core/cache',[], function(){
 
     return Cache;
 
-} );
+});
 /**
  * @license
  * Lo-Dash 1.1.1 (Custom Build) <http://lodash.com/>
@@ -10254,123 +10254,543 @@ if(typeof(exports) !== 'undefined') {
   })(shim.exports);
 })(this);
 
+define('core/vector2',['require','glmatrix'],function(require) {
+
+    var glMatrix = require("glmatrix");
+    var vec2 = glMatrix.vec2;
+
+    var Vector2 = function(x, y) {
+        
+        x = x || 0;
+        y = y || 0;
+        
+        return Object.create(Vector2Proto, {
+
+            x : {
+                configurable : false,
+                set : function(value) {
+                    this._array[0] = value;
+                    this._dirty = true;
+                },
+                get : function() {
+                    return this._array[0];
+                }
+            },
+            y : {
+                configurable : false,
+                set : function(value) {
+                    this._array[1] = value;
+                    this._dirty = true;
+                },
+                get : function() {
+                    return this._array[1];
+                }
+            },
+
+            _array : {
+                writable : false,
+                configurable : false,
+                value : vec2.fromValues(x, y)
+            },
+            // Dirty flag is used by the Node to determine
+            // if the matrix is updated to latest
+            _dirty : {
+                configurable : false,
+                value : true
+            }
+        })
+
+    }
+
+    var Vector2Proto = {
+
+        constructor : Vector2,
+
+        add : function(b) {
+            vec2.add(this._array, this._array, b._array);
+            this._dirty = true;
+            return this;
+        },
+
+        set : function(x, y) {
+            this._array[0] = x;
+            this._array[1] = y;
+            this._dirty = true;
+            return this;
+        },
+
+        clone : function() {
+            return new Vector2(this.x, this.y);
+        },
+
+        copy : function(b) {
+            vec2.copy(this._array, b._array);
+            this._dirty = true;
+            return this;
+        },
+
+        cross : function(out, b) {
+            vec2.cross(out._array, this._array, b._array);
+            return this;
+        },
+
+        dist : function(b) {
+            return vec2.dist(this._array, b._array);
+        },
+
+        distance : function(b) {
+            return vec2.distance(this._array, b._array);
+        },
+
+        div : function(b) {
+            vec2.div(this._array, this._array, b._array);
+            this._dirty = true;
+            return this;
+        },
+
+        divide : function(b) {
+            vec2.divide(this._array, this._array, b._array);
+            this._dirty = true;
+            return this;
+        },
+
+        dot : function(b) {
+            return vec2.dot(this._array, b._array);
+        },
+
+        len : function() {
+            return vec2.len(this._array);
+        },
+
+        length : function() {
+            return vec2.length(this._array);
+        },
+        /**
+         * Perform linear interpolation between a and b
+         */
+        lerp : function(a, b, t) {
+            vec2.lerp(this._array, a._array, b._array, t);
+            this._dirty = true;
+            return this;
+        },
+
+        min : function(b) {
+            vec2.min(this._array, this._array, b._array);
+            this._dirty = true;
+            return this;
+        },
+
+        max : function(b) {
+            vec2.max(this._array, this._array, b._array);
+            this._dirty = true;
+            return this;
+        },
+
+        mul : function(b) {
+            vec2.mul(this._array, this._array, b._array);
+            this._dirty = true;
+            return this;
+        },
+
+        multiply : function(b) {
+            vec2.multiply(this._array, this._array, b._array);
+            this._dirty = true;
+            return this;
+        },
+
+        negate : function() {
+            vec2.negate(this._array, this._array);
+            this._dirty = true;
+            return this;
+        },
+
+        normalize : function() {
+            vec2.normalize(this._array, this._array);
+            this._dirty = true;
+            return this;
+        },
+
+        random : function(scale) {
+            vec2.random(this._array, scale);
+            this._dirty = true;
+            return this;
+        },
+
+        scale : function(s) {
+            vec2.scale(this._array, this._array, s);
+            this._dirty = true;
+            return this;
+        },
+        /**
+         * add b by a scaled factor
+         */
+        scaleAndAdd : function(b, s) {
+            vec2.scaleAndAdd(this._array, this._array, b._array, s);
+            this._dirty = true;
+            return this;
+        },
+
+        sqrDist : function(b) {
+            return vec2.sqrDist(this._array, b._array);
+        },
+
+        squaredDistance : function(b) {
+            return vec2.squaredDistance(this._array, b._array);
+        },
+
+        sqrLen : function() {
+            return vec2.sqrLen(this._array);
+        },
+
+        squaredLength : function() {
+            return vec2.squaredLength(this._array);
+        },
+
+        sub : function(b) {
+            vec2.sub(this._array, this._array, b._array);
+            this._dirty = true;
+            return this;
+        },
+
+        subtract : function(b) {
+            vec2.subtract(this._array, this._array, b._array);
+            this._dirty = true;
+            return this;
+        },
+
+        transformMat2 : function(m) {
+            vec2.transformMat2(this._array, this._array, m._array);
+            this._dirty = true;
+            return this;
+        },
+        transformMat2d : function(m) {
+            vec2.transformMat2d(this._array, this._array, m._array);
+            this._dirty = true;
+            return this;
+        },
+        transformMat3 : function(m) {
+            vec2.transformMat3(this._array, this._array, m._array);
+            this._dirty = true;
+            return this;
+        },
+        transformMat4 : function(m) {
+            vec2.transformMat4(this._array, this._array, m._array);
+            this._dirty = true;
+            return this;
+        },
+
+        toString : function() {
+            return "[" + Array.prototype.join.call(this._array, ",") + "]";
+        },
+    }
+
+
+    function clamp(x) {
+        return Math.min(Math.max(x, -1), 1);
+    }
+
+    return Vector2;
+
+});
+/**
+ * Adapter to CanvasGradient
+ * base of linear gradient and radial gradient
+ *
+ * @export{class} Gradient
+ */
+define('2d/gradient',['require','core/base','core/vector2'],function(require) {
+
+    var Base = require('core/base');
+    var Vector2 = require("core/vector2");
+
+    var Gradient = Base.derive(function(){
+        stops : []
+    }, {
+        addColorStop : function(percent, color){
+            this.stops.push([percent, color]);
+            this.dirty();
+        },
+        removeAt : function(idx){
+            this.stops.splice(idx, 1);
+            this.dirty();
+        },
+        dirty : function(){
+            for (var contextId in this.cache._caches){
+                this.cache._caches[contextId]['dirty'] = true;
+            }
+        },
+        getInstance : function(ctx){
+            this.cache.use(ctx.__GUID__);
+            if (this.cache.get("dirty") ||
+                this.cache.miss("gradient")) {
+                this.update(ctx);
+            }
+            return this.cache.get("gradient");
+        },
+        update : function(ctx){}
+    });
+
+    return Gradient;
+});
+define('core/matrix2d',['require','glmatrix'],function(require) {
+
+    var glMatrix = require("glmatrix");
+    var mat2d = glMatrix.mat2d;
+
+    function makeProperty(n) {
+        return {
+            configurable : false,
+            set : function(value) {
+                this._array[n] = value;
+                this._dirty = true;
+            },
+            get : function() {
+                return this._array[n];
+            }
+        }
+    }
+
+    var Matrix2d = function() {
+
+        return Object.create(Matrix2dProto, {
+
+            m00 : makeProperty(0),
+            m01 : makeProperty(1),
+            m10 : makeProperty(2),
+            m11 : makeProperty(3),
+            m20 : makeProperty(4),
+            m21 : makeProperty(5),
+            
+            _array : {
+                writable : false,
+                configurable : false,
+                value : mat2d.create()
+            }
+        })
+    };
+
+    var Matrix2dProto = {
+
+        constructor : Matrix2d,
+
+        clone : function() {
+            return (new Matrix2d()).copy(this);
+        },
+        copy : function(b) {
+            mat2d.copy(this._array, b._array);
+            return this;
+        },
+        determinant : function() {
+            return mat2d.determinant(this._array);
+        },
+        identity : function() {
+            mat2d.identity(this._array);
+            return this;
+        },
+        invert : function() {
+            mat2d.invert(this._array, this._array);
+            return this;
+        },
+        mul : function(b) {
+            mat2d.mul(this._array, this._array, b._array);
+            return this;
+        },
+        mulLeft : function(b) {
+            mat2d.mul(this._array, b._array, this._array);
+            return this;
+        },
+        multiply : function(b) {
+            mat2d.multiply(this._array, this._array, b._array);
+            return this;
+        },
+        multiplyLeft : function(b) {
+            mat2d.multiply(this._array, b._array, this._array);
+            return this;
+        },
+        rotate : function(rad) {
+            mat2d.rotate(this._array, this._array, rad);
+            return this;
+        },
+        scale : function(s) {
+            mat2d.scale(this._array, this._array, s._array);
+        },
+        translate : function(v) {
+            mat2d.translate(this._array, this._array, v._array);
+        },
+        toString : function() {
+            return "[" + Array.prototype.join.call(this._array, ",") + "]";
+        }
+    }
+
+    return Matrix2d;
+});
 /**
  * Style
  * @config  fillStyle | fill,
  * @config  strokeStyle | stroke,
  * @config  lineWidth,
+ * @config  lineCap,
+ * @config  lineJoin,
+ * @config  lineDash,
+ * @config  lineDashOffset,
+ * @config  miterLimit,
  * @config  shadowColor,
  * @config  shadowOffsetX,
  * @config  shadowOffsetY,
  * @config  shadowBlur,
- * @config  globalAlpha | alpha
+ * @config  globalAlpha | alpha,
+ * @config  globalCompositeOperation,
+ * @config  alpha,
  * @config  shadow
  */
-define('2d/style',['require','core/base','_'],function(require){
+define('2d/style',['require','core/base','_'],function(require) {
     
     var Base = require('core/base');
     var _ = require('_');
-
-    var _styles = ['fillStyle', 
-                    'strokeStyle', 
-                    'lineWidth', 
-                    'shadowColor', 
-                    'shadowOffsetX', 
-                    'shadowOffsetY',
-                    'shadowBlur',
-                    'globalAlpha',
-                    'font'];
-    var _styleAlias = {          //extend some simplify style name
-                         'fill' : 'fillStyle',
-                         'stroke' : 'strokeStyle',
-                         'alpha' : 'globalAlpha',
-                         'shadow' : ['shadowOffsetX', 
-                                    'shadowOffsetY', 
-                                    'shadowBlur', 
-                                    'shadowColor']
-                        };
 
     var shadowSyntaxRegex = /([0-9\-]+)\s+([0-9\-]+)\s+([0-9]+)\s+([a-zA-Z0-9\(\)\s,#]+)/;
     
     var Style = Base.derive({}, {
 
-        bind : function(ctx){
-
-            var styles = _styles;
-            var styleAlias = _styleAlias;
-
-            for( var alias in styleAlias ){
-                if( this.hasOwnProperty(alias) ){
-                    var name = styleAlias[alias];
-                    var value = this[alias];
-                    // composite styles, like shadow, the value can be "0 0 10 #000"
-                    if( alias == "shadow" ){
-                        var res = shadowSyntaxRegex.exec(trim(value));
-                        if( ! res )
-                            continue;
-                        value = res.slice(1);
-                        _.each( value, function(item, idx){
-                            if( name[idx] ){
-                                ctx[ name[idx] ] = item;
-                            }
-                        }, this)
-                    }else{
-                        ctx[ name ] = value;
-                    }
+        bind : function(ctx) {
+            // Alias
+            var fillStyle = this.fillStyle || this.fill;
+            var strokeStyle = this.strokeStyle || this.stroke;
+            var globalAlpha = this.globalAlpha || this.alpha;
+            var globalCompositeOperation = this.globalCompositeOperation || this.composite;
+            // parse shadow string
+            if (this.shadow) {
+                var res = shadowSyntaxRegex.exec(trim(this.shadow));
+                if (res) {
+                    var shadowOffsetX = parseInt(res[1]);
+                    var shadowOffsetY = parseInt(res[2]);
+                    var shadowBlur = res[3];
+                    var shadowColor = res[4];
                 }
             }
-            _.each(styles, function(styleName){
-                if( this.hasOwnProperty( styleName ) ){
-                    ctx[styleName] = this[styleName];
-                }   
-            }, this)
+            shadowOffsetX = this.shadowOffsetX || shadowOffsetX;
+            shadowOffsetY = this.shadowOffsetY || shadowOffsetY;
+            shadowBlur = this.shadowBlur || shadowBlur;
+            shadowColor = this.shadowColor || shadowColor;
+
+            (globalAlpha !== undefined) &&
+                (ctx.globalAlpha = globalAlpha);
+            globalCompositeOperation &&
+                (ctx.globalCompositeOperation = globalCompositeOperation);
+            (this.lineWidth !== undefined) &&
+                (ctx.lineWidth = this.lineWidth);
+            (this.lineCap !== undefined) && 
+                (ctx.lineCap = this.lineCap);
+            (this.lineJoin !== undefined) &&
+                (ctx.lineJoin = this.lineJoin);
+            (this.miterLimit !== undefined) &&
+                (ctx.miterLimit = this.miterLimit);
+            (shadowOffsetX !== undefined) &&
+                (ctx.shadowOffsetX = shadowOffsetX);
+            (shadowOffsetY !== undefined) &&
+                (ctx.shadowOffsetY = shadowOffsetY);
+            (shadowBlur !== undefined) &&
+                (ctx.shadowBlur = shadowBlur);
+            (shadowColor !== undefined) &&
+                (ctx.shadowColor = shadowColor);
+            this.font &&
+                (ctx.font = this.font);
+            this.textAlign &&
+                (ctx.textAlign = this.textAlign);
+            this.textBaseline &&
+                (ctx.textBaseline = this.textBaseline);
+
+            if (fillStyle) {
+                // Fill style is gradient or pattern
+                if (fillStyle.getInstance) {
+                    ctx.fillStyle = fillStyle.getInstance(ctx);
+                } else {
+                    ctx.fillStyle = fillStyle;
+                }
+            }
+            if (strokeStyle) {
+                // Stroke style is gradient or pattern
+                if (strokeStyle.getInstance) {
+                    ctx.strokeStyle = strokeStyle.getInstance(ctx);
+                } else {
+                    ctx.strokeStyle = strokeStyle;
+                }
+            }
+            // Set line dash individually
+            if (this.lineDash) {
+                if (ctx.setLineDash) {
+                    ctx.setLineDash(this.lineDash);
+                    if (typeof(this.lineDashOffset) === 'number') {
+                        ctx.lineDashOffset = this.lineDashOffset;
+                    }
+                } else {
+                    console.warn("Browser not support setLineDash method");
+                }
+            }
         }
     })
 
-    function trim(str){
+    function trim(str) {
         return (str || '').replace(/^(\s|\u00A0)+|(\s|\u00A0)+$/g, '');
     }
 
     return Style;
 });
+define('util/util',['require'], function(require){
+
+	return {
+		genGUID : (function(){
+			var guid = 0;
+			
+			return function(){
+				return ++guid;
+			}
+		})()
+	}
+} );
 /**
  * Node of the scene tree
  * And it is the base class of all elements
  */
-define('2d/node',['require','core/base','glmatrix','./style'],function(require){
+define('2d/node',['require','core/base','core/vector2','core/matrix2d','./style','util/util'],function(require) {
     
     var Base = require("core/base");
-    var glmatrix = require('glmatrix');
-    var vec2 = glmatrix.vec2;
-    var mat2d = glmatrix.mat2d;
+    var Vector2 = require("core/vector2");
+    var Matrix2d = require("core/matrix2d");
     var Style = require("./style");
+    var util = require("util/util");
 
-    var Node = Base.derive( function(){
+    var Node = Base.derive(function() {
         return {
-            //a flag to judge if mouse is over the element
-            __mouseover__ : false,
+
+            __GUID__ : util.genGUID(),
             
-            id : 0,
+            name : '',
             
             //Axis Aligned Bounding Box
-            AABB : [vec2.fromValues(0, 0), vec2.fromValues(0, 0)],
+            boundingBox : {
+                min : new Vector2(),
+                max : new Vector2()
+            },
             // z index
             z : 0,
-            // GooJS.Style
+            
             style : null,
             
-            position : vec2.fromValues(0, 0),
+            position : new Vector2(0, 0),
             rotation : 0,
-            scale : vec2.fromValues(1, 1),
+            scale : new Vector2(1, 1),
 
-            _transform : mat2d.create(),
+            autoUpdate : true,
+            transform : new Matrix2d(),
             // inverse matrix of transform matrix
-            _transformInverse : mat2d.create(),
+            transformInverse : new Matrix2d(),
+            _prevRotation : 0,
 
             // visible flag
             visible : true,
 
-            children : {},
+            children : [],
             // virtual width of the stroke line for intersect
             intersectLineWidth : 0,
 
@@ -10384,67 +10804,70 @@ define('2d/node',['require','core/base','glmatrix','./style'],function(require){
             // flag of fill when drawing the element
             fill : true,
             // flag of stroke when drawing the element
-            stroke : true,
+            stroke : false,
             // fix aa problem
             // https://developer.mozilla.org/en-US/docs/HTML/Canvas/Tutorial/Applying_styles_and_colors?redirectlocale=en-US&redirectslug=Canvas_tutorial%2FApplying_styles_and_colors#section_8
             fixAA : true
         }
-    }, function(){
-        
-        this.__GUID__ = genGUID();
-
     }, {
-        updateTransform : function(){
-            var transform = this._transform;
-            mat2d.identity( transform );
-            if(this.scale)
-                mat2d.scale(transform, transform, this.scale);
-            if(this.rotation)
-                mat2d.rotate(transform, transform, this.rotation);
-            if(this.position)
-                mat2d.translate(transform, transform, this.position);
-            
-            return transform;
+        updateTransform : function() {
+            var transform = this.transform;
+            if (! this.scale._dirty &&
+                ! this.position._dirty &&
+                this.rotation === this._prevRotation) {
+                return;
+            }
+            if (! this.autoUpdate) {
+                return;
+            }
+            transform.identity();
+            transform.scale(this.scale);
+            transform.rotate(this.rotation);
+            transform.translate(this.position);
+
+            this._prevRotation = this.rotation;
         },
-        updateTransformInverse : function(){
-            mat2d.invert(this._transformInverse, this._transformInverse);
+        updateTransformInverse : function() {
+            this.transformInverse.copy(this.transform).invert();
         },
         // intersect with the bounding box
-        intersectAABB : function(x, y){
-            var AABB = this.AABB;
-            return  (AABB[0][0] < x && x < AABB[1][0]) && (AABB[0][1] < y && y< AABB[1][1]);
+        intersectBoundingBox : function(x, y) {
+            var boundingBox = this.boundingBox;
+            return  (boundingBox.min.x < x && x < boundingBox.max.x) && (boundingBox.min.y < y && y< boundingBox.max.y);
         },
-
-        add : function(elem){
-            if( elem ){
-                this.children[elem.__GUID__] = elem;
+        add : function(elem) {
+            if (elem) {
+                this.children.push(elem);
                 elem.parent = this;
             }
         },
-        remove : function(elem){
-            this.children[elem.__GUID__] = null;
-            elem.parent = null;
+        remove : function(elem) {
+            if (elem) {
+                this.children.splice(this.children.indexOf(elem), 1);
+            }
         },
 
-        draw : function(context){},
+        draw : function(context) {},
 
-        render : function(context){
+        render : function(context) {
             
             this.trigger("beforerender", context);
 
             var renderQueue = this._getSortedRenderQueue();
+            // TODO : some style should not be inherited ?
             context.save();
-            if( this.style ){
-                if(!this.style instanceof Style){
-                    for(var name in this.style ){
+            if (this.style) {
+                if (!this.style instanceof Style) {
+                    for (var name in this.style) {
                         this.style[name].bind(context);
                     }
-                }else{
+                } else {
                     this.style.bind(context);
                 }
             }
-            var m = this.updateTransform();
-            context.transform( m[0], m[1], m[2], m[3], m[4], m[5]);
+            this.updateTransform();
+            var m = this.transform._array;
+            context.transform(m[0], m[1], m[2], m[3], m[4], m[5]);
 
             this.trigger("beforedraw", context);
             this.draw(context);
@@ -10453,116 +10876,241 @@ define('2d/node',['require','core/base','glmatrix','./style'],function(require){
             //clip from current path;
             this.clip && context.clip();
 
-            for(var i = 0; i < renderQueue.length; i++){
-                renderQueue[i].render( context );
+            for (var i = 0; i < renderQueue.length; i++) {
+                renderQueue[i].render(context);
             }
             context.restore();
 
             this.trigger("afterrender", context);
         },
 
-        traverse : function(callback){
-            var stopTraverse = callback && callback( this );
-            if( ! stopTraverse ){
+        traverse : function(callback) {
+            var stopTraverse = callback && callback(this);
+            if (! stopTraverse) {
                 var children = this.children;
-                for( var i = 0, len = children.length; i < len; i++){
-                    children[i].traverse( callback );
+                for (var i = 0, len = children.length; i < len; i++) {
+                    children[i].traverse(callback);
                 }
             }
         },
 
-        intersect : function(x, y, eventName){
+        intersect : function(x, y, eventName) {},
+
+        // Get transformed bounding rect
+        getBoundingRect : function() {
+
+            return {
+                left : null,
+                top : null,
+                width : null,
+                height : null
+            }
+        },
+
+        getWidth : function() {
 
         },
 
-        _getSortedRenderQueue : function(){
-            var renderQueue = [];
-            for(var guid in this.children ){
-                renderQueue.push( this.children[guid] );
-            }
-            renderQueue.sort( function(x, y){
-                if( x.z === y.z)
+        getHeight : function() {
+
+        },
+
+        _getSortedRenderQueue : function() {
+            var renderQueue = this.children.slice();
+            renderQueue.sort(function(x, y) {
+                if (x.z === y.z)
                     return x.__GUID__ > y.__GUID__ ? 1 : -1;
                 return x.z > y.z ? 1 : -1 ;
-            } );
+            });
             return renderQueue; 
         }
     })
 
-    var genGUID = (function(){
-        var guid = 0;
-        
-        return function(){
-            return ++guid;
-        }
-    })()
-
     return Node;
 });
-/**
- *
- * @export{object}
- */
-define('2d/util',['require'], function(require){
+define('2d/layer',['require','./node'],function(require) {
 
-    return {
-        fixPos: function( pos ){
-            return [pos[0]+0.5, pos[1]+0.5];
-        },
-        fixPosArray : function( poslist ){
-            var ret = [];
-            var len = poslist.length;
-            for(var i = 0; i < len; i++){
-                ret.push( this.fixPos(poslist[i]) );
-            }
-            return ret;
-        },
-        computeAABB : function( points ){
-            var left = points[0][0];
-            var right = points[0][0];
-            var top = points[0][1];
-            var bottom = points[0][1];
+    var Node = require('./node');
+
+    var Layer = Node.derive(function() {
+        return {
+            canvas : null,
+
+            ctx : null,
             
-            for(var i = 1; i < points.length; i++){
-                left = points[i][0] < left ? points[i][0] : left;
-                right = points[i][0] > right ? points[i][0] : right;
-                top = points[i][1] < top ? points[i][1] : top;
-                bottom = points[i][1] > bottom ? points[i][1] : bottom;
-            }
-            return [[left, top], [right, bottom]];
+            width : 0,
+            
+            height : 0,
+            
+            clearColor : ''
         }
-    }
+    }, function() {
+        if (!this.canvas) {
+            this.canvas = document.createElement('canvas');
+        }
+
+        if (this.width) {
+            this.canvas.width = this.width;
+        } else {
+            this.width = this.canvas.width;
+        }
+        if (this.height) {
+            this.canvas.height = this.height;
+        } else {
+            this.height = this.canvas.height;
+        }
+
+        this.canvas.style.zIndex = this.z;
+
+        this.ctx = this.canvas.getContext('2d');
+
+        this.ctx.__GUID__ = this.__GUID__;
+    }, {
+        resize : function(width, height) {
+            this.canvas.width = width;
+            this.canvas.height = height;
+
+            this.width = width;
+            this.height = height;
+        },
+
+        render : function() {
+            if (this.clearColor) {
+                this.ctx.fillStyle = this.clearColor;
+                this.ctx.fillRect(0, 0, this.width, this.height);
+            } else {
+                this.ctx.clearRect(0, 0, this.width, this.height);
+            }
+
+            Node.prototype.render.call(this, this.ctx);
+        },
+
+        setZ : function(z) {
+            this.z = z;
+            this.canvas.style.zIndex = z;
+        }
+    });
+
+    return Layer;
 } );
-define('2d/renderable/arc',['require','../node','../util','glmatrix'],function(require){
+/**
+ * Adapter to CanvasLinearGradient
+ *
+ * @export{class} LinearGradient
+ */
+define('2d/lineargradient',['require','./gradient','core/vector2'],function(require) {
+
+    var Gradient = require('./gradient');
+    var Vector2 = require("core/vector2");
+
+    var LinearGradient = Gradient.derive(function(){
+        return {
+            start : new Vector2(),
+            end : new Vector2(100, 0)
+        }
+    }, {
+        update : function(ctx){
+            var gradient = ctx.createLinearGradient(this.start.x, this.start.y, this.end.x, this.end.y);
+            for (var i = 0; i < this.stops.length; i++) {
+                var stop = this.stops[i];
+                gradient.addColorStop(stop[0], stop[1]);
+            }
+            this.cache.put('gradient', gradient);
+        }
+    });
+
+    return LinearGradient;
+});
+/**
+ * Adapter to CanvasPattern
+ *
+ * @export{class} Pattern
+ */
+define('2d/pattern',['require','core/base','core/vector2'],function(require) {
+
+    var Base = require('core/base');
+    var Vector2 = require("core/vector2");
+
+    var Pattern = Base.derive(function(){
+        return {
+            image : null,
+            // 'repeat', 'repeat-x', 'repeat-y', 'no-repeat'
+            repetition : 'repeat'
+        }
+    }, {
+        getInstance : function(ctx){
+            this.cache.use(ctx.__GUID__);
+            if (this.cache.get("dirty") ||
+                this.cache.miss("pattern")) {
+                var pattern = ctx.createPattern(this.image, this.repetition);
+                this.cache.put("pattern", pattern);
+                return pattern;
+            }
+            return this.cache.get("pattern");
+        },
+    });
+
+    return Pattern;
+});
+/**
+ * Adapter to CanvasRadialGradient
+ *
+ * @export{class} RadialGradient
+ */
+define('2d/radialgradient',['require','./gradient','core/vector2'],function(require) {
+
+    var Gradient = require('./gradient');
+    var Vector2 = require("core/vector2");
+
+    var RadialGradient = Gradient.derive(function(){
+        return {
+            start : new Vector2(),
+            startRadius : 0,
+            end : new Vector2(),
+            endRadius : 0
+        }
+    }, {
+        update : function(ctx){
+            var gradient = ctx.createRadialGradient(this.start.x, this.start.y, this.startRadius, this.end.x, this.end.y, this.endRadius);
+            for (var i = 0; i < this.stops.length; i++) {
+                var stop = this.stops[i];
+                gradient.addColorStop(stop[0], stop[1]);
+            }
+            this.cache.put('gradient', gradient);
+        }
+    });
+
+    return RadialGradient;
+});
+define('2d/shape/arc',['require','../node','core/vector2'],function(require){
 
     var Node = require('../node');
-    var util = require('../util');
-    var glmatrix = require('glmatrix');
-    var vec2 = glmatrix.vec2;
+    var Vector2 = require("core/vector2");
 
-    var Arc = Node.derive( function(){
+    var Arc = Node.derive(function() {
         return {
-            center      : [0, 0],
+            center      : new Vector2(),
             radius      : 0,
             startAngle  : 0,
             endAngle    : Math.PI*2,
             clockwise   : true
         }
     }, {
-        computeAABB : function(){
-            // TODO
-            this.AABB = [[0, 0], [0, 0]];
+        computeBoundingBox : function() {
+             util.computeArcBoundingBox(
+                this.center, this.radius, this.startAngle, 
+                this.endAngle, this.clockwise,
+                this.boundingBox.min, this.boundingBox.max
+            );
         },
-        draw : function(contex){
-
-            var center = this.fixAA ? util.fixPos( this.center ) : this.center;
+        draw : function(contex) {
 
             ctx.beginPath();
-            ctx.arc(center[0], center[1], this.radius, this.startAngle, this.endAngle,  ! this.clockwise);
-            if(this.stroke){
+            ctx.arc(this.center.x, this.center.y, this.radius, this.startAngle, this.endAngle,  ! this.clockwise);
+            if (this.stroke) {
                 ctx.stroke();
             }
-            if(this.fill){
+            if (this.fill) {
                 ctx.fill();
             }   
         },
@@ -10574,29 +11122,28 @@ define('2d/renderable/arc',['require','../node','../util','glmatrix'],function(r
 
     return Arc;
 });
-define('2d/renderable/circle',['require','../node','../util','glmatrix'],function(require){
+define('2d/shape/circle',['require','../node','core/vector2'],function(require){
 
     var Node = require('../node');
-    var util = require('../util');
-    var glmatrix = require('glmatrix');
-    var vec2 = glmatrix.vec2;
+    var Vector2 = require("core/vector2");
 
-    var Circle = Node.derive( function() {
+    var Circle = Node.derive(function() {
         return {
-            center : [0, 0],
+            center : new Vector2(),
             radius : 0   
         }
 
     }, {
-        computeAABB : function() {
-            this.AABB = [[this.center[0]-this.radius, this.center[1]-this.radius],
-                         [this.center[0]+this.radius, this.center[1]+this.radius]];
+        computeBoundingBox : function() {
+            this.boundingBox = {
+                min : new Vector2(this.center.x-this.radius, this.center.y-this.radius),
+                max : new Vector2(this.center.x+this.radius, this.center.y+this.radius)
+            }
         },
         draw : function(ctx) {
-            var center = this.fixAA ? util.fixPos( this.center ) : this.center;
 
             ctx.beginPath();
-            ctx.arc(center[0], center[1], this.radius, 0, 2*Math.PI, false);
+            ctx.arc(this.center.x, this.center.y, this.radius, 0, 2*Math.PI, false);
             
             if (this.stroke) {
                 ctx.stroke();
@@ -10613,54 +11160,142 @@ define('2d/renderable/circle',['require','../node','../util','glmatrix'],functio
 
     return Circle;
 });
-define('2d/renderable/image',['require','../node','../util','glmatrix','_'],function(require) {
+define('2d/shape/ellipse',['require','../node','core/vector2'],function(require){
 
     var Node = require('../node');
-    var util = require('../util');
-    var glmatrix = require('glmatrix');
-    var vec2 = glmatrix.vec2;
+    var Vector2 = require("core/vector2");
+
+    var Ellipse = Node.derive(function() {
+        return {
+            center : new Vector2(),
+            radius : new Vector2()   
+        }
+
+    }, {
+        computeBoundingBox : function() {
+            this.boundingBox = {
+                min : this.center.clone().sub(this.radius),
+                max : this.center.clone().add(this.radius)
+            }
+        },
+        draw : function(ctx) {
+            ctx.save();
+            ctx.scale(1, this.radius.y / this.radius.x);
+            ctx.beginPath();
+            ctx.arc(this.center.x, this.center.y, this.radius.x, 0, 2*Math.PI, false);
+            
+            if (this.stroke) {
+                ctx.stroke();
+            }
+            if (this.fill) {
+                ctx.fill();
+            }
+            ctx.restore();
+        },
+        intersect : function() {
+
+            return vec2.len([this.center[0]-x, this.center[1]-y]) < this.radius;
+        }
+    } )
+
+    return Ellipse;
+});
+/**
+ * https://developer.mozilla.org/en-US/docs/HTML/Canvas/Drawing_DOM_objects_into_a_canvas
+ * @export{class} HTML
+ */
+define('2d/shape/html',['require','../node'],function(require){
+
+    var Node = require("../node");
+
+    var tpl = '<svg xmlns="http://www.w3.org/2000/svg" width="200" height="200">\
+                    <foreignObject>\
+                        {html}\
+                    </foreignObject>';
+
+    var HTML = Node.derive(function() {
+        return {
+            // html string
+            html : '',
+
+            _img : null
+        }
+    }, {
+        draw : function(ctx){
+            
+            var html = this.html;
+            var svg = tpl.replace('{html}', html);
+
+            if (!this._img) {
+                this.update();
+            }
+
+            if (this._img.complete) {
+                ctx.drawImage(this._img, 0, 0);
+            }
+        },
+
+        update : function(){
+            var _blob = new Blob([svg], {type:'image/svg+xml;charset=utf-8'});
+            var img = new Image();
+            var URL = window.URL || window.webkitURL || window;
+            var url = URL.createObjectURL(_blob);
+
+            img.onload = function(){
+                this.trigger("load");
+                URL.revokeObjectURL(url);
+            }
+
+            img.src = url;
+        }
+    });
+
+    return HTML;
+});
+define('2d/shape/image',['require','../node','core/vector2','_'],function(require) {
+
+    var Node = require('../node');
+    var Vector2 = require("core/vector2");
     var _ = require("_");
 
     var _imageCache = {};
     
-    var QTImage = Node.derive( function() {
+    var QTImage = Node.derive(function() {
         return {
-            img     : null,
-            start   : [0, 0],
-            size    : 0,
-            onload  : function() {}
+            image     : null,
+            start   : new Vector2(),
+            size    : null
         }
     }, {
-        computeAABB : function() {
-
-            this.AABB = util.computeAABB([this.start, [this.start[0]+this.size[0], this.start[1]+this.size[1]]]);
+        computeBoundingBox : function() {
+            if (this.size){
+                this.boundingBox = {
+                    min : this.start.clone(),
+                    max : this.start.clone().add(this.size)
+                }   
+            }
         },
         draw : function(ctx) {
-
-            var start = this.fixAA ? util.fixPos(this.start) : this.start;
-
-            if (this.img) {
+            if (this.image) {
                 this.size ? 
-                    ctx.drawImage(this.img, start[0], start[1], this.size[0], this.size[1]) :
-                    ctx.drawImage(this.img, start[0], start[1]);
+                    ctx.drawImage(this.image, this.start.x, this.start.y, this.size.x, this.size.y) :
+                    ctx.drawImage(this.image, this.start.x, this.start.y);
             }
-
         },
         intersect : function(x, y) {
-
-            return this.intersectAABB(x, y);
+            return this.intersectBoundingBox(x, y);
         }
     });
 
     QTImage.load = function(src, callback){
-        if( _imageCache[src] ) {
+        if (_imageCache[src]) {
             var img = _imageCache[src];
-            if( img.constructor == Array ) {
+            if (img.constructor == Array) {
                 img.push(callback);
-            }else{
+            } else {
                 callback(img);
             }
-        }else{
+        } else {
             _imageCache[src] = [callback];
             var img = new Image();
             img.onload = function() {
@@ -10677,189 +11312,387 @@ define('2d/renderable/image',['require','../node','../util','glmatrix','_'],func
     
     return QTImage;
 });
-define('2d/renderable/line',['require','../node','../util','glmatrix'],function(require){
+/**
+ *
+ * @export{object}
+ */
+define('2d/util',['require','core/vector2','glmatrix'],function(require) {
+    
+    var Vector2 = require("core/vector2");
+    var glMatrix = require("glmatrix");
+    var vec2 = glMatrix.vec2;
+
+    var tmp = new Vector2();
+
+    var util =  {
+        fixPos: function(pos) {
+            pos.x += 0.5;
+            pos.y += 0.5;
+            return pos;
+        },
+        fixPosArray : function(poslist) {
+            var len = poslist.length;
+            for(var i = 0; i < len; i++) {
+                this.fixPos(poslist[i]);
+            }
+            return poslist;
+        },
+        computeBoundingBox : function(points, min, max) {
+            var left = points[0].x;
+            var right = points[0].x;
+            var top = points[0].y;
+            var bottom = points[0].y;
+            
+            for (var i = 1; i < points.length; i++) {
+                var p = points[i];
+                if (p.x < left) {
+                    left = p.x;
+                }
+                if (p.x > right) {
+                    right = p.x;
+                }
+                if (p.y < top) {
+                    top = p.y;
+                }
+                if (p.y > bottom) {
+                    bottom = p.y;
+                }
+            }
+            min.set(left, top);
+            max.set(right, bottom);
+        },
+
+        // http://pomax.github.io/bezierinfo/#extremities
+        computeCubeBezierBoundingBox : function(p0, p1, p2, p3, min, max) {
+            var seg = (p0.dist(p1) + p2.dist(p3) + p0.dist(p3)) / 20;
+
+            min.copy(p0).min(p3);
+            max.copy(p0).max(p3);
+
+            for (var i = 1; i < seg; i++) {
+                var t = i / seg;
+                var t2 = t * t;
+                var ct = 1 - t;
+                var ct2 = ct * ct;
+                var x = ct2 * ct * p0.x + 3 * ct2 * t * p1.x + 3 * ct * t2 * p2.x + t2 * t * p3.x;
+                var y = ct2 * ct * p0.y + 3 * ct2 * t * p1.y + 3 * ct * t2 * p2.y + t2 * t * p3.y;
+
+                tmp.set(x, y);
+                min.min(tmp);
+                max.max(tmp);
+            }
+        },
+
+        // http://pomax.github.io/bezierinfo/#extremities
+        computeQuadraticBezierBoundingBox : function(p0, p1, p2, min, max) {
+            // Find extremities, where derivative in x dim or y dim is zero
+            var tmp = (p0.x + p2.x - 2 * p1.x);
+            // p1 is center of p0 and p2 in x dim
+            if (tmp === 0) {
+                var t1 = 0.5;
+            } else {
+                var t1 = (p0.x - p1.x) / tmp;
+            }
+
+            tmp = (p0.y + p2.y - 2 * p1.y);
+            // p1 is center of p0 and p2 in y dim
+            if (tmp === 0) {
+                var t2 = 0.5;
+            } else {
+                var t2 = (p0.y - p1.y) / tmp;
+            }
+
+            t1 = Math.max(Math.min(t1, 1), 0);
+            t2 = Math.max(Math.min(t2, 1), 0);
+
+            var ct1 = 1-t1;
+            var ct2 = 1-t2;
+
+            var x1 = ct1 * ct1 * p0.x + 2 * ct1 * t1 * p1.x + t1 * t1 * p2.x;
+            var y1 = ct1 * ct1 * p0.y + 2 * ct1 * t1 * p1.y + t1 * t1 * p2.y;
+
+            var x2 = ct2 * ct2 * p0.x + 2 * ct2 * t2 * p1.x + t2 * t2 * p2.x;
+            var y2 = ct2 * ct2 * p0.y + 2 * ct2 * t2 * p1.y + t2 * t2 * p2.y;
+
+            return util.computeBoundingBox(
+                        [p0.clone(), p2.clone(), new Vector2(x1, y1), new Vector2(x2, y2)],
+                        min, max
+                    );
+        },
+        // http://stackoverflow.com/questions/1336663/2d-bounding-box-of-a-sector
+        computeArcBoundingBox : (function(){
+            var start = new Vector2();
+            var end = new Vector2();
+            // At most 4 extremities
+            var extremities = [new Vector2(), new Vector2(), new Vector2(), new Vector2()];
+            return function(center, radius, startAngle, endAngle, clockwise, min, max) {
+                clockwise = clockwise ? 1 : -1;
+                start
+                    .set(Math.cos(startAngle), Math.sin(startAngle) * clockwise)
+                    .scale(radius)
+                    .add(center);
+                end
+                    .set(Math.cos(endAngle), Math.sin(endAngle) * clockwise)
+                    .scale(radius)
+                    .add(center);
+                
+                startAngle = startAngle % (Math.PI * 2);
+                if (startAngle < 0) {
+                    startAngle = startAngle + Math.PI * 2;
+                }
+                endAngle = endAngle % (Math.PI * 2);
+                if (endAngle < 0) {
+                    endAngle = endAngle + Math.PI * 2;
+                }
+
+                if (startAngle > endAngle) {
+                    endAngle += Math.PI * 2;
+                }
+                var number = 0;
+                for (var angle = 0; angle < endAngle; angle += Math.PI / 2) {
+                    if (angle > startAngle) {
+                        extremities[number++]
+                            .set(Math.cos(angle), Math.sin(angle) * clockwise)
+                            .scale(radius)
+                            .add(center);
+                    }
+                }
+                var tmp = extremities.slice(0, number)
+                tmp.push(start, end);
+                util.computeBoundingBox(tmp, min, max);
+            }
+        })()
+    }
+
+    return util;
+} );
+define('2d/shape/line',['require','../node','../util','core/vector2'],function(require) {
 
     var Node = require('../node');
     var util = require('../util');
-    var glmatrix = require('glmatrix');
-    var vec2 = glmatrix.vec2;
+    var Vector2 = require("core/vector2");
 
-    var Line = Node.derive(function(){
+    var Line = Node.derive(function() {
         return {
-            start : [0, 0],
-            end : [0, 0],
+            start : new Vector2(),
+            end : new Vector2(),
             width : 0   //virtual width of the line for intersect computation 
         }
     }, {
-        computeAABB : function(){
+        computeBoundingBox : function() {
 
-            this.AABB = util.computeAABB([this.start, this.end]);
+            this.boundingBox = util.computeBoundingBox(
+                                    [this.start, this.end],
+                                    this.boundingBox.min,
+                                    this.boundingBox.max
+                                );
             
-            if(this.AABB[0][0] == this.AABB[1][0]){ //line is vertical
-                this.AABB[0][0] -= this.width/2;
-                this.AABB[1][0] += this.width/2;
+            if (this.boundingBox.min.x == this.boundingBox.max.x) { //line is vertical
+                this.boundingBox.min.x -= this.width/2;
+                this.boundingBox.max.x += this.width/2;
             }
-            if(this.AABB[0][1] == this.AABB[1][1]){ //line is horizontal
-                this.AABB[0][1] -= this.width/2;
-                this.AABB[1][1] += this.width/2;
+            if (this.boundingBox.min.y == this.boundingBox.max.y) { //line is horizontal
+                this.boundingBox.min.y -= this.width/2;
+                this.boundingBox.max.y += this.width/2;
             }
         },
-        draw : function(ctx){
+        draw : function(ctx) {
             
             var start = this.fixAA ? util.fixPos(this.start) : this.start,
                 end = this.fixAA ? util.fixPos(this.end) : this.end;
 
             ctx.beginPath();
-            ctx.moveTo(start[0], start[1]);
-            ctx.lineTo(end[0], end[1]);
+            ctx.moveTo(start.x, start.y);
+            ctx.lineTo(end.x, end.y);
             ctx.stroke();
 
         },
-        intersect : function(x, y){
-            
-            if(!this.intersectAABB(x, y)){
-                return false;
+        intersect : function() {
+            var a = new Vector2();
+            var ba = new Vector2();
+            var bc = new Vector2();
+
+            return function(x, y) {
+                if (!this.intersectBoundingBox(x, y)) {
+                    return false;
+                }
+                var b = this.start;
+                var c = this.end;
+
+                a.set(x, y);
+                ba.copy(a).sub(b);
+                bc.copy(c).sub(b);
+
+                var bal = ba.length();
+                var bcl = bc.length();
+
+                var tmp = bal * ba.scale(1/bal).dot(bcl.scale(1/bcl));
+
+                var distSquare = bal * bal -  tmp * tmp;
+                return distance < this.width * this.width * 0.25;
             }
-            //计算投影点
-            var a = [x, y]
-                b = this.start,
-                c = this.end,
-                ba = vec2.sub([], a, b),
-                bc = vec2.sub([], c, b);
-            
-            var dd = vec2.dot(bc, ba);  //ba在bc上的投影长度
-            vec2.normalize(bc, bc);
-            
-            var d = vec2.add(b, vec2.scale(bc, dd));        //投影点   
-            var distance = vec2.length(vec2.sub(a, a, d));
-            return distance < this.width/2;
         }
     });
 
     return Line;
 });
-define('2d/renderable/path',['require','../node','../util','glmatrix'],function(require){
+/**
+ *
+ * Inspired by path in paper.js
+ */
+define('2d/shape/path',['require','../node','../util','core/vector2'],function(require) {
 
     var Node = require('../node');
     var util = require('../util');
-    var glmatrix = require('glmatrix');
-    var vec2 = glmatrix.vec2;
+    var Vector2 = require("core/vector2");
 
-    var Path = Node.derive( function(){
+    var minTmp = new Vector2();
+    var maxTmp = new Vector2();
+
+    var Path = Node.derive( function() {
         return {
             segments : [],
-            globalStyle : true
+            globalStyle : true,
+            closePath : false
         }
     }, {
-        computeAABB : function(){
-            this.AABB = [[0, 0], [0, 0]];
-        },
-        draw : function(ctx){
+        computeBoundingBox : function() {
+            var l = this.segments.length;
+            var segs = this.segments;
+
+            var min = this.boundingBox.min;
+            var max = this.boundingBox.max;
+            min.set(999999, 999999);
+            max.set(-999999, -999999);
             
-            if(this.globalStyle){
+            for (var i = 1; i < l; i++) {
+                if (segs[i-1].handleOut || segs[i].handleIn) {
+                    var bb = util.computeCubeBezierBoundingBox(
+                                segs[i-1].point,
+                                segs[i-1].handleOut || segs[i-1].point,
+                                segs[i].handleIn || segs[i].point,
+                                segs[i].point,
+                                minTmp, maxTmp
+                            );
+                    min.min(minTmp);
+                    max.max(maxTmp);
+                } else {
+                    min.min(segs[i-1].point);
+                    min.min(segs[i].point);
+
+                    max.max(segs[i-1].point);
+                    max.max(segs[i].point);
+                }
+            }
+        },
+        draw : function(ctx) {
+            if (this.globalStyle) {
                 this.drawWithSameStyle(ctx);
-            }else{
+            } else {
                 this.drawWithDifferentStyle(ctx);
             }
         },
-        drawWithSameStyle : function(ctx){
+        drawWithSameStyle : function(ctx) {
             
             var l = this.segments.length;
             var segs = this.segments;
-
+            
             ctx.beginPath();
-            ctx.moveTo(segs[0].point[0], segs[0].point[1]);
-            for(var i =1; i < l; i++){
-
-                if(segs[i-1].handleOut || segs[i].handleIn){
+            ctx.moveTo(segs[0].point.x, segs[0].point.y);
+            for (var i =1; i < l; i++) {
+                if (segs[i-1].handleOut || segs[i].handleIn) {
                     var prevHandleOut = segs[i-1].handleOut || segs[i-1].point;
                     var handleIn = segs[i].handleIn || segs[i].point;
-                    ctx.bezierCurveTo(prevHandleOut[0], prevHandleOut[1],
-                            handleIn[0], handleIn[1], segs[i].point[0], segs[i].point[1]);
+                    ctx.bezierCurveTo(prevHandleOut.x, prevHandleOut.y,
+                            handleIn.x, handleIn.y, segs[i].point.x, segs[i].point.y);
+                } else {
+                    ctx.lineTo(segs[i].point.x, segs[i].point.y);
                 }
-                else{
-                    ctx.lineTo(segs[i].point[0], segs[i].point[1]);
-                }
-
             }
-            if(this.fill){
+            if (this.closePath) {
+                ctx.closePath();
+            }
+            if (this.fill) {
                 ctx.fill();
             }
-            if(this.stroke){
+            if (this.stroke) {
                 ctx.stroke();
             }   
         },
-        drawWithDifferentStyle : function(ctx){
+        drawWithDifferentStyle : function(ctx) {
             
             var l = this.segments.length;
             var segs = this.segments;
 
-            for(var i =0; i < l-1; i++){
+            for (var i =0; i < l-1; i++) {
 
                 ctx.save();
                 segs[i].style && segs[i].style.bind(ctx);
 
                 ctx.beginPath();
-                ctx.moveTo(segs[i].point[0], segs[i].point[1]);
+                ctx.moveTo(segs[i].point.x, segs[i].point.y);
 
-                if(segs[i].handleOut || segs[i+1].handleIn){
+                if (segs[i].handleOut || segs[i+1].handleIn) {
                     var handleOut = segs[i].handleOut || segs[i].point;
                     var nextHandleIn = segs[i+1].handleIn || segs[i+1].point;
-                    ctx.bezierCurveTo(handleOut[0], handleOut[1],
-                            nextHandleIn[0], nextHandleIn[1], segs[i+1].point[0], segs[i+1].point[1]);
-                }
-                else{
-                    ctx.lineTo(segs[i+1].point[0], segs[i+1].point[1]);
+                    ctx.bezierCurveTo(handleOut.x, handleOut.y,
+                            nextHandleIn.x, nextHandleIn.y, segs[i+1].point.x, segs[i+1].point.y);
+                } else {
+                    ctx.lineTo(segs[i+1].point.x, segs[i+1].point.y);
                 }
 
-                if(this.stroke){
+                if (this.stroke) {
                     ctx.stroke();
                 }
-                if(this.fill){
+                if (this.fill) {
                     ctx.fill();
                 }
                 ctx.restore();
             }
         },
-        smooth : function(degree){
+        smooth : function(degree) {
+
             var len = this.segments.length;
             var middlePoints = [];
             var segs = this.segments;
 
-            function computeVector(a, b, c){
-                var m = vec2.scale([], vec2.add([], b, c), 0.5);
-                return vec2.sub([], a, m);
+            var m = new Vector2();
+            function computeVector(a, b, c) {
+                m.copy(b).add(c).scale(0.5);
+                return m.sub(a).negate();
             }
 
-            for(var i = 0; i < len; i++){
+            for (var i = 0; i < len; i++) {
                 var point = segs[i].point;
                 var nextPoint = (i == len-1) ? segs[0].point : segs[i+1].point;
-                middlePoints.push(
-                        vec2.scale([], vec2.add([], point, nextPoint), 0.5));
+                middlePoints.push(new Vector2().copy(point).add(nextPoint).scale(0.5));
             }
 
-            for(var i = 0; i < len; i++){
+            var middleMiddlePoint = new Vector2();
+            var v1 = new Vector2();
+            var v2 = new Vector2();
+            for (var i = 0; i < len; i++) {
                 var point = segs[i].point;
                 var middlePoint = middlePoints[i];
                 var prevMiddlePoint = (i == 0) ? middlePoints[len-1] : middlePoints[i-1];
                 var degree = segs[i].smoothLevel || degree || 1;
-                var middleMiddlePoint = vec2.scale([], vec2.add([], middlePoint, prevMiddlePoint), 0.5);
-                var v1 = vec2.sub([], middlePoint, middleMiddlePoint);
-                var v2 = vec2.sub([], prevMiddlePoint, middleMiddlePoint);
+                middleMiddlePoint.copy(middlePoint).add(prevMiddlePoint).scale(0.5);
+                v1.copy(middlePoint).sub(middleMiddlePoint);
+                v2.copy(prevMiddlePoint).sub(middleMiddlePoint);
 
                 var dv = computeVector(point, prevMiddlePoint, middlePoint);
                 //use degree to scale the handle length
-                vec2.scale(v2, v2, degree);
-                vec2.scale(v1, v1, degree);
-                segs[i].handleIn = vec2.add([], vec2.add([], middleMiddlePoint, v2), dv);
-                segs[i].handleOut = vec2.add([], vec2.add([], middleMiddlePoint, v1), dv);
+                v2.scale(degree);
+                v1.scale(degree);
+                segs[i].handleIn = middleMiddlePoint.clone().add(v2).add(dv);
+                segs[i].handleOut = middleMiddlePoint.clone().add(v1).add(dv);
             }
             segs[0].handleOut = segs[0].handleIn = null;
             segs[len-1].handleIn = segs[len-1].handleOut = null;
             
         },
-        pushPoints : function(points){
-            for(var i = 0; i < points.length; i++){
+        pushPoints : function(points) {
+            for (var i = 0; i < points.length; i++) {
                 this.segments.push({
                     point : points[i],
                     handleIn : null,
@@ -10871,95 +11704,99 @@ define('2d/renderable/path',['require','../node','../util','glmatrix'],function(
 
     return Path;
 });
-define('2d/renderable/polygon',['require','../node','../util','glmatrix'],function(require){
+define('2d/shape/polygon',['require','../node','../util','core/vector2'],function(require) {
 
     var Node = require('../node');
     var util = require('../util');
-    var glmatrix = require('glmatrix');
-    var vec2 = glmatrix.vec2;
+    var Vector2 = require("core/vector2");
 
-    var Polygon = Node.derive( function(){
+    var Polygon = Node.derive(function() {
         return {
             points : []
         }
     }, {
-        computeAABB : function(){
-            this.AABB = util.computeAABB( this.points );
+        computeBoundingBox : function() {
+            this.boundingBox = util.computeBoundingBox(
+                                    this.points,
+                                    this.boundingBox.min,
+                                    this.boundingBox.max
+                                );
         },
-        draw : function(ctx){
+        draw : function(ctx) {
 
-            var points = this.fixAA ? util.fixPosArray(this.points) : this.points;
+            var points = this.points;
 
             ctx.beginPath();
             
-            ctx.moveTo(points[0][0], points[0][1]);
-            for(var i =1; i < points.length; i++){
-                ctx.lineTo(points[i][0], points[i][1]);
+            ctx.moveTo(points[0].x, points[0].y);
+            for (var i =1; i < points.length; i++) {
+                ctx.lineTo(points[i].x, points[i].y);
             }
             ctx.closePath();
-            if(this.stroke){
+            if (this.stroke) {
                 ctx.stroke();
             }
-            if(this.fill){
+            if (this.fill) {
                 ctx.fill();
             }
         },
-        intersect : function(x, y){
+        intersect : function(x, y) {
     
-            if(!this.intersectAABB(x, y)){
+            if (!this.intersectBoundingBox(x, y)) {
                 return false;
             }
 
             var len = this.points.length;
             var angle = 0;
             var points = this.points;
-            var vec1, vec2, j, piece;
-            for(var i =0; i < len; i++){
-                vec1 = vec2.normalize([], [points[i][0]-x, points[i][1]-y]);
-                j = (i+1)%len;
-                vec2 =  vec2.normalize([], [points[j][0]-x, points[j][1]-y]);
-                piece = Math.acos(vec2.dot(vec1, vec2));
+            var vec1 = new Vector2();
+            var vec2 = new Vector2();
+            for (var i =0; i < len; i++) {
+                vec1.set(x, y).sub(points[i]).normalize().negate();
+                var j = (i+1)%len;
+                vec2.set(x, y).sub(points[j]).normalize().negate();
+                var piece = Math.acos(vec1.dot(vec2));
                 angle += piece;
             }
             return Math.length(angle - 2*Math.PI) < 0.001;
         }
     })
 
-    return Node;
+    return Polygon;
 });
-define('2d/renderable/rectangle',['require','../node','../util','glmatrix'],function(require){
+define('2d/shape/rectangle',['require','../node','../util','core/vector2'],function(require){
 
-    var Node = require('../node'),
-        util = require('../util'),
-        glmatrix = require('glmatrix'),
-        vec2 = glmatrix.vec2;
+    var Node = require('../node');
+    var util = require('../util');
+    var Vector2 = require("core/vector2");
 
-    var Rectangle = Node.derive( function(){
+    var Rectangle = Node.derive( function() {
         return {
-            start : [0, 0],
-            size : [0, 0]
+            start : new Vector2(0, 0),
+            size : new Vector2(0, 0)
         }
     }, {
-        computeAABB : function(){
-            var end = vec2.add([], this.start, this.size);
-            this.AABB = util.computeAABB([this.start, end]);
+        computeBoundingBox : function() {
+            return {
+                min : this.start.clone(),
+                max : this.size.clone().add(this.start)
+            }
         },
-        draw : function(ctx){
+        draw : function(ctx) {
 
             var start = this.fixAA ? util.fixPos(this.start) : this.start;
 
             ctx.beginPath();
-            ctx.rect(start[0], start[1], this.size[0], this.size[1]);
-            if(this.stroke){
+            ctx.rect(start.x, start.y, this.size.x, this.size.y);
+            if (this.stroke){
                 ctx.stroke();
             }
-            if(this.fill){
+            if (this.fill){
                 ctx.fill();
             }
         },
-        intersect : function(x, y){
-            
-            return this.intersectAABB(x, y);
+        intersect : function(x, y) {
+            return this.intersectBoundingBox(x, y);
         }
     })
 
@@ -10968,64 +11805,65 @@ define('2d/renderable/rectangle',['require','../node','../util','glmatrix'],func
 /**
  * @export{class} RoundedRectangle
  */
-define('2d/renderable/roundedrectangle',['require','../node','../util','glmatrix'],function(require){
+define('2d/shape/roundedrectangle',['require','../node','../util','core/vector2'],function(require) {
 
     var Node = require('../node');
     var util = require('../util');
-    var glmatrix = require('glmatrix');
-    var vec2 = glmatrix.vec2;
+    var Vector2 = require("core/vector2");
 
-    var RoundedRectange = Node.derive( function(){
+    var RoundedRectange = Node.derive(function() {
         return {
-            start   : [0, 0],
-            size    : [0, 0],
+            start   : new Vector2(),
+            size    : new Vector2(),
             radius  : 0
         }
     }, {
-        computeAABB : function(){
-            var end = vec2.add([], this.start, this.size);
-            this.AABB = util.computeAABB([this.start, end]);
+        computeBoundingBox : function() {
+            this.boundingBox = {
+                min : this.start.clone(),
+                max : this.size.clone().add(this.start)
+            }
         },
-        draw : function(ctx){
+        draw : function(ctx) {
 
-            if( this.radius.constructor == Number){
+            if (this.radius.constructor == Number) {
                 // topleft, topright, bottomright, bottomleft
                 var radius = [this.radius, this.radius, this.radius, this.radius];
-            }else if( this.radius.length == 2){
+            } else if (this.radius.length == 2) {
                 var radius = [this.radius[0], this.radius[1], this.radius[0], this.radius[1]];
-            }else{
+            } else {
                 var radius = this.radius;
             }
 
             var start = this.fixAA ? util.fixPos(this.start) : this.start;
             var size = this.size;
-            var v1 = vec2.add([], start, [radius[0], 0]);   //left top
-            var v2 = vec2.add([], start, [size[0], 0]);     //right top
-            var v3 = vec2.add([], start, size);             //right bottom
-            var v4 = vec2.add([], start, [0, size[1]]);     //left bottom
+            var v1 = new Vector2().copy(start).add(new Vector2(radius[0], 0));   //left top
+            var v2 = new Vector2().copy(start).add(new Vector2(size.x, 0));     //right top
+            var v3 = new Vector2().copy(start).add(size);                        //right bottom
+            var v4 = new Vector2().copy(start).add(new Vector2(0, size.y));     //left bottom
             ctx.beginPath();
-            ctx.moveTo( v1[0], v1[1] );
+            ctx.moveTo(v1.x, v1.y);
             radius[1] ? 
-                ctx.arcTo( v2[0], v2[1], v3[0], v3[1], radius[1]) :
-                ctx.lineTo( v2[0], v2[1] );
+                ctx.arcTo(v2.x, v2.y, v3.x, v3.y, radius[1]) :
+                ctx.lineTo(v2.x, v2.y);
             radius[2] ?
-                ctx.arcTo( v3[0], v3[1], v4[0], v4[1], radius[2]) :
-                ctx.lineTo( v3[0], v3[1] );
+                ctx.arcTo(v3.x, v3.y, v4.x, v4.y, radius[2]) :
+                ctx.lineTo(v3.x, v3.y);
             radius[3] ?
-                ctx.arcTo( v4[0], v4[1], start[0], start[1], radius[3]) :
-                ctx.lineTo( v4[0], v4[1] );
+                ctx.arcTo(v4.x, v4.y, start.x, start.y, radius[3]) :
+                ctx.lineTo(v4.x, v4.y);
             radius[0] ? 
-                ctx.arcTo( start[0], start[1], v2[0], v2[1], radius[0]) :
-                ctx.lineTo( start[0], start[1]);
+                ctx.arcTo(start.x, start.y, v2.x, v2.y, radius[0]) :
+                ctx.lineTo(start.x, start.y);
             
-            if( this.stroke ){
+            if (this.stroke) {
                 ctx.stroke();
             }
-            if( this.fill ){
+            if (this.fill) {
                 ctx.fill();
             }
         },
-        intersect : function(x, y){
+        intersect : function(x, y) {
             // TODO
             return false;
         }
@@ -11033,16 +11871,15 @@ define('2d/renderable/roundedrectangle',['require','../node','../util','glmatrix
 
     return RoundedRectange;
 });
-define('2d/renderable/sector',['require','../node','../util','glmatrix'],function(require){
+define('2d/shape/sector',['require','../node','../util','core/vector2'],function(require) {
 
     var Node = require('../node');
     var util = require('../util');
-    var glmatrix = require('glmatrix');
-    var vec2 = glmatrix.vec2;
+    var Vector2 = require("core/vector2");
 
-    var Sector = Node.derive( function(){
+    var Sector = Node.derive(function() {
         return {
-            center      : [0, 0],
+            center      : new Vector2(),
             innerRadius : 0,
             outerRadius : 0,
             startAngle  : 0,
@@ -11050,70 +11887,87 @@ define('2d/renderable/sector',['require','../node','../util','glmatrix'],functio
             clockwise   : true
         }
     }, {
-        computeAABB : function(){
-            // TODO
-            this.AABB = [0, 0];
+        computeBoundingBox : function() {
+            var min = new Vector2();
+            var max = new Vector2();
+
+            util.computeArcBoundingBox(
+                this.center, this.innerRadius, this.startAngle, 
+                this.endAngle, this.clockwise, min, max
+            );
+            this.boundingBox.min
+                .set(99999, 99999)
+                .min(min);
+            this.boundingBox.max
+                .set(-99999, -99999)
+                .max(max);
+
+            util.computeArcBoundingBox(
+                this.center, this.outerRadius, this.startAngle, 
+                this.endAngle, this.clockwise, min, max
+            );
+            this.boundingBox.min.min(min);
+            this.boundingBox.max.max(max);
         },
-        intersect : function(x, y){
+        intersect : function(x, y) {
 
             var startAngle = this.startAngle;
             var endAngle = this.endAngle;
             var r1 = this.innerRadius;
             var r2 = this.outerRadius;
             var c = this.center;
-            var v = vec2.sub([], [x, y], c);
-            var r = vec2.length(v);
+            var v = new Vector2(x, y).sub(c);
+            var r = v.length();
             var pi2 = Math.PI * 2;
 
-            if(r < r1 || r > r2){
+            if (r < r1 || r > r2) {
                 return false;
             }
-            var angle = Math.atan2(v[1], v[0]);
+            var angle = Math.atan2(v.y, v.x);
 
             //need to constraint the angle between 0 - 360
-            if(angle < 0){
+            if (angle < 0) {
                 angle = angle+pi2;
             }
             
-            if(this.clockwise){
-                
+            if (this.clockwise) {
                 return angle < endAngle && angle > startAngle;
-            }else{
+            } else {
                 startAngle =  pi2 - startAngle;
                 endAngle = pi2 - endAngle;
                 return angle > endAngle && angle < startAngle;
             }   
         },
-        draw : function(ctx){
+        draw : function(ctx) {
 
             var startAngle = this.startAngle;
             var endAngle = this.endAngle;
             var r1 = this.innerRadius;
             var r2 = this.outerRadius;
-            var c = this.fixAA ? util.fixPos( this.center ) : this.center;
+            var c = this.center;
 
-            if( ! this.clockwise ){
+            if (! this.clockwise) {
                 startAngle =  Math.PI*2 - startAngle;
                 endAngle =  Math.PI*2 - endAngle;
             }
 
-            var startInner = vec2.add([], c, [r1 * Math.cos(startAngle), r1 * Math.sin(startAngle)]);
-            var startOuter = vec2.add([], c, [r2 * Math.cos(startAngle), r2 * Math.sin(startAngle)]);
-            var endInner = vec2.add([], c, [r1 * Math.cos(endAngle), r1 * Math.sin(endAngle)]);
-            var endOuter = vec2.add([], c, [r2 * Math.cos(endAngle), r2 * Math.sin(endAngle)]);
+            var startInner = new Vector2(r1 * Math.cos(startAngle), r1 * Math.sin(startAngle)).add(c);
+            var startOuter = new Vector2(r2 * Math.cos(startAngle), r2 * Math.sin(startAngle)).add(c);
+            var endInner = new Vector2(r1 * Math.cos(endAngle), r1 * Math.sin(endAngle)).add(c);
+            var endOuter = new Vector2(r2 * Math.cos(endAngle), r2 * Math.sin(endAngle)).add(c);
 
             ctx.beginPath();
-            ctx.moveTo(startInner[0], startInner[1]);
-            ctx.lineTo(startOuter[0], startOuter[1]);
-            ctx.arc(c[0], c[1], r2, startAngle, endAngle, ! this.clockwise);
-            ctx.lineTo(endInner[0], endInner[1]);
-            ctx.arc(c[0], c[1], r1, endAngle, startAngle, this.clockwise);
-            ctx.endPath();
+            ctx.moveTo(startInner.x, startInner.y);
+            ctx.lineTo(startOuter.x, startOuter.y);
+            ctx.arc(c.x, c.y, r2, startAngle, endAngle, ! this.clockwise);
+            ctx.lineTo(endInner.x, endInner.y);
+            ctx.arc(c.x, c.y, r1, endAngle, startAngle, this.clockwise);
+            ctx.closePath();
 
-            if(this.stroke){
+            if (this.stroke) {
                 ctx.stroke();
             }
-            if(this.fill){
+            if (this.fill) {
                 ctx.fill();
             }
         }
@@ -11121,56 +11975,367 @@ define('2d/renderable/sector',['require','../node','../util','glmatrix'],functio
 
     return Sector;
 });
-define('2d/renderable/text',['require','../node','../util','glmatrix'],function(require){
+/**
+ * 
+ * @export{class} SVGPath
+ */
+define('2d/shape/svgpath',['require','2d/node','2d/util','core/vector2'],function(require) {
+
+    var Node = require("2d/node");
+    var util = require("2d/util");
+    var Vector2 = require("core/vector2");
+
+    var availableCommands = {'m':1,'M':1,'z':1,'Z':1,'l':1,'L':1,'h':1,'H':1,'v':1,'V':1,'c':1,'C':1,'s':1,'S':1,'q':1,'Q':1,'t':1,'T':1,'a':1,'A':1}
+
+    var SVGPath = Node.derive(function() {
+        return {
+            description : '',
+            _ops : []
+        }
+    }, {
+        draw : function(ctx) {
+            if (!this._ops.length) {
+                this.parse();
+            }
+
+            ctx.beginPath();
+            for (var i = 0; i < this._ops.length; i++) {
+                var op = this._ops[i];
+                switch(op[0]) {
+                    case 'm':
+                        ctx.moveTo(op[1], op[2]);
+                        break;
+                    case 'l':
+                        ctx.lineTo(op[1], op[2]);
+                        break;
+                    case 'c':
+                        ctx.bezierCurveTo(op[1], op[2], op[3], op[4], op[5], op[6]);
+                        break;
+                    case 'q':
+                        ctx.quadraticCurveTo(op[1], op[2], op[3], op[4]);
+                        break;
+                    case 'z':
+                        ctx.closePath();
+                        if (this.fill) {
+                            ctx.fill();
+                        }
+                        if (this.stroke) {
+                            ctx.stroke();
+                        }
+                        ctx.beginPath();
+                        break;
+                }
+            }
+            if (this.fill) {
+                ctx.fill();
+            }
+            if (this.stroke) {
+                ctx.stroke();
+            }
+        },
+
+        computeBoundingBox : (function() {
+            // Temp variables
+            var current = new Vector2();
+            var p1 = new Vector2();
+            var p2 = new Vector2();
+            var p3 = new Vector2();
+
+            var minTmp = new Vector2();
+            var maxTmp = new Vector2();
+
+            return function() {
+                if (!this._ops.length) {
+                    this.parse();
+                }
+                var min = new Vector2(999999, 999999);
+                var max = new Vector2(-999999, -999999);
+
+                for (var i = 0; i < this._ops.length; i++) {
+                    var op = this._ops[i];
+                    switch(op[0]) {
+                        case 'm':
+                            current.set(op[1], op[2]);
+                            break;
+                        case 'l':
+                            p1.set(op[1], op[2]);
+                            current.copy(p1);
+                            min.min(current).min(p1);
+                            max.max(current).max(p1);
+                            break;
+                        case 'c':
+                            p1.set(op[1], op[2]);
+                            p2.set(op[3], op[4]);
+                            p3.set(op[5], op[6]);
+                            util.computeCubeBezierBoundingBox(current, p1, p2, p3, minTmp, maxTmp);
+                            current.copy(p3);
+                            min.min(minTmp);
+                            max.max(maxTmp);
+                            break;
+                        case 'q':
+                            p1.set(op[1], op[2]);
+                            p2.set(op[3], op[4]);
+                            var bb = util.computeQuadraticBezierBoundingBox(current, p1, p2, minTmp, maxTmp);
+                            current.copy(p2);
+                            min.min(minTmp);
+                            min.max(maxTmp);
+                            break;
+                        case 'z':
+                            break;
+                    }
+                }
+
+                this.boundingBox = {
+                    min : min,
+                    max : max
+                }
+            }
+        })(),
+
+        parse : function(description) {
+            // point x, y
+            var x = 0;
+            var y = 0;
+            // control point 1(in cube bezier curve and quadratic bezier curve)
+            var x1 = 0;
+            var y1 = 0;
+            // control point 2(in cube bezier curve)
+            var x2 = 0;
+            var y2 = 0;
+
+            // pre process
+            description = description || this.description;
+            var d = description.replace(/\s*,\s*/g, ' ');
+            d = d.replace(/(-)/g, ' $1');
+            d = d.replace(/([mMzZlLhHvVcCsSqQtTaA])/g, ' $1 ');
+            d = d.split(/\s+/);
+
+            var command = "";
+            // Save the previous command specially for shorthand/smooth curveto(s/S, t/T)
+            var prevCommand = "";
+            var offset = 0;
+            var len = d.length;
+            var next = d[0];
+
+            while (offset <= len) {
+                // Skip empty
+                if(!next) {
+                    next = d[++offset];
+                    continue;
+                }
+                if (availableCommands[next]) {
+                    prevCommand = command;
+                    command = next;
+                    offset++;
+                }
+                // http://www.w3.org/TR/SVG/paths.html
+                switch (command) {
+                    case "m":
+                        x = pickValue() + x;
+                        y = pickValue() + y;
+                        this._ops.push(['m', x, y]);
+                        break;
+                    case "M":
+                        x = pickValue();
+                        y = pickValue();
+                        this._ops.push(['m', x, y]);
+                        break;
+                    case "z":
+                    case "Z":
+                        next = d[offset];
+                        this._ops.push(['z']);
+                        break;
+                    case "l":
+                        x = pickValue() + x;
+                        y = pickValue() + y;
+                        this._ops.push(['l', x, y]);
+                        break;
+                    case "L":
+                        x = pickValue();
+                        y = pickValue();
+                        this._ops.push(['l', x, y]);
+                        break;
+                    case "h":
+                        x = pickValue() + x;
+                        this._ops.push(['l', x, y]);
+                        break;
+                    case "H":
+                        x = pickValue();
+                        this._ops.push(['l', x, y]);
+                        break;
+                    case "v":
+                        y = pickValue() + y;
+                        this._ops.push(['l', x, y]);
+                        break;
+                    case "V":
+                        y = pickValue();
+                        this._ops.push(['l', x, y]);
+                        break;
+                    case "c":
+                        x1 = pickValue() + x;
+                        y1 = pickValue() + y;
+                        x2 = pickValue() + x;
+                        y2 = pickValue() + y;
+                        x = pickValue() + x;
+                        y = pickValue() + y;
+                        this._ops.push(['c', x1, y1, x2, y2, x, y]);
+                        break;
+                    case "C":
+                        x1 = pickValue();
+                        y1 = pickValue();
+                        x2 = pickValue();
+                        y2 = pickValue();
+                        x = pickValue();
+                        y = pickValue();
+                        this._ops.push(['c', x1, y1, x2, y2, x, y]);
+                        break;
+                    case "s":
+                        if (prevCommand === "c" || prevCommand === "C" ||
+                            prevCommand === "s" || prevCommand === "S") {
+                            // Reflection of the second control point on the previous command
+                            x1 = x * 2 - x2;
+                            y1 = y * 2 - y2;
+                        } else {
+                            x1 = x;
+                            y1 = y;
+                        }
+                        x2 = pickValue() + x;
+                        y2 = pickValue() + y;
+                        x = pickValue() + x;
+                        y = pickValue() + y;
+                        this._ops.push(['c', x1, y1, x2, y2, x, y]);
+                        break;
+                    case "S":
+                        if (prevCommand === "c" || prevCommand === "C" ||
+                            prevCommand === "s" || prevCommand === "S") {
+                            // Reflection of the second control point on the previous command
+                            x1 = x * 2 - x2; 
+                            y1 = y * 2 - y2;
+                        } else {
+                            x1 = x;
+                            y1 = y;
+                        }
+                        x2 = pickValue();
+                        y2 = pickValue();
+                        x = pickValue();
+                        y = pickValue();
+                        this._ops.push(['c', x1, y1, x2, y2, x, y]);
+                        break;
+                    case "q":
+                        x1 = pickValue() + x;
+                        y1 = pickValue() + y;
+                        x = pickValue() + x;
+                        y = pickValue() + y;
+                        this._ops.push(['q', x1, y1, x, y]);
+                        break;
+                    case "Q":
+                        x1 = pickValue();
+                        y1 = pickValue();
+                        x = pickValue();
+                        y = pickValue();
+                        this._ops.push(['q', x1, y1, x, y]);
+                        break;
+                    case "t":
+                        if (prevCommand === "q" || prevCommand === "Q" ||
+                            prevCommand === "t" || prevCommand === "T") {
+                            // Reflection of the second control point on the previous command
+                            x1 = x * 2 - x1; 
+                            y1 = y * 2 - y1;
+                        } else {
+                            x1 = x;
+                            y1 = y;
+                        }
+                        x = pickValue() + x;
+                        y = pickValue() + y;
+                        this._ops.push(['q', x1, y1, x, y]);
+                        break;
+                    case "T":
+                        if (prevCommand === "q" || prevCommand === "Q" ||
+                            prevCommand === "t" || prevCommand === "T") {
+                            // Reflection of the second control point on the previous command
+                            x1 = x * 2 - x1; 
+                            y1 = y * 2 - y1;
+                        } else {
+                            x1 = x;
+                            y1 = y;
+                        }
+                        x = pickValue();
+                        y = pickValue();
+                        this._ops.push(['q', x1, y1, x, y]);
+                        break;
+                    case "a":
+                    case "A":
+                        pickValue();
+                        pickValue();
+                        pickValue();
+                        pickValue();
+                        pickValue();
+                        pickValue();
+                        pickValue();
+                        console.warn("Elliptical arc is not supported yet");
+                        break;
+                    default:
+                        pick();
+                        continue;
+                }
+            }
+            
+            function pick() {
+                next = d[offset+1];
+                return d[offset++];
+            }
+
+            var _val;
+            function pickValue() {
+                next = d[offset+1];
+                _val = d[offset++];
+                return parseFloat(_val);
+            }
+        }
+    });
+
+    return SVGPath;
+});
+define('2d/shape/text',['require','../node','../util','core/vector2'],function(require) {
 
     var Node = require('../node');
     var util = require('../util');
-    var glmatrix = require('glmatrix');
-    var vec2 = glmatrix.vec2;
+    var Vector2 = require("core/vector2");
 
-    var Text = Node.derive( function(){
+    var Text = Node.derive( function() {
         return {
             text : '',
-            start : [0, 0],
-            size : [0, 0],
-            font : '',
-            textAlign : '',
-            textBaseline : ''
+            start : new Vector2(),
+            size : new Vector2()
         }
     }, {
-        computeAABB : function(){
-            this.AABB = util.computeAABB( [this.start, [this.start[0]+this.size[0], this.start[1]+this.size[1]]] );
-        },
-        draw : function(ctx){
-            var start = this.fixAA ? util.fixPos(this.start) : this.start;
-            if(this.font){
-                ctx.font = this.font;
-            }
-            if(this.textAlign){
-                ctx.textAlign = this.textAlign;
-            }
-            if(this.textBaseline){
-                ctx.textBaseline = this.textBaseline
-            }
-            if(this.fill){
-                this.size.length && this.size[0] ?
-                    ctx.fillText(this.text, start[0], start[1], this.size[0]) :
-                    ctx.fillText(this.text, start[0], start[1]);
-            }
-            if(this.stroke){
-                this.size.length && this.size[0] ?
-                    ctx.strokeText(this.text, start[0], start[1], this.size[0]) :
-                    ctx.strokeText(this.text, start[0], start[1]);
+        computeBoundingBox : function() {
+            this.boundingBox = {
+                min : this.start.clone(),
+                max : this.start.clone().add(this.size)
             }
         },
-        resize : function(ctx){
-            if(! this.size[0] || this.needResize){
-                this.size[0] = ctx.measureText(this.text).width;
-                this.size[1] = ctx.measureText('m').width;
+        draw : function(ctx) {
+            var start = this.start;
+            if (this.fill) {
+                this.size.length && this.size.x ?
+                    ctx.fillText(this.text, start.x, start.y, this.size.x) :
+                    ctx.fillText(this.text, start.x, start.y);
+            }
+            if (this.stroke) {
+                this.size.length && this.size.x ?
+                    ctx.strokeText(this.text, start.x, start.y, this.size.x) :
+                    ctx.strokeText(this.text, start.x, start.y);
             }
         },
-        intersect : function(x, y){
-            return this.intersectAABB(x, y);
+        resize : function(ctx) {
+            if (! this.size.x || this.needResize) {
+                this.size.x = ctx.measureText(this.text).width;
+                this.size.y = ctx.measureText('m').width;
+            }
+        },
+        intersect : function(x, y) {
+            return this.intersectBoundingBox(x, y);
         }
     })
 
@@ -11185,23 +12350,16 @@ define('2d/renderable/text',['require','../node','../util','glmatrix'],function(
  * TODO: support word wrap of non-english text
  *      shift first line by (lineHeight-fontSize)/2
  */
-define('2d/renderable/textbox',['require','../node','../util','glmatrix','./text','_'],function(require){
+define('2d/shape/textbox',['require','../node','core/vector2','./text','_'],function(require) {
 
     var Node = require('../node');
-    var util = require('../util');
-    var glmatrix = require('glmatrix');
-    var vec2 = glmatrix.vec2;
+    var Vector2 = require("core/vector2");
     var Text = require('./text');
     var _ = require('_');
 
-    var TextBox = Node.derive( function(){
+    var TextBox = Node.derive(function() {
         return {
-            text            : '',
-            textAlign       : '',
-            textBaseline    : 'top',
-            font            : '',
-
-            start           : [0, 0],
+            start           : new Vector2(),
             width           : 0,
             wordWrap        : false,
             wordBreak       : false,
@@ -11210,42 +12368,45 @@ define('2d/renderable/textbox',['require','../node','../util','glmatrix','./text
             // private prop, save Text instances
             _texts          : []
         }
-    }, function(){
+    }, function() {
         // to verify if the text is changed
         this._oldText = "";
     }, {
-        computeAABB : function(){
+        computeBoundingBox : function() {
             // TODO
         },
-        draw : function(ctx){
-            if( this.text != this._oldText){
+        draw : function(ctx) {
+            if (this.text != this._oldText) {
                 this._oldText = this.text;
 
                 //set font for measureText
-                if( this.font ){
+                if (this.font) {
                     ctx.font = this.font;
                 }
-                if( this.wordBreak){
-                    this._texts = this.computeWordBreak( ctx );
+                if (this.wordBreak) {
+                    this._texts = this.computeWordBreak(ctx);
                 }
-                else if(this.wordWrap){
-                    this._texts = this.computeWordWrap( ctx );
+                else if (this.wordWrap) {
+                    this._texts = this.computeWordWrap(ctx);
                 }
                 else{
                     var txt = new Text({
-                        text : this.text,
-                        textBaseline : this.textBaseline
+                        text : this.text
                     })
                     this.extendCommonProperties(txt);
                     this._texts = [txt]
                 }
             }
-            _.each(this._texts, function(_text){
+
+            ctx.save();
+            ctx.textBaseline = 'top';
+            _.each(this._texts, function(_text) {
                 _text.draw(ctx);
             })
+            ctx.restore();
         },
-        computeWordWrap : function( ctx ){
-            if( ! this.text){
+        computeWordWrap : function(ctx) {
+            if (! this.text) {
                 return;
             }
             var words = this.text.split(' ');
@@ -11256,19 +12417,21 @@ define('2d/renderable/textbox',['require','../node','../util','glmatrix','./text
             var texts = [];
             var txt;
 
-            for( var i = 0; i < len; i++){
+            var wordHeight = ctx.measureText("m").width;
+
+            for(var i = 0; i < len; i++) {
                 wordText = i == len-1 ? words[i] : words[i]+' ';
-                wordWidth = ctx.measureText( wordText ).width;
-                if( lineWidth + wordWidth > this.width ||
-                    ! txt ){    //first line
+                wordWidth = ctx.measureText(wordText).width;
+                if (lineWidth + wordWidth > this.width ||
+                    ! txt) {    //first line
                     // create a new text line and put current word
                     // in the head of new line
                     txt = new Text({
                         text : wordText, //append last word
-                        start : vec2.add([], this.start, [0, this.lineHeight*texts.length])
+                        start : this.start.clone().add(new Vector2(0, this.lineHeight*(texts.length+1) - wordHeight))
                     })
                     this.extendCommonProperties(txt);
-                    texts.push( txt );
+                    texts.push(txt);
 
                     lineWidth = wordWidth;
                 }else{
@@ -11278,8 +12441,8 @@ define('2d/renderable/textbox',['require','../node','../util','glmatrix','./text
             }
             return texts;
         },
-        computeWordBreak : function( ctx ){
-            if( ! this.text){
+        computeWordBreak : function(ctx) {
+            if (! this.text) {
                 return;
             }
             var len = this.text.length;
@@ -11288,150 +12451,133 @@ define('2d/renderable/textbox',['require','../node','../util','glmatrix','./text
             var lineWidth = ctx.measureText(this.text[0]).width;
             var texts = [];
             var txt;
-            for(var i = 0; i < len; i++){
+
+            var wordHeight = ctx.measureText("m").width;
+
+            for (var i = 0; i < len; i++) {
                 letter = this.text[i];
-                letterWidth = ctx.measureText( letter ).width;
-                if( lineWidth + letterWidth > this.width || 
-                    ! txt ){    //first line
+                letterWidth = ctx.measureText(letter).width;
+                if (lineWidth + letterWidth > this.width || 
+                    ! txt) {    //first line
                     var txt = new Text({
                         text : letter,
-                        start : vec2.add([], this.start, [0, this.lineHeight*texts.length])
+                        start : this.start.clone().add(new Vector2(0, this.lineHeight*(texts.length+1) - wordHeight))
                     });
                     this.extendCommonProperties(txt);
                     texts.push(txt);
                     // clear prev line states
                     lineWidth = letterWidth;
-                }else{
+                } else {
                     lineWidth += letterWidth;
                     txt.text += letter;
                 }
             }
             return texts;
         },
-        extendCommonProperties : function(txt){
+        extendCommonProperties : function(txt) {
             var props = {};
             _.extend(txt, {
-                textAlign : this.textAlign,
-                textBaseline : this.textBaseline,
-                style : this.style,
-                font : this.font,
                 fill : this.fill,
                 stroke : this.stroke
             })
         },
-        intersect : function(x, y){
-            
-        }
-    } )
-
-    return TextBox;
-});
-define('2d/renderer',['require','core/base'], function(require){
-
-    var Base = require('core/base');
-
-    var Renderer = Base.derive(function(){
-        return {
-            canvas : null,
-
-            context : null,
-
-            width : 0,
-
-            height : 0,
-
-            clearColor : '',
-
-            _latestRenderedScene : null
-        }
-    }, function(){
-        
-        if( ! this.canvas ){
-            this.canvas = document.createElement('canvas');
-        }
-
-        this.canvas.addEventListener('click', this._clickHandler.bind(this));
-        this.canvas.addEventListener('mousedown', this._mouseDownHandler.bind(this));
-        this.canvas.addEventListener('mouseup', this._mouseUpHandler.bind(this));
-        this.canvas.addEventListener('mousemove', this._mouseMoveHandler.bind(this));
-        this.canvas.addEventListener('mouseout', this._mouseOutHandler.bind(this));
-        
-        if( this.width ){
-            this.canvas.width = this.width;
-        }else{
-            this.width = this.canvas.width;
-        }
-        if( this.height ){
-            this.canvas.height = this.height;
-        }else{
-            this.height = this.canvas.height;
-        }
-        this.context = this.canvas.getContext('2d');
-
-    }, {
-
-        resize : function(width, height){
-            this.canvas.width = width;
-            this.canvas.height = height;
-
-            this.width = width;
-            this.height = height;
-        },
-
-        render : function( scene ) {
-            if (this.clearColor) {
-                this.context.fillStyle = this.clearColor;
-                this.context.fillRect(0, 0, this.width, this.height);
-            } else {
-                this.context.clearRect(0, 0, this.width, this.height);
-            }
-
-            scene.render( this.context );
-
-            this._latestRenderedScene = scene;
-        },
-
-        _clickHandler : function(){
-            var scene = this._latestRenderedScene;
-        },
-
-        _mouseDownHandler : function(){
-
-        },
-
-        _mouseUpHandler : function(){
-
-        },
-
-        _mouseMoveHandler : function(){
-
-        },
-
-        _mouseOutHandler : function(){
-
+        intersect : function(x, y) {
         }
     })
 
-    return Renderer;
-} );
-define('2d/scene',['require','./node'], function(require){
+    return TextBox;
+});
+define('2d/stage',['require','core/base','./layer'],function(require) {
 
-    var Node = require('./node');
+    var Base = require('core/base');
+    var Layer = require('./layer');
 
-    var Scene = Node.derive(function(){
-        return {}
-    },{
+    var Stage = Base.derive(function() {
+        return {
+            container : null,
 
-    });
+            width : 100,
+            height : 100,
 
-    return Scene;
-} );
-define('core/vector3',['require','glmatrix'], function(require){
+            _layers : []
+        }
+    }, function() {
+        
+        if (!this.container) {
+            this.container = document.createElement('div');
+        }
+        if (this.container.style.position !== 'absolute' &&
+            this.container.style.position !== 'fixed') {
+            this.container.style.position = 'relative';
+        }
+
+        if (this.width) {
+            this.container.style.width = this.width + 'px';
+        } else {
+            this.width = this.container.clientWidth;
+        }
+        if (this.height) {
+            this.container.style.height = this.height + 'px';
+        } else {
+            this.height = this.container.clientHeight;
+        }
+
+    }, {
+
+        createLayer : function(options) {
+            options = options || {};
+            options.width = this.width;
+            options.height = this.height;
+
+            var layer = new Layer(options);
+            this.addLayer(layer);
+
+            return layer;
+        },
+
+        addLayer : function(layer) {
+            layer.resize(this.width, this.height);
+
+            var canvas = layer.canvas;
+            canvas.style.position = 'absolute';
+            canvas.style.left = '0px';
+            canvas.style.top = '0px';
+
+            this.container.appendChild(layer.canvas);
+
+            this._layers.push(layer);
+        },
+
+        removeLayer : function(layer) {
+            this._layers.splice(this._layers.indexOf(layer), 1);
+
+            this.container.removeChild(layer.canvas);
+        },
+
+        resize : function(width, height) {
+            this.width = width;
+            this.height = height;
+
+            for (var i = 0; i < this._layers.length; i++) {
+                this._layers[i].resize(width, height);
+            }
+        },
+
+        render : function() {
+            for (var i = 0; i < this._layers.length; i++) {
+                this._layers[i].render();
+            }
+        }
+    })
+
+    return Stage;
+});
+define('core/vector3',['require','glmatrix'],function(require) {
 
     var glMatrix = require("glmatrix");
     var vec3 = glMatrix.vec3;
 
-    var Vector3 = function(x, y, z){
+    var Vector3 = function(x, y, z) {
         
         x = x || 0;
         y = y || 0;
@@ -11441,31 +12587,31 @@ define('core/vector3',['require','glmatrix'], function(require){
 
             x : {
                 configurable : false,
-                set : function(value){
+                set : function(value) {
                     this._array[0] = value;
                     this._dirty = true;
                 },
-                get : function(){
+                get : function() {
                     return this._array[0];
                 }
             },
             y : {
                 configurable : false,
-                set : function(value){
+                set : function(value) {
                     this._array[1] = value;
                     this._dirty = true;
                 },
-                get : function(){
+                get : function() {
                     return this._array[1];
                 }
             },
             z : {
                 configurable : false,
-                set : function(value){
+                set : function(value) {
                     this._array[2] = value;
                     this._dirty = true;
                 },
-                get : function(){
+                get : function() {
                     return this._array[2];
                 }
             },
@@ -11489,13 +12635,13 @@ define('core/vector3',['require','glmatrix'], function(require){
 
         constructor : Vector3,
 
-        add : function(b){
+        add : function(b) {
             vec3.add( this._array, this._array, b._array );
             this._dirty = true;
             return this;
         },
 
-        set : function(x, y, z){
+        set : function(x, y, z) {
             this._array[0] = x;
             this._array[1] = y;
             this._array[2] = z;
@@ -11503,92 +12649,104 @@ define('core/vector3',['require','glmatrix'], function(require){
             return this;
         },
 
-        clone : function(){
+        clone : function() {
             return new Vector3( this.x, this.y, this.z );
         },
 
-        copy : function(b){
+        copy : function(b) {
             vec3.copy( this._array, b._array );
             this._dirty = true;
             return this;
         },
 
-        cross : function(out, b){
+        cross : function(out, b) {
             vec3.cross(out._array, this._array, b._array);
             return this;
         },
 
-        dist : function(b){
+        dist : function(b) {
             return vec3.dist(this._array, b._array);
         },
 
-        distance : function(b){
+        distance : function(b) {
             return vec3.distance(this._array, b._array);
         },
 
-        div : function(b){
+        div : function(b) {
             vec3.div(this._array, this._array, b._array);
             this._dirty = true;
             return this;
         },
 
-        divide : function(b){
+        divide : function(b) {
             vec3.divide(this._array, this._array, b._array);
             this._dirty = true;
             return this;
         },
 
-        dot : function(b){
+        dot : function(b) {
             return vec3.dot(this._array, b._array);
         },
 
-        len : function(){
+        len : function() {
             return vec3.len(this._array);
         },
 
-        length : function(){
+        length : function() {
             return vec3.length(this._array);
         },
         /**
          * Perform linear interpolation between a and b
          */
-        lerp : function(a, b, t){
+        lerp : function(a, b, t) {
             vec3.lerp(this._array, a._array, b._array, t);
             this._dirty = true;
             return this;
         },
 
-        mul : function(b){
+        min : function(b) {
+            vec2.min(this._array, this._array, b._array);
+            this._dirty = true;
+            return this;
+        },
+
+        max : function(b) {
+            vec2.max(this._array, this._array, b._array);
+            this._dirty = true;
+            return this;
+        },
+
+        mul : function(b) {
             vec3.mul(this._array, this._array, b._array);
             this._dirty = true;
             return this;
         },
 
-        multiply : function(b){
+        multiply : function(b) {
             vec3.multiply(this._array, this._array, b._array);
             this._dirty = true;
             return this;
         },
 
-        negate : function(){
+        negate : function() {
             vec3.negate(this._array, this._array);
             this._dirty = true;
             return this;
         },
 
-        normalize : function(){
+        normalize : function() {
             vec3.normalize(this._array, this._array);
             this._dirty = true;
             return this;
         },
 
-        random : function(scale){
+        random : function(scale) {
             vec3.random(this._array, scale);
             this._dirty = true;
             return this;
         },
 
-        scale : function(s){
+        scale : function(s) {
             vec3.scale(this._array, this._array, s);
             this._dirty = true;
             return this;
@@ -11596,53 +12754,53 @@ define('core/vector3',['require','glmatrix'], function(require){
         /**
          * add b by a scaled factor
          */
-        scaleAndAdd : function(b, s){
+        scaleAndAdd : function(b, s) {
             vec3.scaleAndAdd(this._array, this._array, b._array, s);
             this._dirty = true;
             return this;
         },
 
-        sqrDist : function(b){
+        sqrDist : function(b) {
             return vec3.sqrDist(this._array, b._array);
         },
 
-        squaredDistance : function(b){
+        squaredDistance : function(b) {
             return vec3.squaredDistance(this._array, b._array);
         },
 
-        sqrLen : function(){
+        sqrLen : function() {
             return vec3.sqrLen(this._array);
         },
 
-        squaredLength : function(){
+        squaredLength : function() {
             return vec3.squaredLength(this._array);
         },
 
-        sub : function(b){
+        sub : function(b) {
             vec3.sub(this._array, this._array, b._array);
             this._dirty = true;
             return this;
         },
 
-        subtract : function(b){
+        subtract : function(b) {
             vec3.subtract(this._array, this._array, b._array);
             this._dirty = true;
             return this;
         },
 
-        transformMat3 : function(m){
+        transformMat3 : function(m) {
             vec3.transformMat3(this._array, this._array, m._array);
             this._dirty = true;
             return this;
         },
 
-        transformMat4 : function(m){
+        transformMat4 : function(m) {
             vec3.transformMat4(this._array, this._array, m._array);
             this._dirty = true;
             return this;
         },
 
-        transformQuat : function(q){
+        transformQuat : function(q) {
             vec3.transformQuat(this._array, this._array, q._array);
             this._dirty = true;
             return this;
@@ -11650,7 +12808,7 @@ define('core/vector3',['require','glmatrix'], function(require){
         /**
          * Set euler angle from queternion
          */
-        setEulerFromQuaternion : function(q){
+        setEulerFromQuaternion : function(q) {
             // var sqx = q.x * q.x;
             // var sqy = q.y * q.y;
             // var sqz = q.z * q.z;
@@ -11662,7 +12820,7 @@ define('core/vector3',['require','glmatrix'], function(require){
             // return this;
         },
 
-        toString : function(){
+        toString : function() {
             return "[" + Array.prototype.join.call(this._array, ",") + "]";
         },
     }
@@ -11675,12 +12833,12 @@ define('core/vector3',['require','glmatrix'], function(require){
     return Vector3;
 
 } );
-define('core/quaternion',['require','glmatrix'], function(require){
+define('core/quaternion',['require','glmatrix'], function(require) {
 
     var glMatrix = require("glmatrix");
     var quat = glMatrix.quat;
 
-    var Quaternion = function(x, y, z, w){
+    var Quaternion = function(x, y, z, w) {
 
         x = x || 0;
         y = y || 0;
@@ -11691,41 +12849,41 @@ define('core/quaternion',['require','glmatrix'], function(require){
 
             x : {
                 configurable : false,
-                set : function(value){
+                set : function(value) {
                     this._array[0] = value;
                     this._dirty = true;
                 },
-                get : function(){
+                get : function() {
                     return this._array[0];
                 }
             },
             y : {
                 configurable : false,
-                set : function(value){
+                set : function(value) {
                     this._array[1] = value;
                     this._dirty = true;
                 },
-                get : function(){
+                get : function() {
                     return this._array[1];
                 }
             },
             z : {
                 configurable : false,
-                set : function(value){
+                set : function(value) {
                     this._array[2] = value;
                     this._dirty = true;
                 },
-                get : function(){
+                get : function() {
                     return this._array[2];
                 }
             },
             w : {
                 configurable : false,
-                set : function(value){
+                set : function(value) {
                     this._array[2] = value;
                     this._dirty = true;
                 },
-                get : function(){
+                get : function() {
                     return this._array[2];
                 }
             },
@@ -11747,19 +12905,19 @@ define('core/quaternion',['require','glmatrix'], function(require){
 
         constructor : Quaternion,
 
-        add : function(b){
+        add : function(b) {
             quat.add( this._array, this._array, b._array );
             this._dirty = true;
             return this;
         },
 
-        calculateW : function(){
+        calculateW : function() {
             quat.calculateW(this._array, this._array);
             this._dirty = true;
             return this;
         },
 
-        set : function(x, y, z, w){
+        set : function(x, y, z, w) {
             this._array[0] = x;
             this._array[1] = y;
             this._array[2] = z;
@@ -11768,7 +12926,7 @@ define('core/quaternion',['require','glmatrix'], function(require){
             return this;
         },
 
-        clone : function(){
+        clone : function() {
             return new Quaternion( this.x, this.y, this.z, this.w );
         },
 
@@ -11776,32 +12934,32 @@ define('core/quaternion',['require','glmatrix'], function(require){
          * Calculates the conjugate of a quat If the quaternion is normalized, 
          * this function is faster than quat.inverse and produces the same result.
          */
-        conjugate : function(){
+        conjugate : function() {
             quat.conjugate(this._array, this._array);
             this._dirty = true;
             return this;
         },
 
-        copy : function(b){
+        copy : function(b) {
             quat.copy( this._array, b._array );
             this._dirty = true;
             return this;
         },
 
-        dot : function(b){
+        dot : function(b) {
             return quat.dot(this._array, b._array);
         },
 
-        fromMat3 : function(m){
+        fromMat3 : function(m) {
             quat.fromMat3(this._array, m._array);
             this._dirty = true;
             return this;
         },
 
-        fromMat4 : (function(){
+        fromMat4 : (function() {
             var mat3 = glMatrix.mat3;
             var m3 = mat3.create();
-            return function(m){
+            return function(m) {
                 mat3.fromMat4(m3, m._array);
                 // Not like mat4, mat3 in glmatrix seems to be row-based
                 mat3.transpose(m3, m3);
@@ -11811,105 +12969,105 @@ define('core/quaternion',['require','glmatrix'], function(require){
             }
         })(),
 
-        identity : function(){
+        identity : function() {
             quat.identity(this._array);
             this._dirty = true;
             return this;
         },
 
-        invert : function(){
+        invert : function() {
             quat.invert(this._array, this._array);
             this._dirty = true;
             return this;
         },
 
-        len : function(){
+        len : function() {
             return quat.len(this._array);
         },
 
-        length : function(){
+        length : function() {
             return quat.length(this._array);
         },
 
         /**
          * Perform linear interpolation between a and b
          */
-        lerp : function(a, b, t){
+        lerp : function(a, b, t) {
             quat.lerp(this._array, a._array, b._array, t);
             this._dirty = true;
             return this;
         },
 
-        mul : function(b){
+        mul : function(b) {
             quat.mul(this._array, this._array, b._array);
             this._dirty = true;
             return this;
         },
 
-        multiply : function(b){
+        multiply : function(b) {
             quat.multiply(this._array, this._array, b._array);
             this._dirty = true;
             return this;
         },
 
-        normalize : function(){
+        normalize : function() {
             quat.normalize(this._array, this._array);
             this._dirty = true;
             return this;
         },
 
-        rotateX : function(rad){
+        rotateX : function(rad) {
             quat.rotateX(this._array, this._array, rad); 
             this._dirty = true;
             return this;
         },
 
-        rotateY : function(rad){
+        rotateY : function(rad) {
             quat.rotateY(this._array, this._array, rad);
             this._dirty = true;
             return this;
         },
 
-        rotateZ : function(rad){
+        rotateZ : function(rad) {
             quat.rotateZ(this._array, this._array, rad);
             this._dirty = true;
             return this;
         },
 
-        setAxisAngle : function(axis /*Vector3*/, rad){
+        setAxisAngle : function(axis /*Vector3*/, rad) {
             quat.setAxisAngle(this._array, axis._array, rad);
             this._dirty = true;
             return this;
         },
 
-        slerp : function(a, b, t){
+        slerp : function(a, b, t) {
             quat.slerp(this._array, a._array, b._array, t);
             this._dirty = true;
             return this;
         },
 
-        sqrLen : function(){
+        sqrLen : function() {
             return quat.sqrLen(this._array);
         },
 
-        squaredLength : function(){
+        squaredLength : function() {
             return quat.squaredLength(this._array);
         },
         /**
          * Set quaternion from euler angle
          */
-        setFromEuler : function(v){
+        setFromEuler : function(v) {
             
         },
 
-        toString : function(){
+        toString : function() {
             return "[" + Array.prototype.join.call(this._array, ",") + "]";
         }
     }
 
     return Quaternion;
 } );
-define('core/matrix4',['require','glmatrix','./vector3'], function(require){
+define('core/matrix4',['require','glmatrix','./vector3'],function(require) {
 
     var glMatrix = require("glmatrix");
     var Vector3 = require("./vector3");
@@ -11918,19 +13076,19 @@ define('core/matrix4',['require','glmatrix','./vector3'], function(require){
     var mat3 = glMatrix.mat3;
     var quat = glMatrix.quat;
 
-    function makeProperty(n){
+    function makeProperty(n) {
         return {
             configurable : false,
-            set : function(value){
+            set : function(value) {
                 this._array[n] = value;
                 this._dirty = true;
             },
-            get : function(){
+            get : function() {
                 return this._array[n];
             }
         }
     }
-    var Matrix4 = function(){
+    var Matrix4 = function() {
 
         var axisX = new Vector3(),
             axisY = new Vector3(),
@@ -11958,14 +13116,14 @@ define('core/matrix4',['require','glmatrix','./vector3'], function(require){
             // Forward axis of local matrix, i.e. z axis
             forward : {
                 configurable : false,
-                get : function(){
+                get : function() {
                     var el = this._array;
                     axisZ.set(el[8], el[9], el[10]);
                     return axisZ;
                 },
                 // TODO Here has a problem
                 // If only set an item of vector will not work
-                set : function(v){
+                set : function(v) {
                     var el = this._array,
                         v = v._array;
                     el[8] = v[8];
@@ -11978,12 +13136,12 @@ define('core/matrix4',['require','glmatrix','./vector3'], function(require){
             up : {
                 configurable : false,
                 enumerable : true,
-                get : function(){
+                get : function() {
                     var el = this._array;
                     axisY.set(el[4], el[5], el[6]);
                     return axisY;
                 },
-                set : function(v){
+                set : function(v) {
                     var el = this._array,
                         v = v._array;
                     el[4] = v[4];
@@ -11995,12 +13153,12 @@ define('core/matrix4',['require','glmatrix','./vector3'], function(require){
             // Right axis of local matrix, i.e. x axis
             right : {
                 configurable : false,
-                get : function(){
+                get : function() {
                     var el = this._array;
                     axisX.set(el[0], el[1], el[2]);
                     return axisX;
                 },
-                set : function(v){
+                set : function(v) {
                     var el = this._array,
                         v = v._array;
                     el[0] = v[0];
@@ -12021,106 +13179,102 @@ define('core/matrix4',['require','glmatrix','./vector3'], function(require){
 
         constructor : Matrix4,
 
-        adjoint : function(){
+        adjoint : function() {
             mat4.adjoint(this._array, this._array);
             return this;
         },
-        clone : function(){
+        clone : function() {
             return (new Matrix4()).copy(this);
         },
-        copy : function(b){
+        copy : function(b) {
             mat4.copy(this._array, b._array);
             return this;
         },
-        determinant : function(){
+        determinant : function() {
             return mat4.determinant(this._array);
         },
-        fromQuat : function(q){
+        fromQuat : function(q) {
             mat4.fromQuat(this._array, q._array);
             return this;
         },
-        fromRotationTranslation : function(q, v){
+        fromRotationTranslation : function(q, v) {
             mat4.fromRotationTranslation(this._array, q._array, v._array);
             return this;
         },
-        frustum : function(left, right, bottom, top, near, far){
+        frustum : function(left, right, bottom, top, near, far) {
             mat4.frustum(this._array, left, right, bottom, top, near, far);
             return this;
         },
-        identity : function(){
+        identity : function() {
             mat4.identity(this._array);
             return this;
         },
-        invert : function(){
+        invert : function() {
             mat4.invert(this._array, this._array);
             return this;
         },
-        lookAt : function(eye, center, up){
+        lookAt : function(eye, center, up) {
             mat4.lookAt(this._array, eye._array, center._array, up._array);
             return this;
         },
-        mul : function(b){
+        mul : function(b) {
             mat4.mul(this._array, this._array, b._array);
             return this;
         },
-        mulLeft : function(b){
+        mulLeft : function(b) {
             mat4.mul(this._array, b._array, this._array);
             return this;
         },
-        multiply : function(b){
+        multiply : function(b) {
             mat4.multiply(this._array, this._array, b._array);
             return this;
         },
         // Apply left multiply
-        multiplyLeft : function(b){
+        multiplyLeft : function(b) {
             mat4.multiply(this._array, b._array, this._array);
             return this;
         },
-        ortho : function(left, right, bottom, top, near, far){
+        ortho : function(left, right, bottom, top, near, far) {
             mat4.ortho(this._array, left, right, bottom, top, near, far);
             return this;
         },
-        perspective : function(fovy, aspect, near, far){
+        perspective : function(fovy, aspect, near, far) {
             mat4.perspective(this._array, fovy, aspect, near, far);
             return this;
         },
-        rotate : function(rad, axis /*Vector3*/){
+        rotate : function(rad, axis /*Vector3*/) {
             mat4.rotate(this._array, this._array, rad, axis._array);
             return this;
         },
-        rotateX : function(rad){
+        rotateX : function(rad) {
             mat4.rotateX(this._array, this._array, rad);
             return this;
         },
-        rotateY : function(rad){
+        rotateY : function(rad) {
             mat4.rotateY(this._array, this._array, rad);
             return this;
         },
-        rotateZ : function(rad){
+        rotateZ : function(rad) {
             mat4.rotateZ(this._array, this._array, rad);
             return this;
         },
-        scale : function(v){
+        scale : function(v) {
             mat4.scale(this._array, this._array, v._array);
             return this;
         },
-        translate : function(v){
+        translate : function(v) {
             mat4.translate(this._array, this._array, v._array);
             return this;
         },
-        transpose : function(){
+        transpose : function() {
             mat4.transpose(this._array, this._array);
             return this;
-        },
-
-        rotateAround : function(point, axis, angle){
-            console.warn("TODO");
         },
 
         // Static method
         // Decompose a matrix to SRT
         // http://msdn.microsoft.com/en-us/library/microsoft.xna.framework.matrix.decompose.aspx
-        decomposeMatrix : (function(){
+        decomposeMatrix : (function() {
 
             var x = vec3.create();
             var y = vec3.create();
@@ -12128,7 +13282,7 @@ define('core/matrix4',['require','glmatrix','./vector3'], function(require){
 
             var m3 = mat3.create();
             
-            return function( scale, rotation, position ){
+            return function( scale, rotation, position ) {
 
                 var el = this._array;
                 vec3.set(x, el[0], el[1], el[2]);
@@ -12162,32 +13316,32 @@ define('core/matrix4',['require','glmatrix','./vector3'], function(require){
             }
         })(),
 
-        toString : function(){
+        toString : function() {
             return "[" + Array.prototype.join.call(this._array, ",") + "]";
         }
     }
 
     return Matrix4;
 });
-define('core/matrix3',['require','glmatrix'], function(require){
+define('core/matrix3',['require','glmatrix'],function(require) {
 
     var glMatrix = require("glmatrix");
     var mat3 = glMatrix.mat3;
 
-    function makeProperty(n){
+    function makeProperty(n) {
         return {
             configurable : false,
-            set : function(value){
+            set : function(value) {
                 this._array[n] = value;
                 this._dirty = true;
             },
-            get : function(){
+            get : function() {
                 return this._array[n];
             }
         }
     }
 
-    var Matrix3 = function(){
+    var Matrix3 = function() {
 
         return Object.create(Matrix3Proto, {
 
@@ -12213,86 +13367,73 @@ define('core/matrix3',['require','glmatrix'], function(require){
 
         constructor : Matrix3,
 
-        adjoint : function(){
+        adjoint : function() {
             mat3.adjoint(this._array, this._array);
             return this;
         },
-        clone : function(){
+        clone : function() {
             return (new Matrix3()).copy(this);
         },
-        copy : function(b){
+        copy : function(b) {
             mat3.copy(this._array, b._array);
             return this;
         },
-        determinant : function(){
+        determinant : function() {
             return mat3.determinant(this._array);
         },
-        fromMat2d : function(a){
+        fromMat2d : function(a) {
             return mat3.fromMat2d(this._array, a._array);
         },
-        fromMat4 : function(a){
+        fromMat4 : function(a) {
             return mat3.fromMat4(this._array, a._array);
         },
-        fromQuat : function(q){
+        fromQuat : function(q) {
             mat3.fromQuat(this._array, q._array);
             return this;
         },
-        identity : function(){
+        identity : function() {
             mat3.identity(this._array);
             return this;
         },
-        invert : function(){
+        invert : function() {
             mat3.invert(this._array, this._array);
             return this;
         },
-        mul : function(b){
+        mul : function(b) {
             mat3.mul(this._array, this._array, b._array);
             return this;
         },
-        mulLeft : function(b){
+        mulLeft : function(b) {
             mat3.mul(this._array, b._array, this._array);
             return this;
         },
-        multiply : function(b){
+        multiply : function(b) {
             mat3.multiply(this._array, this._array, b._array);
             return this;
         },
-        multiplyLeft : function(b){
+        multiplyLeft : function(b) {
             mat3.multiply(this._array, b._array, this._array);
             return this;
         },
         /**
          * Calculates a 3x3 normal matrix (transpose inverse) from the 4x4 matrix
          */
-        normalFromMat4 : function(a){
+        normalFromMat4 : function(a) {
             mat3.normalFromMat4(this._array, a._array);
-            return a;
+            return this;
         },
-        transpose : function(){
+        transpose : function() {
             mat3.transpose(this._array, this._array);
             return this;
         },
-        toString : function(){
+        toString : function() {
             return "[" + Array.prototype.join.call(this._array, ",") + "]";
         }
     }
 
     return Matrix3;
 });
-define('util/util',['require'], function(require){
-
-	return {
-
-		genGUID : (function(){
-			var guid = 0;
-			
-			return function(){
-				return ++guid;
-			}
-		})()
-	}
-} );
-define('3d/node',['require','core/base','core/vector3','core/quaternion','core/matrix4','core/matrix3','util/util','_'], function(require){
+define('3d/node',['require','core/base','core/vector3','core/quaternion','core/matrix4','core/matrix3','util/util','_'],function(require) {
     
     var Base = require("core/base");
     var Vector3 = require("core/vector3");
@@ -12302,7 +13443,7 @@ define('3d/node',['require','core/base','core/vector3','core/quaternion','core/m
     var util = require("util/util");
     var _ = require("_");
 
-    var Node = Base.derive( function(){
+    var Node = Base.derive(function() {
 
         var id = util.genGUID();
 
@@ -12335,37 +13476,37 @@ define('3d/node',['require','core/base','core/vector3','core/quaternion','core/m
         }
     }, {
 
-        add : function( node ){
-            if( this.children.indexOf( node ) >= 0 ){
+        add : function(node) {
+            if(this.children.indexOf(node) >= 0) {
                 return;
             }
-            this.children.push( node );
+            this.children.push(node);
             node.parent = this;
         },
 
-        remove : function( node ){
-            _.without( this.children, node );
+        remove : function(node) {
+            _.without(this.children, node);
             node.parent = null;
         },
 
-        traverse : function( callback ){
-            var stopTraverse = callback && callback( this );
-            if( ! stopTraverse ){
+        traverse : function(callback) {
+            var stopTraverse = callback && callback(this);
+            if(! stopTraverse) {
                 var children = this.children;
-                for( var i = 0, len = children.length; i < len; i++){
-                    children[i].traverse( callback );
+                for(var i = 0, len = children.length; i < len; i++) {
+                    children[i].traverse(callback);
                 }
             }
         },
 
-        updateMatrix : function(){
+        updateMatrix : function() {
             // TODO 
             // use defineSetter to set dirty when the position, rotation, scale is changed ??
-            if( ! this.position._dirty &&
-                ! this.scale._dirty){
-                if( this.useEuler && ! this.eulerAngle._dirty){
+            if(! this.position._dirty &&
+                ! this.scale._dirty) {
+                if(this.useEuler && ! this.eulerAngle._dirty) {
                     return;
-                }else if( ! this.rotation._dirty){
+                }else if(! this.rotation._dirty) {
                     return;
                 }
             }
@@ -12374,11 +13515,11 @@ define('3d/node',['require','core/base','core/vector3','core/quaternion','core/m
 
             m.identity();
 
-            if( this.useEuler ){
+            if(this.useEuler) {
                 this.rotation.identity();
-                this.rotation.rotateX( this.eulerAngle.x );
-                this.rotation.rotateY( this.eulerAngle.y );
-                this.rotation.rotateZ( this.eulerAngle.z );
+                this.rotation.rotateX(this.eulerAngle.x);
+                this.rotation.rotateY(this.eulerAngle.y);
+                this.rotation.rotateZ(this.eulerAngle.z);
             }
             // Transform order, scale->rotation->position
             m.fromRotationTranslation(this.rotation, this.position);
@@ -12391,9 +13532,9 @@ define('3d/node',['require','core/base','core/vector3','core/quaternion','core/m
             this.eulerAngle._dirty = false;
         },
 
-        decomposeMatrix : function(){
-            this.matrix.decomposeMatrix( this.scale, this.rotation, this.position );
-            if( ! this.useEuler){
+        decomposeMatrix : function() {
+            this.matrix.decomposeMatrix(this.scale, this.rotation, this.position);
+            if(! this.useEuler) {
                 this.eulerAngle.setEulerFromQuaternion(this.rotation);
             }
             
@@ -12403,10 +13544,10 @@ define('3d/node',['require','core/base','core/vector3','core/quaternion','core/m
             this.eulerAngle._dirty = false;
         },
 
-        updateWorldMatrix : function(  ){
+        updateWorldMatrix : function() {
 
             this.updateMatrix();
-            if( this.parent ){
+            if(this.parent) {
                 this.worldMatrix.copy(this.parent.worldMatrix).multiply(this.matrix);
             }else{
                 this.worldMatrix.copy(this.matrix);
@@ -12414,50 +13555,50 @@ define('3d/node',['require','core/base','core/vector3','core/quaternion','core/m
         },
         
         // Update the node status in each frame
-        update : function( _gl, silent ){
+        update : function(_gl, silent) {
 
-            if( ! silent){
-                this.trigger( 'beforeupdate', _gl );
+            if(! silent) {
+                this.trigger('beforeupdate', _gl);
             }
             this.updateWorldMatrix();
-            if( ! silent){
-                this.trigger( 'afterupdate', _gl);
+            if(! silent) {
+                this.trigger('afterupdate', _gl);
             }
             
-            for(var i = 0; i < this.children.length; i++){
+            for(var i = 0; i < this.children.length; i++) {
                 var child = this.children[i];
                 // Skip the hidden nodes
-                if( child.visible ){
-                    child.update( _gl );
+                if(child.visible) {
+                    child.update(_gl);
                 }
             }
         },
 
-        getWorldPosition : function(){
+        getWorldPosition : function() {
             
             var m = this.worldMatrix._array;
 
             return new Vector3(m[12], m[13], m[14]);
         },
 
-        translate : function(v){
+        translate : function(v) {
             this.updateMatrix();
             this.translate(v);
             this.decomposeMatrix();
         },
 
-        rotate : function(angle, axis){
+        rotate : function(angle, axis) {
             this.updateMatrix();
             this.matrix.rotate(angle, axis);
             this.decomposeMatrix();
         },
         // http://docs.unity3d.com/Documentation/ScriptReference/Transform.RotateAround.html
-        rotateAround : (function(){
+        rotateAround : (function() {
             
             var v = new Vector3();
             var RTMatrix = new Matrix4();
 
-            return function(point, axis, angle){
+            return function(point, axis, angle) {
 
                 v.copy(this.position).subtract(point);
 
@@ -12467,11 +13608,11 @@ define('3d/node',['require','core/base','core/vector3','core/quaternion','core/m
                 this.matrix.rotate(angle, axis);
 
                 // Transform self
-                if( this.useEuler ){
+                if(this.useEuler) {
                     this.rotation.identity();
-                    this.rotation.rotateX( this.eulerAngle.x );
-                    this.rotation.rotateY( this.eulerAngle.y );
-                    this.rotation.rotateZ( this.eulerAngle.z );
+                    this.rotation.rotateX(this.eulerAngle.x);
+                    this.rotation.rotateY(this.eulerAngle.y);
+                    this.rotation.rotateZ(this.eulerAngle.z);
                 }
                 RTMatrix.fromRotationTranslation(this.rotation, v);
                 this.matrix.multiply(RTMatrix);
@@ -12481,11 +13622,11 @@ define('3d/node',['require','core/base','core/vector3','core/quaternion','core/m
             }
         })(),
 
-        lookAt : (function(){
+        lookAt : (function() {
             var m = new Matrix4();
             var scaleVector = new Vector3();
-            return function( target, up ){
-                m.lookAt(this.position, target, up || this.matrix.up ).invert();
+            return function(target, up) {
+                m.lookAt(this.position, target, up || this.matrix.up).invert();
 
                 m.decomposeMatrix(scaleVector, this.rotation, this.position);
 
@@ -12497,14 +13638,14 @@ define('3d/node',['require','core/base','core/vector3','core/quaternion','core/m
 
     return Node;
 });
-define('3d/bone',['require','./node','core/quaternion','core/vector3','core/matrix4'],function(require){
+define('3d/bone',['require','./node','core/quaternion','core/vector3','core/matrix4'],function(require) {
 
     var Node = require("./node");
     var Quaternion = require("core/quaternion");
     var Vector3 = require("core/vector3");
     var Matrix4 = require("core/matrix4");
     
-    var Bone = Node.derive(function(){
+    var Bone = Node.derive(function() {
         return {
             // Index of bone
             index : -1,
@@ -12520,7 +13661,7 @@ define('3d/bone',['require','./node','core/quaternion','core/vector3','core/matr
         }
     }, {
 
-        setPose : function(time){
+        setPose : function(time) {
 
             this._lerpField(time, 'position');
             this._lerpField(time, 'rotation');
@@ -12528,30 +13669,30 @@ define('3d/bone',['require','./node','core/quaternion','core/vector3','core/matr
 
         },
 
-        _lerpField : function(time, fieldName){
+        _lerpField : function(time, fieldName) {
             var poses = this.poses,
                 len = poses.length,
                 start,
                 end;
-            for(var i = 0; i < len; i++){
-                if(poses[i].time <= time && poses[i][fieldName]){
+            for (var i = 0; i < len; i++) {
+                if (poses[i].time <= time && poses[i][fieldName]) {
                     start = poses[i];
                     break;
                 }
             }
             i++;
-            for(; i < len; i++){
-                if(poses[i].time >= time && poses[i][fieldName]){
+            for (; i < len; i++) {
+                if (poses[i].time >= time && poses[i][fieldName]) {
                     end = poses[i];
                     break;
                 }
             }
-            if(start && end){
+            if (start && end) {
                 var percent = (time-start.time) / (end.time-start.time);
                 percent = Math.max(Math.min(percent, 1), 0);
-                if( fieldName === "rotation"){
+                if ( fieldName === "rotation") {
                     this[fieldName].slerp(start[fieldName], end[fieldName], percent);
-                }else{
+                } else {
                     this[fieldName].lerp(start[fieldName], end[fieldName], percent);
                 }
             }
@@ -12560,7 +13701,7 @@ define('3d/bone',['require','./node','core/quaternion','core/vector3','core/matr
 
     return Bone;
 });
-define('3d/camera',['require','./node','core/matrix4'], function(require){
+define('3d/camera',['require','./node','core/matrix4'],function(require) {
 
     var Node = require("./node");
     var Matrix4 = require("core/matrix4");
@@ -12569,25 +13710,25 @@ define('3d/camera',['require','./node','core/matrix4'], function(require){
         return {
             projectionMatrix : new Matrix4(),
         }
-    }, function(){
+    }, function() {
         this.update();
     }, {
         
-        update : function( _gl ) {
+        update : function(_gl) {
 
-            Node.prototype.update.call( this, _gl );
+            Node.prototype.update.call(this, _gl);
             
             this.updateProjectionMatrix();
         }
     });
 
     return Camera;
-} );
-define('3d/camera/orthographic',['require','../camera'], function(require){
+});
+define('3d/camera/orthographic',['require','../camera'],function(require) {
 
     var Camera = require('../camera');
 
-    var Orthographic = Camera.derive( function(){
+    var Orthographic = Camera.derive(function() {
         return {
             left : -1,
             right : 1,
@@ -12598,19 +13739,19 @@ define('3d/camera/orthographic',['require','../camera'], function(require){
         }
     }, {
         
-        updateProjectionMatrix : function(){
+        updateProjectionMatrix : function() {
             this.projectionMatrix.ortho(this.left, this.right, this.bottom, this.top, this.near, this.far);
         }
     });
 
     return Orthographic;
 } );
-define('3d/camera/perspective',['require','../camera'], function(require){
+define('3d/camera/perspective',['require','../camera'],function(require) {
 
     var Camera = require('../camera');
 
 
-    var Perspective = Camera.derive( function(){
+    var Perspective = Camera.derive(function() {
         return {
 
             fov : 50,
@@ -12623,7 +13764,7 @@ define('3d/camera/perspective',['require','../camera'], function(require){
         }
     }, {
         
-        updateProjectionMatrix : function(){
+        updateProjectionMatrix : function() {
             var rad = this.fov / 180 * Math.PI;
             this.projectionMatrix.perspective(rad, this.aspect, this.near, this.far);
         }
@@ -12631,47 +13772,47 @@ define('3d/camera/perspective',['require','../camera'], function(require){
 
     return Perspective;
 } );
-define('3d/compositor/graph/graph',['require','core/base','_'], function( require ){
+define('3d/compositor/graph/graph',['require','core/base','_'], function( require ) {
 
     var Base = require("core/base");
     var _ = require("_");
 
-    var Graph = Base.derive( function(){
+    var Graph = Base.derive( function() {
         return {
             nodes : []
         }
     }, {
 
         
-        add : function( node ){
+        add : function(node) {
 
-            this.nodes.push( node );
+            this.nodes.push(node);
 
             this.dirty("graph");
         },
 
-        remove : function( node ){
-            _.without( this.nodes, node );
+        remove : function(node) {
+            _.without(this.nodes, node);
             this.dirty("graph");
         },
 
-        update : function(){
-            for(var i = 0; i < this.nodes.length; i++){
+        update : function() {
+            for (var i = 0; i < this.nodes.length; i++) {
                 this.nodes[i].clear();
             }
             // Traverse all the nodes and build the graph
-            for(var i = 0; i < this.nodes.length; i++){
+            for (var i = 0; i < this.nodes.length; i++) {
                 var node = this.nodes[i];
 
-                if( ! node.inputs){
+                if (!node.inputs) {
                     continue;
                 }
-                for(var inputName in node.inputs){
-                    var fromPinInfo = node.inputs[ inputName ];
+                for (var inputName in node.inputs) {
+                    var fromPinInfo = node.inputs[inputName];
 
-                    var fromPin = this.findPin( fromPinInfo );
-                    if( fromPin ){
-                        node.link( inputName, fromPin.node, fromPin.pin );
+                    var fromPin = this.findPin(fromPinInfo);
+                    if (fromPin) {
+                        node.link(inputName, fromPin.node, fromPin.pin);
                     }else{
                         console.warn("Pin of "+fromPinInfo.node+"."+fromPinInfo.pin+" not exist");
                     }
@@ -12680,20 +13821,20 @@ define('3d/compositor/graph/graph',['require','core/base','_'], function( requir
 
         },
 
-        findPin : function( info ){
+        findPin : function( info ) {
             var node;
-            if( typeof(info.node) === 'string'){
-                for( var i = 0; i < this.nodes.length; i++){
+            if (typeof(info.node) === 'string') {
+                for (var i = 0; i < this.nodes.length; i++) {
                     var tmp = this.nodes[i];
-                    if( tmp.name === info.node ){
+                    if (tmp.name === info.node) {
                         node = tmp;
                     }
                 }
             }else{
                 node = info.node;
             }
-            if( node ){
-                if( node.outputs[info.pin] ){
+            if (node) {
+                if (node.outputs[info.pin]) {
                     return {
                         node : node,
                         pin : info.pin
@@ -12702,7 +13843,7 @@ define('3d/compositor/graph/graph',['require','core/base','_'], function( requir
             }
         },
 
-        fromJSON : function( json ){
+        fromJSON : function( json ) {
 
         }
     })
@@ -12713,17 +13854,17 @@ define('3d/compositor',['require','./compositor/graph/graph'],function(require){
 
     var Graph = require("./compositor/graph/graph");
 
-    var Compositor = Graph.derive(function(){
+    var Compositor = Graph.derive(function() {
         return {
         }
     }, {
-        render : function( renderer ){
-            if( this.isDirty("graph") ){
+        render : function(renderer) {
+            if(this.isDirty("graph")) {
                 this.update();
                 this.fresh("graph");
             }
             var finaNode;
-            for(var i = 0; i < this.nodes.length; i++){
+            for (var i = 0; i < this.nodes.length; i++) {
                 var node = this.nodes[i];
                 // Find output node
                 if( ! node.outputs){
@@ -12737,11 +13878,11 @@ define('3d/compositor',['require','./compositor/graph/graph'],function(require){
 
     return Compositor;
 });
-define('3d/scene',['require','./node'], function(require){
+define('3d/scene',['require','./node'],function(require){
 
     var Node = require('./node');
 
-    var Scene = Node.derive( function(){
+    var Scene = Node.derive(function(){
         return {
 
             // Global material of scene
@@ -12761,13 +13902,13 @@ define('3d/scene',['require','./node'], function(require){
     });
 
     return Scene;
-} );
+});
 /**
  *
  * PENDING: use perfermance hint and remove the array after the data is transfered?
  * static draw & dynamic draw?
  */
-define('3d/geometry',['require','core/base','util/util','glmatrix','_'], function(require) {
+define('3d/geometry',['require','core/base','util/util','glmatrix','_'],function(require) {
 
     var Base = require("core/base");
     var util = require("util/util");
@@ -12780,7 +13921,7 @@ define('3d/geometry',['require','core/base','util/util','glmatrix','_'], functio
 
     var arrSlice = Array.prototype.slice;
 
-    var Geometry = Base.derive( function() {
+    var Geometry = Base.derive(function() {
 
         return {
 
@@ -12878,16 +14019,16 @@ define('3d/geometry',['require','core/base','util/util','glmatrix','_'], functio
     }, {
 
         // Overwrite the dirty method
-        dirty : function( field ) {
-            if ( ! field ) {
+        dirty : function(field) {
+            if (! field) {
                 this.dirty("indices");
-                for(var name in this.attributes){
+                for (var name in this.attributes) {
                     this.dirty(name);
                 }
                 return;
             }
-            for ( var contextId in this.cache._caches ) {
-                this.cache._caches[ contextId ][ "dirty_"+field ] = true;
+            for (var contextId in this.cache._caches) {
+                this.cache._caches[contextId]["dirty_"+field] = true;
             }
 
             this._enabledAttributes = null;
@@ -12898,20 +14039,20 @@ define('3d/geometry',['require','core/base','util/util','glmatrix','_'], functio
             return this._verticesNumber;
         },
 
-        _getEnabledAttributes : function(){
+        _getEnabledAttributes : function() {
             // Cache
-            if( this._enabledAttributes){
+            if (this._enabledAttributes) {
                 return this._enabledAttributes;
             }
 
             var result = {};
             var verticesNumber = this.getVerticesNumber();
 
-            for(var name in this.attributes){
+            for (var name in this.attributes) {
                 var attrib = this.attributes[name];
-                if( attrib.value &&
-                    attrib.value.length ){
-                    if( attrib.value.length === verticesNumber ){
+                if (attrib.value &&
+                    attrib.value.length) {
+                    if (attrib.value.length === verticesNumber) {
                         result[name] = attrib;
                     }
                 }
@@ -12922,51 +14063,51 @@ define('3d/geometry',['require','core/base','util/util','glmatrix','_'], functio
             return result;
         },
 
-        _getDirtyAttributes : function( ){
+        _getDirtyAttributes : function() {
 
             var result = {};
             var attributes = this._getEnabledAttributes();
             
             var noDirtyAttributes = true;
-            for(var name in attributes ){
+            for (var name in attributes) {
                 var attrib = attributes[name];
-                if( this.cache.get("dirty_"+name) ||
-                    this.cache.miss("dirty_"+name) ){
+                if (this.cache.get("dirty_"+name) ||
+                    this.cache.miss("dirty_"+name)) {
                     result[name] = attributes[name];
                     noDirtyAttributes = false;
                 }
             }
-            if( ! noDirtyAttributes ){
+            if (! noDirtyAttributes) {
                 return result;
             }
         },
 
-        getChunkNumber : function(){
+        getChunkNumber : function() {
             return this._arrayChunks.length;
         },
 
-        getBufferChunks : function( _gl ) {
+        getBufferChunks : function(_gl) {
 
-            this.cache.use(_gl.__GUID__ );
+            this.cache.use(_gl.__GUID__);
 
             var isDirty = this.cache.getContext();
             var dirtyAttributes = this._getDirtyAttributes();
 
             var isFacesDirty = this.cache.get("dirty_faces") || this.cache.miss("dirty_faces");
 
-            if( dirtyAttributes ){
-                this._updateAttributesAndIndicesArrays( dirtyAttributes, isFacesDirty );
-                this._updateBuffer( _gl, dirtyAttributes, isFacesDirty );
+            if (dirtyAttributes) {
+                this._updateAttributesAndIndicesArrays(dirtyAttributes, isFacesDirty);
+                this._updateBuffer(_gl, dirtyAttributes, isFacesDirty);
 
-                for (var name in dirtyAttributes ) {
-                    isDirty[ "dirty_"+name ] = false ;
+                for (var name in dirtyAttributes) {
+                    isDirty["dirty_"+name] = false ;
                 }
                 isDirty['dirty_faces'] = false;
             }
             return this.cache.get("chunks");
         },
 
-        _updateAttributesAndIndicesArrays : function( attributes, isFacesDirty ){
+        _updateAttributesAndIndicesArrays : function(attributes, isFacesDirty) {
 
             var self = this,
                 cursors = {},
@@ -12976,9 +14117,9 @@ define('3d/geometry',['require','core/base','util/util','glmatrix','_'], functio
 
 
             var ArrayConstructors = {};
-            for(var name in attributes){
+            for (var name in attributes) {
                 // Type can be byte, ubyte, short, ushort, float
-                switch( type ) {
+                switch(type) {
                     case "byte":
                         ArrayConstructors[name] = Int8Array;
                         break;
@@ -12998,8 +14139,8 @@ define('3d/geometry',['require','core/base','util/util','glmatrix','_'], functio
                 cursors[name] = 0;
             }
 
-            var newChunk = function(chunkIdx){
-                if( self._arrayChunks[chunkIdx] ){
+            var newChunk = function(chunkIdx) {
+                if (self._arrayChunks[chunkIdx]) {
                     return self._arrayChunks[chunkIdx];
                 }
                 var chunk = {
@@ -13007,14 +14148,14 @@ define('3d/geometry',['require','core/base','util/util','glmatrix','_'], functio
                     indicesArray : null
                 };
 
-                for(var name in attributes){
+                for (var name in attributes) {
                     chunk.attributeArrays[name] = null;
                 }
 
-                for(var name in cursors){
+                for (var name in cursors) {
                     cursors[name] = 0;
                 }
-                for(var i = 0; i < verticesNumber; i++){
+                for (var i = 0; i < verticesNumber; i++) {
                     verticesReorganizedMap[i] = -1;
                 }
                 
@@ -13026,7 +14167,7 @@ define('3d/geometry',['require','core/base','util/util','glmatrix','_'], functio
             // Split large geometry into chunks because index buffer
             // only support uint16 which means each draw call can only
              // have at most 65535 vertex data
-            if( verticesNumber > this.chunkSize && this.useFaces ){
+            if (verticesNumber > this.chunkSize && this.useFaces) {
                 var vertexCursor = 0,
                     chunkIdx = 0,
                     currentChunk;
@@ -13034,13 +14175,13 @@ define('3d/geometry',['require','core/base','util/util','glmatrix','_'], functio
                 var chunkFaceStart = [0];
                 var vertexUseCount = [];
 
-                for(i = 0; i < verticesNumber; i++){
+                for (i = 0; i < verticesNumber; i++) {
                     vertexUseCount[i] = -1;
                     verticesReorganizedMap[i] = -1;
                 }
-                if( isFacesDirty ){
-                    if( this._reorganizedFaces.length !== this.faces.length){
-                        for( i = 0; i < this.faces.length; i++){
+                if (isFacesDirty) {
+                    if (this._reorganizedFaces.length !== this.faces.length) {
+                        for (i = 0; i < this.faces.length; i++) {
                             this._reorganizedFaces[i] = [0, 0, 0];
                         }
                     }
@@ -13048,12 +14189,12 @@ define('3d/geometry',['require','core/base','util/util','glmatrix','_'], functio
 
                 currentChunk = newChunk(chunkIdx);
 
-                for(var i = 0; i < this.faces.length; i++){
+                for (var i = 0; i < this.faces.length; i++) {
                     var face = this.faces[i];
                     var reorganizedFace = this._reorganizedFaces[i];
                     var i1 = face[0], i2 = face[1], i3 = face[2];
                     // newChunk
-                    if( vertexCursor+3 > this.chunkSize){
+                    if (vertexCursor+3 > this.chunkSize) {
                         chunkIdx++;
                         chunkFaceStart[chunkIdx] = i;
                         vertexCursor = 0;
@@ -13063,130 +14204,130 @@ define('3d/geometry',['require','core/base','util/util','glmatrix','_'], functio
                     var newI2 = verticesReorganizedMap[i2] === -1;
                     var newI3 = verticesReorganizedMap[i3] === -1;
 
-                    for(var k = 0; k < attribNameList.length; k++){
+                    for (var k = 0; k < attribNameList.length; k++) {
                         var name = attribNameList[k],
                             attribArray = currentChunk.attributeArrays[name],
                             values = attributes[name].value,
                             size = attributes[name].size;
-                        if( ! attribArray){
+                        if (! attribArray) {
                             // Here use array to put data temporary because i can't predict
                             // the size of chunk precisely.
                             attribArray = currentChunk.attributeArrays[name] = [];
                         }
-                        if( size === 1){
-                            if( newI1 ){
-                                attribArray[ cursors[name]++ ] = values[i1];
+                        if (size === 1) {
+                            if (newI1) {
+                                attribArray[cursors[name]++] = values[i1];
                             }
-                            if( newI2 ){
-                                attribArray[ cursors[name]++ ] = values[i2];
+                            if (newI2) {
+                                attribArray[cursors[name]++] = values[i2];
                             }
-                            if( newI3 ){
-                                attribArray[ cursors[name]++ ] = values[i3];
+                            if (newI3) {
+                                attribArray[cursors[name]++] = values[i3];
                             }
                         }
-                        else{
-                            if( newI1 ){
-                                for(var j = 0; j < size; j++){
-                                    attribArray[ cursors[name]++ ] = values[i1][j];
+                        else {
+                            if (newI1) {
+                                for (var j = 0; j < size; j++) {
+                                    attribArray[cursors[name]++] = values[i1][j];
                                 }
                             }
-                            if( newI2 ){
-                                for(var j = 0; j < size; j++){
-                                    attribArray[ cursors[name]++ ] = values[i2][j];
+                            if (newI2) {
+                                for (var j = 0; j < size; j++) {
+                                    attribArray[cursors[name]++] = values[i2][j];
                                 }
                             }
-                            if( newI3 ){
-                                for(var j = 0; j < size; j++){
-                                    attribArray[ cursors[name]++ ] = values[i3][j];
+                            if (newI3) {
+                                for (var j = 0; j < size; j++) {
+                                    attribArray[cursors[name]++] = values[i3][j];
                                 }
                             }
                         }
                     }
-                    if( newI1 ){
+                    if (newI1) {
                         verticesReorganizedMap[i1] = vertexCursor;
                         reorganizedFace[0] = vertexCursor;
                         vertexCursor++;
-                    }else{
+                    } else {
                         reorganizedFace[0] = verticesReorganizedMap[i1];
                     }
-                    if( newI2 ){
+                    if (newI2) {
                         verticesReorganizedMap[i2] = vertexCursor;
                         reorganizedFace[1] = vertexCursor;
                         vertexCursor++;
-                    }else{
+                    } else {
                         reorganizedFace[1] = verticesReorganizedMap[i2];
                     }
-                    if( newI3 ){
+                    if (newI3) {
                         verticesReorganizedMap[i3] = vertexCursor;
                         reorganizedFace[2] = vertexCursor;
                         vertexCursor++
-                    }else{
+                    } else {
                         reorganizedFace[2] = verticesReorganizedMap[i3];
                     }
                 }
                 //Create typedArray from existed array
-                for(var c = 0; c < this._arrayChunks.length; c++){
+                for (var c = 0; c < this._arrayChunks.length; c++) {
                     var chunk = this._arrayChunks[c];
-                    for(var name in chunk.attributeArrays){
+                    for (var name in chunk.attributeArrays) {
                         var array = chunk.attributeArrays[name];
-                        if( array instanceof Array){
+                        if (array instanceof Array) {
                             chunk.attributeArrays[name] = new ArrayConstructors[name](array);
                         }
                     }
                 }
 
-                if( isFacesDirty ){
+                if (isFacesDirty) {
                     var chunkStart, chunkEnd, cursor, chunk;
-                    for(var c = 0; c < this._arrayChunks.length; c++){
+                    for (var c = 0; c < this._arrayChunks.length; c++) {
                         chunkStart = chunkFaceStart[c];
                         chunkEnd = chunkFaceStart[c+1] || this.faces.length;
                         cursor = 0;
                         chunk = this._arrayChunks[c];
                         var indicesArray = chunk.indicesArray;
-                        if( ! indicesArray){
-                            indicesArray = chunk.indicesArray = new Uint16Array( (chunkEnd-chunkStart)*3 );
+                        if (! indicesArray) {
+                            indicesArray = chunk.indicesArray = new Uint16Array((chunkEnd-chunkStart)*3);
                         }
 
-                        for(var i = chunkStart; i < chunkEnd; i++){
+                        for (var i = chunkStart; i < chunkEnd; i++) {
                             indicesArray[cursor++] = this._reorganizedFaces[i][0];
                             indicesArray[cursor++] = this._reorganizedFaces[i][1];
                             indicesArray[cursor++] = this._reorganizedFaces[i][2];
                         }
                     }
                 }
-            }else{
+            } else {
                 var chunk = newChunk(0);
                 // Use faces
-                if( this.useFaces ){
+                if (this.useFaces) {
                     var indicesArray = chunk.indicesArray;
-                    if( ! indicesArray){
+                    if (! indicesArray) {
                         indicesArray = chunk.indicesArray = new Uint16Array(this.faces.length*3);
                     }
                     var cursor = 0;
-                    for(var i = 0; i < this.faces.length; i++){
+                    for (var i = 0; i < this.faces.length; i++) {
                         indicesArray[cursor++] = this.faces[i][0];
                         indicesArray[cursor++] = this.faces[i][1];
                         indicesArray[cursor++] = this.faces[i][2];
                     }
                 }
-                for(var name in attributes){
+                for (var name in attributes) {
                     var values = attributes[name].value,
                         type = attributes[name].type,
                         size = attributes[name].size,
                         attribArray = chunk.attributeArrays[name];
                     
-                    if( ! attribArray){
+                    if (! attribArray) {
                         attribArray = chunk.attributeArrays[name] = new ArrayConstructors[name](verticesNumber*size);
                     }
 
-                    if( size === 1){
-                        for(var i = 0; i < values.length; i++){
+                    if (size === 1) {
+                        for (var i = 0; i < values.length; i++) {
                             attribArray[i] = values[i];
                         }
-                    }else{
+                    } else {
                         var cursor = 0;
-                        for(var i = 0; i < values.length; i++){
-                            for(var j = 0; j < size; j++){
+                        for (var i = 0; i < values.length; i++) {
+                            for (var j = 0; j < size; j++) {
                                 attribArray[cursor++] = values[i][j];
                             }
                         }
@@ -13196,13 +14337,13 @@ define('3d/geometry',['require','core/base','util/util','glmatrix','_'], functio
 
         },
 
-        _updateBuffer : function( _gl, dirtyAttributes, isFacesDirty ) {
+        _updateBuffer : function(_gl, dirtyAttributes, isFacesDirty) {
 
             var chunks = this.cache.get("chunks");
-            if( ! chunks){
+            if (! chunks) {
                 chunks = [];
                 // Intialize
-                for(var i = 0; i < this._arrayChunks.length; i++){
+                for (var i = 0; i < this._arrayChunks.length; i++) {
                     chunks[i] = {
                         attributeBuffers : {},
                         indicesBuffer : null
@@ -13210,9 +14351,9 @@ define('3d/geometry',['require','core/base','util/util','glmatrix','_'], functio
                 }
                 this.cache.put("chunks", chunks);
             }
-            for(var i = 0; i < chunks.length; i++){
+            for (var i = 0; i < chunks.length; i++) {
                 var chunk = chunks[i];
-                if( ! chunk){
+                if (! chunk) {
                     chunk = chunks[i] = {
                         attributeBuffers : {},
                         indicesBuffer : null
@@ -13224,7 +14365,7 @@ define('3d/geometry',['require','core/base','util/util','glmatrix','_'], functio
                     attributeArrays = arrayChunk.attributeArrays,
                     indicesArray = arrayChunk.indicesArray;
 
-                for(var name in dirtyAttributes){
+                for (var name in dirtyAttributes) {
                     var attribute = dirtyAttributes[name],
                         value = attribute.value,
                         type = attribute.type,
@@ -13233,14 +14374,14 @@ define('3d/geometry',['require','core/base','util/util','glmatrix','_'], functio
 
                     var bufferInfo = attributeBuffers[name],
                         buffer;
-                    if( bufferInfo ){
+                    if (bufferInfo) {
                         buffer = bufferInfo.buffer
-                    }else{
+                    } else {
                         buffer = _gl.createBuffer();
                     }
                     //TODO: Use BufferSubData?
-                    _gl.bindBuffer( _gl.ARRAY_BUFFER, buffer );
-                    _gl.bufferData( _gl.ARRAY_BUFFER, attributeArrays[name], _gl[ this.hint ] );
+                    _gl.bindBuffer(_gl.ARRAY_BUFFER, buffer);
+                    _gl.bufferData(_gl.ARRAY_BUFFER, attributeArrays[name], _gl[this.hint]);
 
                     attributeBuffers[name] = {
                         type : type,
@@ -13249,15 +14390,15 @@ define('3d/geometry',['require','core/base','util/util','glmatrix','_'], functio
                         semantic : semantic,
                     }
                 } 
-                if( isFacesDirty && this.useFaces ){
-                    if( ! indicesBuffer ){
+                if (isFacesDirty && this.useFaces) {
+                    if (! indicesBuffer) {
                         indicesBuffer = chunk.indicesBuffer = {
                             buffer : _gl.createBuffer(),
                             count : indicesArray.length
                         }
                     }
-                    _gl.bindBuffer( _gl.ELEMENT_ARRAY_BUFFER, indicesBuffer.buffer );
-                    _gl.bufferData( _gl.ELEMENT_ARRAY_BUFFER, indicesArray, _gl[ this.hint ] );   
+                    _gl.bindBuffer(_gl.ELEMENT_ARRAY_BUFFER, indicesBuffer.buffer);
+                    _gl.bufferData(_gl.ELEMENT_ARRAY_BUFFER, indicesArray, _gl[this.hint]);   
                 }
             }
         },
@@ -13272,15 +14413,15 @@ define('3d/geometry',['require','core/base','util/util','glmatrix','_'], functio
                 v12 = vec3.create(), v23 = vec3.create();
 
             var difference = positions.length - normals.length;
-            for(var i = 0; i < normals.length; i++){
+            for (var i = 0; i < normals.length; i++) {
                 vec3.set(normals[i], 0.0, 0.0, 0.0);
             }
-            for(var i = normals.length; i < positions.length; i++){
+            for (var i = normals.length; i < positions.length; i++) {
                 //Use array instead of Float32Array
                 normals[i] = [0.0, 0.0, 0.0];
             }
 
-            for(var f = 0; f < this.faces.length; f++){
+            for (var f = 0; f < this.faces.length; f++) {
 
                 var face = faces[f],
                     i1 = face[0],
@@ -13290,16 +14431,16 @@ define('3d/geometry',['require','core/base','util/util','glmatrix','_'], functio
                     p2 = positions[i2],
                     p3 = positions[i3];
 
-                vec3.sub( v12, p1, p2 );
-                vec3.sub( v23, p2, p3 );
+                vec3.sub(v12, p1, p2);
+                vec3.sub(v23, p2, p3);
                 // Left Hand Cartesian Coordinate System
-                vec3.cross( normal, v12, v23 );
+                vec3.cross(normal, v12, v23);
                 // Weighted by the triangle area
                 vec3.add(normals[i1], normals[i1], normal);
                 vec3.add(normals[i2], normals[i2], normal);
                 vec3.add(normals[i3], normals[i3], normal);
             }
-            for(var i = 0; i < normals.length; i++){
+            for (var i = 0; i < normals.length; i++) {
                 vec3.normalize(normals[i], normals[i]);
             }
 
@@ -13307,7 +14448,7 @@ define('3d/geometry',['require','core/base','util/util','glmatrix','_'], functio
         },
 
         generateFaceNormals : function() {
-            if( ! this.isUniqueVertex() ){
+            if (! this.isUniqueVertex()) {
                 this.generateUniqueVertex();
             }
 
@@ -13323,7 +14464,7 @@ define('3d/geometry',['require','core/base','util/util','glmatrix','_'], functio
             //   p1
             //  /  \
             // p3---p2
-            for(var i = 0; i < len; i++){
+            for (var i = 0; i < len; i++) {
                 var face = faces[i],
                     i1 = face[0],
                     i2 = face[1],
@@ -13332,16 +14473,16 @@ define('3d/geometry',['require','core/base','util/util','glmatrix','_'], functio
                     p2 = positions[i2],
                     p3 = positions[i3];
 
-                vec3.sub( v12, p1, p2 );
-                vec3.sub( v23, p2, p3 );
+                vec3.sub(v12, p1, p2);
+                vec3.sub(v23, p2, p3);
                 // Left Hand Cartesian Coordinate System
-                vec3.cross( normal, v12, v23 );
+                vec3.cross(normal, v12, v23);
 
-                if( isCopy ){
+                if (isCopy) {
                     vec3.copy(normals[i1], normal);
                     vec3.copy(normals[i2], normal);
                     vec3.copy(normals[i3], normal);
-                }else{
+                } else {
                     normals[i1] = normals[i2] = normals[i3] = arrSlice.call(normal);
                 }
             }
@@ -13360,14 +14501,14 @@ define('3d/geometry',['require','core/base','util/util','glmatrix','_'], functio
 
             var tan1 = [], tan2 = [],
                 verticesNumber = this.getVerticesNumber();
-            for(var i = 0; i < verticesNumber; i++){
+            for (var i = 0; i < verticesNumber; i++) {
                 tan1[i] = [0.0, 0.0, 0.0];
                 tan2[i] = [0.0, 0.0, 0.0];
             }
 
             var sdir = [0.0, 0.0, 0.0];
             var tdir = [0.0, 0.0, 0.0];
-            for(var i = 0; i < this.faces.length; i++){
+            for (var i = 0; i < this.faces.length; i++) {
                 var face = this.faces[i],
                     i1 = face[0],
                     i2 = face[1],
@@ -13411,7 +14552,7 @@ define('3d/geometry',['require','core/base','util/util','glmatrix','_'], functio
             }
             var tmp = [0, 0, 0, 0];
             var nCrossT = [0, 0, 0];
-            for(var i = 0; i < verticesNumber; i++){
+            for (var i = 0; i < verticesNumber; i++) {
                 var n = normals[i];
                 var t = tan1[i];
 
@@ -13421,26 +14562,26 @@ define('3d/geometry',['require','core/base','util/util','glmatrix','_'], functio
                 vec3.normalize(tmp, tmp);
                 // Calculate handedness.
                 vec3.cross(nCrossT, n, t);
-                tmp[3] = vec3.dot( nCrossT, tan2[i] ) < 0.0 ? -1.0 : 1.0;
+                tmp[3] = vec3.dot(nCrossT, tan2[i]) < 0.0 ? -1.0 : 1.0;
                 tangents[i] = tmp.slice();
             }
         },
 
         isUniqueVertex : function() {
-            if( this.faces.length && this.useFaces ){
+            if (this.faces.length && this.useFaces) {
                 return this.getVerticesNumber() === this.faces.length * 3;
-            }else{
+            } else {
                 return true;
             }
         },
 
-        generateUniqueVertex : function(){
+        generateUniqueVertex : function() {
 
             var vertexUseCount = [];
             // Intialize with empty value, read undefined value from array
             // is slow
             // http://jsperf.com/undefined-array-read
-            for(var i = 0; i < this.getVerticesNumber(); i++){
+            for (var i = 0; i < this.getVerticesNumber(); i++) {
                 vertexUseCount[i] = 0;
             }
 
@@ -13448,33 +14589,33 @@ define('3d/geometry',['require','core/base','util/util','glmatrix','_'], functio
                 attributes = this._getEnabledAttributes(),
                 faces = this.faces;
 
-            function cloneAttribute( idx ){
-                for(var name in attributes ){
+            function cloneAttribute(idx) {
+                for (var name in attributes) {
                     var array = attributes[name].value;
                     var size = array[0].length || 1;
-                    if( size === 1){
-                        array.push( array[idx] );
-                    }else{
-                        array.push( arrSlice.call(array[idx]) );
+                    if (size === 1) {
+                        array.push(array[idx]);
+                    } else {
+                        array.push(arrSlice.call(array[idx]));
                     }
                 }
             }
-            for(var i = 0; i < faces.length; i++){
+            for (var i = 0; i < faces.length; i++) {
                 var face = faces[i],
                     i1 = face[0],
                     i2 = face[1],
                     i3 = face[2];
-                if( vertexUseCount[i1] > 0 ){
+                if (vertexUseCount[i1] > 0) {
                     cloneAttribute(i1);
                     face[0] = cursor;
                     cursor++;
                 }
-                if( vertexUseCount[i2] > 0 ){
+                if (vertexUseCount[i2] > 0) {
                     cloneAttribute(i2);
                     face[1] = cursor;
                     cursor++;
                 }
-                if( vertexUseCount[i3] > 0 ){
+                if (vertexUseCount[i3] > 0) {
                     cloneAttribute(i3);
                     face[2] = cursor;
                     cursor++;
@@ -13489,23 +14630,23 @@ define('3d/geometry',['require','core/base','util/util','glmatrix','_'], functio
 
         // http://codeflow.org/entries/2012/aug/02/easy-wireframe-display-with-barycentric-coordinates/
         // http://en.wikipedia.org/wiki/Barycentric_coordinate_system_(mathematics)
-        generateBarycentric : (function(){
+        generateBarycentric : (function() {
             var a = [1, 0, 0],
                 b = [0, 0, 1],
                 c = [0, 1, 0];
-            return function(){
+            return function() {
 
-                if( ! this.isUniqueVertex() ){
+                if (! this.isUniqueVertex()) {
                     this.generateUniqueVertex();
                 }
 
                 var array = this.attributes.barycentric.value;
                 // Already existed;
-                if( array.length == this.faces.length * 3){
+                if (array.length == this.faces.length * 3) {
                     return;
                 }
                 var i1, i2, i3, face;
-                for(var i = 0; i < this.faces.length; i++){
+                for (var i = 0; i < this.faces.length; i++) {
                     face = this.faces[i];
                     i1 = face[0];
                     i2 = face[1];
@@ -13517,46 +14658,46 @@ define('3d/geometry',['require','core/base','util/util','glmatrix','_'], functio
             }
         })(),
         // TODO : tangent
-        applyMatrix : function( matrix ) {
+        applyMatrix : function(matrix) {
             var positions = this.attributes.position.value;
             var normals = this.attributes.normal.value;
 
             matrix = matrix._array;
-            for ( var i = 0; i < positions.length; i++) {
-                vec3.transformMat4( positions[i], positions[i], matrix );
+            for (var i = 0; i < positions.length; i++) {
+                vec3.transformMat4(positions[i], positions[i], matrix);
             }
             // Normal Matrix
             var inverseTransposeMatrix = mat4.create();
-            mat4.invert( inverseTransposeMatrix, matrix );
-            mat4.transpose( inverseTransposeMatrix, inverseTransposeMatrix );
+            mat4.invert(inverseTransposeMatrix, matrix);
+            mat4.transpose(inverseTransposeMatrix, inverseTransposeMatrix);
 
-            for( var i = 0; i < normals.length; i++) {
-                vec3.transformMat4( normals[i], normals[i], inverseTransposeMatrix );
+            for (var i = 0; i < normals.length; i++) {
+                vec3.transformMat4(normals[i], normals[i], inverseTransposeMatrix);
             }
         },
 
         dispose : function(_gl) {
             
         }
-    } )
+    })
 
     return Geometry;
-} );
+});
 /*
  * From lightgl
  * https://github.com/evanw/lightgl.js/blob/master/src/mesh.js
  */
-define('3d/geometry/plane',['require','../geometry'], function(require){
+define('3d/geometry/plane',['require','../geometry'],function(require) {
 
 	var Geometry = require('../geometry');
 
-	var Plane = Geometry.derive( function(){
+	var Plane = Geometry.derive(function() {
 
 		return {
 			widthSegments : 1,
 			heightSegments : 1
 		}
-	}, function(){
+	}, function() {
 
 		var heightSegments = this.heightSegments,
 			widthSegments = this.widthSegments,
@@ -13571,9 +14712,12 @@ define('3d/geometry/plane',['require','../geometry'], function(require){
 				var s = x / widthSegments;
 
 				positions.push([2 * s - 1, 2 * t - 1, 0]);
-				if ( texcoords ) texcoords.push([s, t]);
-
-				if ( normals ) normals.push([0, 0, 1]);
+				if (texcoords) {
+					texcoords.push([s, t]);
+				}
+				if (normals) {
+					normals.push([0, 0, 1]);
+				}
 				if (x < widthSegments && y < heightSegments) {
 					var i = x + y * (widthSegments + 1);
 					faces.push([i, i + 1, i + widthSegments + 1]);
@@ -13585,7 +14729,7 @@ define('3d/geometry/plane',['require','../geometry'], function(require){
 	})
 
 	return Plane;
-} );
+});
 /**
  * Mainly do the parse and compile of shader string
  * Support shader code chunk import and export
@@ -13594,7 +14738,7 @@ define('3d/geometry/plane',['require','../geometry'], function(require){
  * https://github.com/KhronosGroup/collada2json/issues/45
  *
  */
-define('3d/shader',['require','core/base','glmatrix','util/util','_'], function(require){
+define('3d/shader',['require','core/base','glmatrix','util/util','_'],function(require) {
     
     var Base = require("core/base"),
         glMatrix = require("glmatrix"),
@@ -13624,25 +14768,25 @@ define('3d/shader',['require','core/base','glmatrix','util/util','_'], function(
         "mat4" : "m4"
     }
     var uniformValueConstructor = {
-        'bool' : function(){return true;},
-        'int' : function(){return 0;},
-        'float' : function(){return 0;},
-        'sampler2D' : function(){return null;},
-        'samplerCube' : function(){return null;},
+        'bool' : function() {return true;},
+        'int' : function() {return 0;},
+        'float' : function() {return 0;},
+        'sampler2D' : function() {return null;},
+        'samplerCube' : function() {return null;},
 
-        'vec2' : function(){return new Float32Array(2);},
-        'vec3' : function(){return new Float32Array(3);},
-        'vec4' : function(){return new Float32Array(4);},
+        'vec2' : function() {return new Float32Array(2);},
+        'vec3' : function() {return new Float32Array(3);},
+        'vec4' : function() {return new Float32Array(4);},
 
-        'ivec2' : function(){return new Int32Array(2);},
-        'ivec3' : function(){return new Int32Array(3);},
-        'ivec4' : function(){return new Int32Array(4);},
+        'ivec2' : function() {return new Int32Array(2);},
+        'ivec3' : function() {return new Int32Array(3);},
+        'ivec4' : function() {return new Int32Array(4);},
 
-        'mat2' : function(){return mat2.create();},
-        'mat3' : function(){return mat3.create();},
-        'mat4' : function(){return mat4.create();},
+        'mat2' : function() {return mat2.create();},
+        'mat3' : function() {return mat3.create();},
+        'mat4' : function() {return mat4.create();},
 
-        'array' : function(){return [];}
+        'array' : function() {return [];}
     }
     var availableSemantics = [
             'POSITION', 
@@ -13685,7 +14829,7 @@ define('3d/shader',['require','core/base','glmatrix','util/util','_'], function(
     // http://www.mjbshaw.com/2013/03/webgl-fixing-invalidoperation.html
     var enabledAttributeList = {};
 
-    var Shader = Base.derive( function(){
+    var Shader = Base.derive(function() {
 
         return {
 
@@ -13724,39 +14868,39 @@ define('3d/shader',['require','core/base','glmatrix','util/util','_'], function(
             _program : null,
 
         }
-    }, function(){
+    }, function() {
 
         this.update();
 
     }, {
 
-        setVertex : function(str){
+        setVertex : function(str) {
             this.vertex = str;
             this.update();
         },
-        setFragment : function(str){
+        setFragment : function(str) {
             this.fragment = str;_caches
             this.update();
         },
-        bind : function( _gl ){
+        bind : function(_gl) {
 
-            this.cache.use( _gl.__GUID__ , {
+            this.cache.use(_gl.__GUID__ , {
                 "locations" : {},
                 "attriblocations" : {}
-            } );
+            });
 
-            if( this.cache.get("dirty") || this.cache.miss("program") ){
+            if (this.cache.get("dirty") || this.cache.miss("program")) {
                 
-                this._buildProgram( _gl, this._vertexProcessed, this._fragmentProcessed );
+                this._buildProgram(_gl, this._vertexProcessed, this._fragmentProcessed);
             
                 this.cache.put("dirty", false);
             }
 
-            _gl.useProgram( this.cache.get("program") );
+            _gl.useProgram(this.cache.get("program"));
         },
         // Overwrite the dirty method
-        dirty : function(){
-            for( var contextId in this.cache._caches){
+        dirty : function() {
+            for (var contextId in this.cache._caches) {
                 var context = this.cache._caches[contextId];
                 context["dirty"] = true;
                 context["locations"] = {};
@@ -13764,10 +14908,10 @@ define('3d/shader',['require','core/base','glmatrix','util/util','_'], function(
             }
         },
 
-        update : function( force ){
+        update : function(force) {
 
-            if( this.vertex !== this._vertexPrev ||
-                this.fragment !== this._fragmentPrev || force){
+            if (this.vertex !== this._vertexPrev ||
+                this.fragment !== this._fragmentPrev || force) {
 
                 this._parseImport();
                 
@@ -13785,132 +14929,132 @@ define('3d/shader',['require','core/base','glmatrix','util/util','_'], function(
             this.dirty();
         },
 
-        enableTexture : function( symbol, autoUpdate ){
+        enableTexture : function(symbol, autoUpdate) {
             var status = this._textureStatus[ symbol ];
-            if( status ){
+            if (status) {
                 var isEnabled = status.enabled;
-                if( isEnabled ){
+                if (isEnabled) {
                     // Do nothing
                     return;
                 }else{
                     status.enabled = true;
 
                     var autoUpdate = typeof(autoUpdate)==="undefined" || true;
-                    if(autoUpdate){
+                    if (autoUpdate) {
                         this.update();
                     }
                 }
             }
         },
 
-        enableTexturesAll : function(autoUpdate){
-            for(var symbol in this._textureStatus){
+        enableTexturesAll : function(autoUpdate) {
+            for (var symbol in this._textureStatus) {
                 this._textureStatus[symbol].enabled = true;
             }
 
             var autoUpdate = typeof(autoUpdate)==="undefined" || true;
-            if(autoUpdate){
+            if (autoUpdate) {
                 this.update();
             }
         },
 
-        disableTexture : function( symbol, autoUpdate ){
+        disableTexture : function(symbol, autoUpdate) {
             var status = this._textureStatus[ symbol ];
-            if( status ){
+            if (status) {
                 var isDisabled = ! status.enabled;
-                if( isDisabled){
+                if (isDisabled) {
                     // Do nothing
                     return;
                 }else{
                     status.enabled = false;
 
                     var autoUpdate = typeof(autoUpdate)==="undefined" || true;
-                    if(autoUpdate){
+                    if (autoUpdate) {
                         this.update();
                     }
                 }
             }
         },
 
-        disableTexturesAll : function(symbol, autoUpdate){
-            for(var symbol in this._textureStatus){
+        disableTexturesAll : function(symbol, autoUpdate) {
+            for (var symbol in this._textureStatus) {
                 this._textureStatus[symbol].enabled = false;
             }
 
             var autoUpdate = typeof(autoUpdate)==="undefined" || true;
-            if(autoUpdate){
+            if (autoUpdate) {
                 this.update();
             }
         },
 
-        setUniform : function( _gl, type, symbol, value ){
+        setUniform : function(_gl, type, symbol, value) {
 
             var program = this.cache.get("program");            
 
-            var locationsMap = this.cache.get( "locations" );
+            var locationsMap = this.cache.get("locations");
             var location = locationsMap[symbol];
             // Uniform is not existed in the shader
-            if( location === null){
+            if (location === null) {
                 return;
             }
-            else if( ! location ){
-                location = _gl.getUniformLocation( program, symbol );
+            else if (! location) {
+                location = _gl.getUniformLocation(program, symbol);
                 // Unform location is a WebGLUniformLocation Object
                 // If the uniform not exist, it will return null
-                if( location === null  ){
+                if (location === null ) {
                     locationsMap[symbol] = null;
                     return;
                 }
                 locationsMap[symbol] = location;
             }
-            switch( type ){
+            switch (type) {
                 case '1i':
-                    _gl.uniform1i( location, value );
+                    _gl.uniform1i(location, value);
                     break;
                 case '1f':
-                    _gl.uniform1f( location, value );
+                    _gl.uniform1f(location, value);
                     break;
                 case "1fv":
-                    _gl.uniform1fv( location, value );
+                    _gl.uniform1fv(location, value);
                     break;
                 case "1iv":
-                    _gl.uniform1iv( location, value );
+                    _gl.uniform1iv(location, value);
                     break;
                 case '2iv':
-                    _gl.uniform2iv( location, value );
+                    _gl.uniform2iv(location, value);
                     break;
                 case '2fv':
-                    _gl.uniform2fv( location, value );
+                    _gl.uniform2fv(location, value);
                     break;
                 case '3iv':
-                    _gl.uniform3iv( location, value );
+                    _gl.uniform3iv(location, value);
                     break;
                 case '3fv':
-                    _gl.uniform3fv( location, value );
+                    _gl.uniform3fv(location, value);
                     break;
                 case "4iv":
-                    _gl.uniform4iv( location, value );
+                    _gl.uniform4iv(location, value);
                     break;
                 case "4fv":
-                    _gl.uniform4fv( location, value );
+                    _gl.uniform4fv(location, value);
                     break;
                 case '2i':
-                    _gl.uniform2i( location, value[0], value[1] );
+                    _gl.uniform2i(location, value[0], value[1]);
                     break;
                 case '2f':
-                    _gl.uniform2f( location, value[0], value[1] );
+                    _gl.uniform2f(location, value[0], value[1]);
                     break;
                 case '3i':
-                    _gl.uniform3i( location, value[0], value[1], value[2] );
+                    _gl.uniform3i(location, value[0], value[1], value[2]);
                     break;
                 case '3f':
-                    _gl.uniform3f( location, value[0], value[1], value[2] );
+                    _gl.uniform3f(location, value[0], value[1], value[2]);
                     break;
                 case '4i':
-                    _gl.uniform4i( location, value[0], value[1], value[2], value[3] );
+                    _gl.uniform4i(location, value[0], value[1], value[2], value[3]);
                     break;
                 case '4f':
-                    _gl.uniform4f( location, value[0], value[1], value[2], value[3] );
+                    _gl.uniform4f(location, value[0], value[1], value[2], value[3]);
                     break;
                 case 'm2':
                     // The matrix must be created by glmatrix and can pass it directly.
@@ -13930,18 +15074,18 @@ define('3d/shader',['require','core/base','glmatrix','util/util','_'], function(
                     var size = 9;
                 case 'm4v':
                     var size = 16;
-                    if( value instanceof Array){
+                    if (value instanceof Array) {
                         var array = new Float32Array(value.length * size);
                         var cursor = 0;
-                        for(var i = 0; i < value.length; i++){
+                        for (var i = 0; i < value.length; i++) {
                             var item = value[i];
-                            for(var j = 0; j < item.length; j++){
+                            for (var j = 0; j < item.length; j++) {
                                 array[cursor++] = item[j];
                             }
                         }
                         _gl.uniformMatrix4fv(location, false, array);
                     // Raw value
-                    }else if( value instanceof Float32Array){   // ArrayBufferView
+                    }else if (value instanceof Float32Array) {   // ArrayBufferView
                         _gl.uniformMatrix4fv(location, false, value);
                     }
                     break;
@@ -13950,43 +15094,43 @@ define('3d/shader',['require','core/base','glmatrix','util/util','_'], function(
         /**
          * Enable the attributes passed in and disable the rest
          * Example Usage:
-         * enableAttributes( _gl, "position", "texcoords")
+         * enableAttributes(_gl, "position", "texcoords")
          * OR
          * enableAttributes(_gl, ["position", "texcoors"])
          */
-        enableAttributes : function( _gl, attribList ){
+        enableAttributes : function(_gl, attribList) {
             
             var program = this.cache.get("program");
 
             var locationsMap = this.cache.get("attriblocations");
 
-            if( typeof(attribList) === "string"){
+            if (typeof(attribList) === "string") {
                 attribList = Array.prototype.slice.call(arguments, 1);
             }
 
             var enabledAttributeListInContext = enabledAttributeList[_gl.__GUID__];
-            if( ! enabledAttributeListInContext ){
+            if (! enabledAttributeListInContext) {
                 enabledAttributeListInContext = enabledAttributeList[_gl.__GUID__] = [];
             }
 
-            for(var symbol in this.attributeTemplates){
+            for (var symbol in this.attributeTemplates) {
                 var location = locationsMap[symbol];                        
-                if( typeof(location) === "undefined" ){
-                    location = _gl.getAttribLocation( program, symbol );
+                if (typeof(location) === "undefined") {
+                    location = _gl.getAttribLocation(program, symbol);
                     // Attrib location is a number from 0 to ...
-                    if( location === -1){
+                    if (location === -1) {
                         continue;
                     }
                     locationsMap[symbol] = location;
                 }
 
-                if(attribList.indexOf(symbol) >= 0){
-                    if( ! enabledAttributeListInContext[location] ){
+                if (attribList.indexOf(symbol) >= 0) {
+                    if (! enabledAttributeListInContext[location]) {
                         _gl.enableVertexAttribArray(location);
                         enabledAttributeListInContext[location] = true;
                     }
                 }else{
-                    if( enabledAttributeListInContext[location]){
+                    if (enabledAttributeListInContext[location]) {
                         _gl.disableVertexAttribArray(location);
                         enabledAttributeListInContext[location] = false;
                     }
@@ -13994,9 +15138,9 @@ define('3d/shader',['require','core/base','glmatrix','util/util','_'], function(
             }
         },
 
-        setMeshAttribute : function( _gl, symbol, type, size ){
+        setMeshAttribute : function(_gl, symbol, type, size) {
             var glType;
-            switch( type ){
+            switch (type) {
                 case "byte":
                     glType = _gl.BYTE;
                     break;
@@ -14019,106 +15163,106 @@ define('3d/shader',['require','core/base','glmatrix','util/util','_'], function(
             var locationsMap = this.cache.get("attriblocations");
             var location = locationsMap[symbol];
 
-            if( typeof(location) === "undefined" ){
-                location = _gl.getAttribLocation( program, symbol );
+            if (typeof(location) === "undefined") {
+                location = _gl.getAttribLocation(program, symbol);
                 // Attrib location is a number from 0 to ...
-                if( location === -1){
+                if (location === -1) {
                     return;
                 }
                 locationsMap[symbol] = location;
             }
 
-            _gl.vertexAttribPointer( location, size, glType, false, 0, 0 );
+            _gl.vertexAttribPointer(location, size, glType, false, 0, 0);
         },
 
-        _parseImport : function(){
+        _parseImport : function() {
 
-            this._vertexProcessedWithoutDefine = Shader.parseImport( this.vertex );
-            this._fragmentProcessedWithoutDefine = Shader.parseImport( this.fragment );
+            this._vertexProcessedWithoutDefine = Shader.parseImport(this.vertex);
+            this._fragmentProcessedWithoutDefine = Shader.parseImport(this.fragment);
 
         },
 
-        _addDefine : function(){
+        _addDefine : function() {
 
             // Add defines
             var defineStr = [];
-            _.each( this.lightNumber, function(count, lightType){
-                if( count ){
-                    defineStr.push( "#define "+lightType.toUpperCase()+"_NUMBER "+count );
+            _.each(this.lightNumber, function(count, lightType) {
+                if (count) {
+                    defineStr.push("#define "+lightType.toUpperCase()+"_NUMBER "+count);
                 }
             });
-            _.each( this._textureStatus, function(status, symbol){
-                if( status.enabled && status.shaderType === "vertex" ){
-                    defineStr.push( "#define "+symbol.toUpperCase()+"_ENABLED" );
+            _.each(this._textureStatus, function(status, symbol) {
+                if (status.enabled && status.shaderType === "vertex") {
+                    defineStr.push("#define "+symbol.toUpperCase()+"_ENABLED");
                 }
             });
             // Custom Defines
-            _.each( this.vertexDefines, function(value, symbol){
-                if( value === null){
+            _.each(this.vertexDefines, function(value, symbol) {
+                if (value === null) {
                     defineStr.push("#define "+symbol);
                 }else{
                     defineStr.push("#define "+symbol+" "+value.toString());
                 }
-            } )
+            })
             this._vertexProcessed = defineStr.join("\n") + "\n" + this._vertexProcessedWithoutDefine;
 
             defineStr = [];
-            _.each( this.lightNumber, function( count, lightType){
-                if( count ){
-                    defineStr.push( "#define "+lightType+"_NUMBER "+count );
+            _.each(this.lightNumber, function(count, lightType) {
+                if (count) {
+                    defineStr.push("#define "+lightType+"_NUMBER "+count);
                 }
             });
-            _.each( this._textureStatus, function( status, symbol){
-                if( status.enabled && status.shaderType === "fragment" ){
-                    defineStr.push( "#define "+symbol.toUpperCase()+"_ENABLED" );
+            _.each(this._textureStatus, function(status, symbol) {
+                if (status.enabled && status.shaderType === "fragment") {
+                    defineStr.push("#define "+symbol.toUpperCase()+"_ENABLED");
                 }
             });
             // Custom Defines
-            _.each( this.fragmentDefines, function(value, symbol){
-                if( value === null){
+            _.each(this.fragmentDefines, function(value, symbol) {
+                if (value === null) {
                     defineStr.push("#define "+symbol);
                 }else{
                     defineStr.push("#define "+symbol+" "+value.toString());
                 }
-            } )
+            })
             var tmp = defineStr.join("\n") + "\n" + this._fragmentProcessedWithoutDefine;
             
             // Add precision
             this._fragmentProcessed = ['precision', this.precision, 'float'].join(' ')+';\n' + tmp;
         },
 
-        _parseUniforms : function(){
+        _parseUniforms : function() {
             var uniforms = {},
                 self = this;
             var shaderType = "vertex";
-            this._vertexProcessedWithoutDefine = this._vertexProcessedWithoutDefine.replace( uniformRegex, _uniformParser );
+            this._vertexProcessedWithoutDefine = this._vertexProcessedWithoutDefine.replace(uniformRegex, _uniformParser);
             shaderType = "fragment";
-            this._fragmentProcessedWithoutDefine = this._fragmentProcessedWithoutDefine.replace( uniformRegex, _uniformParser );
+            this._fragmentProcessedWithoutDefine = this._fragmentProcessedWithoutDefine.replace(uniformRegex, _uniformParser);
 
-            function _uniformParser(str, type, symbol, isArray, semanticWrapper, semantic){
-                if( type && symbol ){
+            function _uniformParser(str, type, symbol, isArray, semanticWrapper, semantic) {
+                if (type && symbol) {
                     var uniformType = uniformTypeMap[type];
                     var isConfigurable = true;
-                    if( uniformType ){
-                        if( type === "sampler2D" || type === "samplerCube" ){
+                    if (uniformType) {
+                        if (type === "sampler2D" || type === "samplerCube") {
                             // Texture is default disabled
                             self._textureStatus[symbol] = {
                                 enabled : false,
                                 shaderType : shaderType
                             };
                         }
-                        if( isArray ){
+                        if (isArray) {
                             uniformType += 'v';
                         }
-                        if( semantic ){
-                            if( availableSemantics.indexOf(semantic) < 0 ){
+                        if (semantic) {
+                            if (availableSemantics.indexOf(semantic) < 0) {
                                 // The uniform is not configurable, which means it will not appear
                                 // in the material uniform properties
-                                if(semantic === "unconfigurable"){
+                                if (semantic === "unconfigurable") {
                                     isConfigurable = false;
                                 }else{
-                                    var defaultValueFunc = self._parseDefaultValue( type, semantic );
-                                    if( ! defaultValueFunc)
+                                    var defaultValueFunc = self._parseDefaultValue(type, semantic);
+                                    if (! defaultValueFunc)
                                         console.warn('Unkown semantic "' + semantic + '"');
                                     else
                                         semantic = "";
@@ -14132,10 +15276,10 @@ define('3d/shader',['require','core/base','glmatrix','util/util','_'], function(
                                 isConfigurable = false;
                             }
                         }
-                        if(isConfigurable){
+                        if (isConfigurable) {
                             uniforms[ symbol ] = {
                                 type : uniformType,
-                                value : isArray ? uniformValueConstructor['array'] : ( defaultValueFunc || uniformValueConstructor[ type ] ),
+                                value : isArray ? uniformValueConstructor['array'] : (defaultValueFunc || uniformValueConstructor[ type ]),
                                 semantic : semantic || null
                             }
                         }
@@ -14147,15 +15291,15 @@ define('3d/shader',['require','core/base','glmatrix','util/util','_'], function(
             this.uniformTemplates = uniforms;
         },
 
-        _parseDefaultValue : function(type, str){
+        _parseDefaultValue : function(type, str) {
             var arrayRegex = /\[\s*(.*)\s*\]/
-            if( type === "vec2" ||
+            if (type === "vec2" ||
                 type === "vec3" ||
-                type === "vec4"){
+                type === "vec4") {
                 var arrayStr = arrayRegex.exec(str)[1];
-                if( arrayStr ){
+                if (arrayStr) {
                     var arr = arrayStr.split(/\s*,\s*/);
-                    return function(){
+                    return function() {
                         return new Float32Array(arr);
                     }
                 }else{
@@ -14163,41 +15307,41 @@ define('3d/shader',['require','core/base','glmatrix','util/util','_'], function(
                     return;
                 }
             }
-            else if( type === "bool" ){
-                return function(){
+            else if (type === "bool") {
+                return function() {
                     return str.toLowerCase() === "true" ? true : false;
                 }
             }
-            else if( type === "float" ){
-                return function(){
+            else if (type === "float") {
+                return function() {
                     return parseFloat(str);
                 }
             }
         },
 
         // Create a new uniform instance for material
-        createUniforms : function(){
+        createUniforms : function() {
             var uniforms = {};
             
-            _.each( this.uniformTemplates, function( uniformTpl, symbol ){
+            _.each(this.uniformTemplates, function(uniformTpl, symbol) {
                 uniforms[ symbol ] = {
                     type : uniformTpl.type,
                     value : uniformTpl.value()
                 }
-            } )
+            })
 
             return uniforms;
         },
 
-        _parseAttributes : function(){
+        _parseAttributes : function() {
             var attributes = {},
                 self = this;
-            this._vertexProcessedWithoutDefine = this._vertexProcessedWithoutDefine.replace( attributeRegex, _attributeParser );
+            this._vertexProcessedWithoutDefine = this._vertexProcessedWithoutDefine.replace(attributeRegex, _attributeParser);
 
-            function _attributeParser( str, type, symbol, semanticWrapper, semantic ){
-                if( type && symbol ){
+            function _attributeParser(str, type, symbol, semanticWrapper, semantic) {
+                if (type && symbol) {
                     var size = 1;
-                    switch( type ){
+                    switch (type) {
                         case "vec4":
                             size = 4;
                             break;
@@ -14219,8 +15363,8 @@ define('3d/shader',['require','core/base','glmatrix','util/util','_'], function(
                         semantic : semantic || null
                     }
 
-                    if( semantic ){
-                        if( availableSemantics.indexOf(semantic) < 0 ){
+                    if (semantic) {
+                        if (availableSemantics.indexOf(semantic) < 0) {
                             console.warn('Unkown semantic "' + semantic + '"');
                         }else{
                             self.semantics[ semantic ] = {
@@ -14237,117 +15381,117 @@ define('3d/shader',['require','core/base','glmatrix','util/util','_'], function(
             this.attributeTemplates = attributes;
         },
 
-        _buildProgram : function(_gl, vertexShaderString, fragmentShaderString){
+        _buildProgram : function(_gl, vertexShaderString, fragmentShaderString) {
 
-            if( this.cache.get("program") ){
-                _gl.deleteProgram( this.cache.get("program") );
+            if (this.cache.get("program")) {
+                _gl.deleteProgram(this.cache.get("program"));
             }
             var program = _gl.createProgram();
 
-            try{
+            try {
 
                 var vertexShader = this._compileShader(_gl, "vertex", vertexShaderString);
                 var fragmentShader = this._compileShader(_gl, "fragment", fragmentShaderString);
-                _gl.attachShader( program, vertexShader );
-                _gl.attachShader( program, fragmentShader );
+                _gl.attachShader(program, vertexShader);
+                _gl.attachShader(program, fragmentShader);
 
-                _gl.linkProgram( program );
+                _gl.linkProgram(program);
 
-                if ( !_gl.getProgramParameter( program, _gl.LINK_STATUS ) ) {
-                    throw new Error( "Could not initialize shader\n" + "VALIDATE_STATUS: " + _gl.getProgramParameter( program, _gl.VALIDATE_STATUS ) + ", gl error [" + _gl.getError() + "]" );
+                if (!_gl.getProgramParameter(program, _gl.LINK_STATUS)) {
+                    throw new Error("Could not initialize shader\n" + "VALIDATE_STATUS: " + _gl.getProgramParameter(program, _gl.VALIDATE_STATUS) + ", gl error [" + _gl.getError() + "]");
                 }
-            }catch(e){
-                if( errorShader[ this.__GUID__] ){
+            } catch(e) {
+                if (errorShader[ this.__GUID__]) {
                     return;
                 }
                 errorShader[ this.__GUID__ ] = this;
                 throw e; 
             }
 
-            _gl.deleteShader( vertexShader );
-            _gl.deleteShader( fragmentShader );
+            _gl.deleteShader(vertexShader);
+            _gl.deleteShader(fragmentShader);
 
             this.cache.put("program", program);
         },
 
-        _compileShader : function(_gl, type, shaderString){
-            var shader = _gl.createShader( type === "fragment" ? _gl.FRAGMENT_SHADER : _gl.VERTEX_SHADER );
-            _gl.shaderSource( shader, shaderString );
-            _gl.compileShader( shader );
+        _compileShader : function(_gl, type, shaderString) {
+            var shader = _gl.createShader(type === "fragment" ? _gl.FRAGMENT_SHADER : _gl.VERTEX_SHADER);
+            _gl.shaderSource(shader, shaderString);
+            _gl.compileShader(shader);
 
-            if ( !_gl.getShaderParameter( shader, _gl.COMPILE_STATUS ) ) {
-                throw new Error( [_gl.getShaderInfoLog( shader ),
-                                    addLineNumbers(shaderString) ].join("\n") );
+            if (!_gl.getShaderParameter(shader, _gl.COMPILE_STATUS)) {
+                throw new Error([_gl.getShaderInfoLog(shader),
+                                    addLineNumbers(shaderString) ].join("\n"));
             }
             return shader;
         },
 
-        dispose : function(){
+        dispose : function() {
             
         }
     });
         
     // some util functions
-    function addLineNumbers( string ){
-        var chunks = string.split( "\n" );
-        for ( var i = 0, il = chunks.length; i < il; i ++ ) {
+    function addLineNumbers(string) {
+        var chunks = string.split("\n");
+        for (var i = 0, il = chunks.length; i < il; i ++) {
             // Chrome reports shader errors on lines
             // starting counting from 1
-            chunks[ i ] = ( i + 1 ) + ": " + chunks[ i ];
+            chunks[ i ] = (i + 1) + ": " + chunks[ i ];
         }
-        return chunks.join( "\n" );
+        return chunks.join("\n");
     }
 
     var importRegex = /(@import)\s*([0-9a-zA-Z_\-\.]*)/g;
-    Shader.parseImport = function( shaderStr ){
-        shaderStr = shaderStr.replace( importRegex, function(str, importSymbol, importName ){
-            if( _source[importName] ){
+    Shader.parseImport = function(shaderStr) {
+        shaderStr = shaderStr.replace(importRegex, function(str, importSymbol, importName) {
+            if (_source[importName]) {
                 // Recursively parse
-                return Shader.parseImport( _source[ importName ] );
+                return Shader.parseImport(_source[ importName ]);
             }
-        } )
+        })
         return shaderStr;
     }
 
     var exportRegex = /(@export)\s*([0-9a-zA-Z_\-\.]*)\s*\n([\s\S]*?)@end/g;
     // Import the shader to library and chunks
-    Shader.import = function( shaderStr ){
+    Shader.import = function(shaderStr) {
 
-        shaderStr.replace( exportRegex, function(str, exportSymbol, exportName, code){
+        shaderStr.replace(exportRegex, function(str, exportSymbol, exportName, code) {
             _source[ exportName ] = code;
             return code;
-        } )
+        })
     }
 
     // Library to store all the loaded shader strings
     var _source = {};
 
-    Shader.source = function( name ){
+    Shader.source = function(name) {
         var shaderStr = _source[name];
-        if( ! shaderStr ){
-            console.error( 'Shader "' + name + '" not existed in library');
+        if (! shaderStr) {
+            console.error('Shader "' + name + '" not existed in library');
             return;
         }
         return shaderStr;
     }
 
     return Shader;
-} );
+});
 /**
  * Base class for all textures like compressed texture, texture2d, texturecube
  * TODO mapping
  */
-define('3d/texture',['require','core/base','_'], function(require){
+define('3d/texture',['require','core/base','_'],function(require) {
 
     var Base = require("core/base"),
         _ = require("_");
 
-    var Texture = Base.derive( function(){
+    var Texture = Base.derive(function() {
 
         return {
 
             // Width and height is used when the image is null and want
-            // to use it as a texture attach to framebuffer( RTT )
+            // to use it as a texture attach to framebuffer(RTT)
             width : 512,
             height : 512,
 
@@ -14392,56 +15536,56 @@ define('3d/texture',['require','core/base','_'], function(require){
         }
     }, {
 
-        getWebGLTexture : function( _gl ){
+        getWebGLTexture : function(_gl) {
 
-            this.cache.use( _gl.__GUID__ );
+            this.cache.use(_gl.__GUID__);
 
-            if( this.cache.miss( "webgl_texture" ) ){
+            if (this.cache.miss("webgl_texture")) {
                 // In a new gl context, create new texture and set dirty true
-                this.cache.put( "webgl_texture", _gl.createTexture() );
-                this.cache.put( "dirty", true );
+                this.cache.put("webgl_texture", _gl.createTexture());
+                this.cache.put("dirty", true);
             }
-            if( this.cache.get("dirty") ){
-                this.update( _gl );
+            if (this.cache.get("dirty")) {
+                this.update(_gl);
                 this.cache.put("dirty", false);
             }
 
-            return this.cache.get( "webgl_texture" );
+            return this.cache.get("webgl_texture");
         },
 
-        bind : function(){},
-        unbind : function(){},
+        bind : function() {},
+        unbind : function() {},
         
         // Overwrite the dirty method
-        dirty : function(){
-            for( var contextId in this.cache._caches ){
-                this.cache._caches[ contextId ][ "dirty" ] = true;
+        dirty : function() {
+            for (var contextId in this.cache._caches) {
+                this.cache._caches[contextId]["dirty"] = true;
             }
         },
 
-        update : function( _gl ){},
+        update : function(_gl) {},
 
         // Update the common parameters of texture
-        beforeUpdate : function( _gl ){
-            _gl.pixelStorei( _gl.UNPACK_FLIP_Y_WEBGL, this.flipY );
-            _gl.pixelStorei( _gl.UNPACK_PREMULTIPLY_ALPHA_WEBGL, this.premultiplyAlpha );
-            _gl.pixelStorei( _gl.UNPACK_ALIGNMENT, this.unpackAlignment );
+        beforeUpdate : function(_gl) {
+            _gl.pixelStorei(_gl.UNPACK_FLIP_Y_WEBGL, this.flipY);
+            _gl.pixelStorei(_gl.UNPACK_PREMULTIPLY_ALPHA_WEBGL, this.premultiplyAlpha);
+            _gl.pixelStorei(_gl.UNPACK_ALIGNMENT, this.unpackAlignment);
 
             this.fallBack();
         },
 
-        fallBack : function(){
+        fallBack : function() {
 
             // Use of none-power of two texture
             // http://www.khronos.org/webgl/wiki/WebGL_and_OpenGL_Differences
             
             var isPowerOfTwo = this.isPowerOfTwo();
 
-            if( this.format === "DEPTH_COMPONENT"){
+            if (this.format === "DEPTH_COMPONENT") {
                 this.generateMipmaps = false;
             }
 
-            if( ! isPowerOfTwo || ! this.generateMipmaps){
+            if (! isPowerOfTwo || ! this.generateMipmaps) {
                 // none-power of two flag
                 this.NPOT = true;
                 // Save the original value for restore
@@ -14450,31 +15594,31 @@ define('3d/texture',['require','core/base','_'], function(require){
                 this._wrapSOriginal = this.wrapS;
                 this._wrapTOriginal = this.wrapT;
 
-                if( this.minFilter.indexOf("NEAREST") == 0){
+                if (this.minFilter.indexOf("NEAREST") == 0) {
                     this.minFilter = 'NEAREST';
-                }else{
+                } else {
                     this.minFilter = 'LINEAR'
                 }
 
-                if( this.magFilter.indexOf("NEAREST") == 0){
+                if (this.magFilter.indexOf("NEAREST") == 0) {
                     this.magFilter = 'NEAREST';
-                }else{
+                } else {
                     this.magFilter = 'LINEAR'
                 }
 
                 this.wrapS = 'CLAMP_TO_EDGE';
                 this.wrapT = 'CLAMP_TO_EDGE';
-            }else{
-                if( this._minFilterOriginal ){
+            } else {
+                if (this._minFilterOriginal) {
                     this.minFilter = this._minFilterOriginal;
                 }
-                if( this._magFilterOriginal ){
+                if (this._magFilterOriginal) {
                     this.magFilter = this._magFilterOriginal;
                 }
-                if( this._wrapSOriginal ){
+                if (this._wrapSOriginal) {
                     this.wrapS = this._wrapSOriginal;
                 }
-                if( this._wrapTOriginal ){
+                if (this._wrapTOriginal) {
                     this.wrapT = this._wrapTOriginal;
                 }
             }
@@ -14489,22 +15633,22 @@ define('3d/texture',['require','core/base','_'], function(require){
             return x + 1;
         },
 
-        dispose : function( _gl ){
+        dispose : function(_gl) {
             this.cache.use(_gl.__GUID__);
-            _gl.deleteTexture( this.cache.get("webgl_texture") );
+            _gl.deleteTexture(this.cache.get("webgl_texture"));
         },
 
-        isRenderable : function(){},
+        isRenderable : function() {},
         
-        isPowerOfTwo : function(){},
-    } )
+        isPowerOfTwo : function() {},
+    })
 
     return Texture;
-} );
+});
 /**
  * @export{class} WebGLInfo
  */
-define('3d/webglinfo',[], function(){
+define('3d/webglinfo',[],function() {
 
 
     // http://www.khronos.org/registry/webgl/extensions/
@@ -14524,23 +15668,23 @@ define('3d/webglinfo',[], function(){
 
     var WebGLInfo = {
 
-        initialize : function( _gl ){
+        initialize : function(_gl) {
 
-            if(initialized[_gl.__GUID__]){
+            if (initialized[_gl.__GUID__]) {
                 return;
             }
             // Basic info
 
             // Get webgl extension
-            for(var i = 0; i < EXTENSION_LIST.length; i++){
+            for (var i = 0; i < EXTENSION_LIST.length; i++) {
                 var extName = EXTENSION_LIST[i];
 
                 var ext = _gl.getExtension(extName);
                 // Try vendors
-                if( ! ext){
+                if (! ext) {
                     ext = _gl.getExtension("MOZ_" + extName);
                 }
-                if( ! ext){
+                if (! ext) {
                     ext = _gl.getExtension("WEBKIT_" + extName);
                 }
 
@@ -14559,12 +15703,12 @@ define('3d/webglinfo',[], function(){
     }
 
     return WebGLInfo;
-} );
+});
 /**
  *
  * @export{class} Texture2D
  */
-define('3d/texture/texture2d',['require','../texture','../webglinfo'], function(require){
+define('3d/texture/texture2d',['require','../texture','../webglinfo'],function(require) {
 
     var Texture = require('../texture');
     var WebGLInfo = require('../webglinfo');
@@ -14575,78 +15719,78 @@ define('3d/texture/texture2d',['require','../texture','../webglinfo'], function(
 
         pixels : null,
     }, {
-        update : function( _gl ){
+        update : function(_gl) {
 
-            _gl.bindTexture( _gl.TEXTURE_2D, this.cache.get("webgl_texture") );
+            _gl.bindTexture(_gl.TEXTURE_2D, this.cache.get("webgl_texture"));
             
-            this.beforeUpdate(  _gl );
+            this.beforeUpdate( _gl);
 
             var glFormat = _gl[ this.format.toUpperCase() ],
                 glType = _gl[ this.type.toUpperCase() ];
 
-            _gl.texParameteri( _gl.TEXTURE_2D, _gl.TEXTURE_WRAP_S, _gl[ this.wrapS.toUpperCase() ] );
-            _gl.texParameteri( _gl.TEXTURE_2D, _gl.TEXTURE_WRAP_T, _gl[ this.wrapT.toUpperCase() ] );
+            _gl.texParameteri(_gl.TEXTURE_2D, _gl.TEXTURE_WRAP_S, _gl[ this.wrapS.toUpperCase() ]);
+            _gl.texParameteri(_gl.TEXTURE_2D, _gl.TEXTURE_WRAP_T, _gl[ this.wrapT.toUpperCase() ]);
 
-            _gl.texParameteri( _gl.TEXTURE_2D, _gl.TEXTURE_MAG_FILTER, _gl[ this.magFilter.toUpperCase() ] );
-            _gl.texParameteri( _gl.TEXTURE_2D, _gl.TEXTURE_MIN_FILTER, _gl[ this.minFilter.toUpperCase() ] );
+            _gl.texParameteri(_gl.TEXTURE_2D, _gl.TEXTURE_MAG_FILTER, _gl[ this.magFilter.toUpperCase() ]);
+            _gl.texParameteri(_gl.TEXTURE_2D, _gl.TEXTURE_MIN_FILTER, _gl[ this.minFilter.toUpperCase() ]);
             
             var anisotropicExt = WebGLInfo.getExtension(_gl, "EXT_texture_filter_anisotropic");
-            if( anisotropicExt && this.anisotropic > 1){
+            if (anisotropicExt && this.anisotropic > 1) {
                 _gl.texParameterf(_gl.TEXTURE_2D, anisotropicExt.TEXTURE_MAX_ANISOTROPY_EXT, this.anisotropic);
             }
 
-            if( this.image ){
-                _gl.texImage2D( _gl.TEXTURE_2D, 0, glFormat, glFormat, glType, this.image );
+            if (this.image) {
+                _gl.texImage2D(_gl.TEXTURE_2D, 0, glFormat, glFormat, glType, this.image);
             }
             // Can be used as a blank texture when writing render to texture(RTT)
-            else{
-                _gl.texImage2D( _gl.TEXTURE_2D, 0, glFormat, this.width, this.height, 0, glFormat, glType, this.pixels);
+            else {
+                _gl.texImage2D(_gl.TEXTURE_2D, 0, glFormat, this.width, this.height, 0, glFormat, glType, this.pixels);
             }           
         
-            if( ! this.NPOT && this.generateMipmaps ){
-                _gl.generateMipmap( _gl.TEXTURE_2D );
+            if (! this.NPOT && this.generateMipmaps) {
+                _gl.generateMipmap(_gl.TEXTURE_2D);
             }
             
-            _gl.bindTexture( _gl.TEXTURE_2D, null );
+            _gl.bindTexture(_gl.TEXTURE_2D, null);
 
         },
         
-        isPowerOfTwo : function(){
-            if( this.image ){
+        isPowerOfTwo : function() {
+            if (this.image) {
                 var width = this.image.width,
                     height = this.image.height;   
-            }else{
+            } else {
                 var width = this.width,
                     height = this.height;
             }
-            return ( width & (width-1) ) === 0 &&
-                    ( height & (height-1) ) === 0;
+            return (width & (width-1)) === 0 &&
+                    (height & (height-1)) === 0;
         },
 
-        isRenderable : function(){
-            if( this.image ){
+        isRenderable : function() {
+            if (this.image) {
                 return this.image.nodeName === "CANVAS" ||
                         this.image.complete;
-            }else{
+            } else {
                 return this.width && this.height;
             }
         },
 
-        bind : function( _gl ){
-            _gl.bindTexture( _gl.TEXTURE_2D, this.getWebGLTexture(_gl) );
+        bind : function(_gl) {
+            _gl.bindTexture(_gl.TEXTURE_2D, this.getWebGLTexture(_gl));
         },
-        unbind : function( _gl ){
-            _gl.bindTexture( _gl.TEXTURE_2D, null );
+        unbind : function(_gl) {
+            _gl.bindTexture(_gl.TEXTURE_2D, null);
         },
     })
 
     return Texture2D;
-} );
+});
 /**
  *
  * @export{class} TextureCube
  */
-define('3d/texture/texturecube',['require','../texture','../webglinfo','_'], function(require){
+define('3d/texture/texturecube',['require','../texture','../webglinfo','_'],function(require) {
 
     var Texture = require('../texture');
     var WebGLInfo = require('../webglinfo');
@@ -14680,82 +15824,82 @@ define('3d/texture/texturecube',['require','../texture','../webglinfo','_'], fun
         }
     }, {
 
-        update : function( _gl ){
+        update : function(_gl) {
 
-            _gl.bindTexture( _gl.TEXTURE_CUBE_MAP, this.cache.get("webgl_texture") );
+            _gl.bindTexture(_gl.TEXTURE_CUBE_MAP, this.cache.get("webgl_texture"));
 
-            this.beforeUpdate( _gl );
+            this.beforeUpdate(_gl);
 
-            var glFormat = _gl[ this.format.toUpperCase() ],
-                glType = _gl[ this.type.toUpperCase() ];
+            var glFormat = _gl[this.format.toUpperCase()],
+                glType = _gl[this.type.toUpperCase()];
 
-            _gl.texParameteri( _gl.TEXTURE_CUBE_MAP, _gl.TEXTURE_WRAP_S, _gl[ this.wrapS.toUpperCase() ] );
-            _gl.texParameteri( _gl.TEXTURE_CUBE_MAP, _gl.TEXTURE_WRAP_T, _gl[ this.wrapT.toUpperCase() ] );
+            _gl.texParameteri(_gl.TEXTURE_CUBE_MAP, _gl.TEXTURE_WRAP_S, _gl[this.wrapS.toUpperCase()]);
+            _gl.texParameteri(_gl.TEXTURE_CUBE_MAP, _gl.TEXTURE_WRAP_T, _gl[this.wrapT.toUpperCase()]);
 
-            _gl.texParameteri( _gl.TEXTURE_CUBE_MAP, _gl.TEXTURE_MAG_FILTER, _gl[ this.magFilter.toUpperCase() ] );
-            _gl.texParameteri( _gl.TEXTURE_CUBE_MAP, _gl.TEXTURE_MIN_FILTER, _gl[ this.minFilter.toUpperCase() ] );
+            _gl.texParameteri(_gl.TEXTURE_CUBE_MAP, _gl.TEXTURE_MAG_FILTER, _gl[this.magFilter.toUpperCase()]);
+            _gl.texParameteri(_gl.TEXTURE_CUBE_MAP, _gl.TEXTURE_MIN_FILTER, _gl[this.minFilter.toUpperCase()]);
             
             var anisotropicExt = WebGLInfo.getExtension(_gl, "EXT_texture_filter_anisotropic");
-            if( anisotropicExt && this.anisotropic > 1){
+            if (anisotropicExt && this.anisotropic > 1) {
                 _gl.texParameterf(_gl.TEXTURE_CUBE_MAP, anisotropicExt.TEXTURE_MAX_ANISOTROPY_EXT, this.anisotropic);
             }
 
-            _.each( this.image, function(img, target){
-                if( img )
-                    _gl.texImage2D( _gl[ targetMap[target] ], 0, glFormat, glFormat, glType, img );
+            _.each(this.image, function(img, target) {
+                if (img)
+                    _gl.texImage2D(_gl[targetMap[target]], 0, glFormat, glFormat, glType, img);
                 else
-                    _gl.texImage2D( _gl[ targetMap[target] ], 0, glFormat, this.width, this.height, 0, glFormat, glType, this.pixels[target] );
+                    _gl.texImage2D(_gl[targetMap[target]], 0, glFormat, this.width, this.height, 0, glFormat, glType, this.pixels[target]);
             }, this);
 
-            if( !this.NPOT && this.generateMipmaps ){
-                _gl.generateMipmap( _gl.TEXTURE_CUBE_MAP );
+            if (!this.NPOT && this.generateMipmaps) {
+                _gl.generateMipmap(_gl.TEXTURE_CUBE_MAP);
             }
 
-            _gl.bindTexture( _gl.TEXTURE_CUBE_MAP, null );
+            _gl.bindTexture(_gl.TEXTURE_CUBE_MAP, null);
         },
-        bind : function( _gl ){
+        bind : function(_gl) {
 
-            _gl.bindTexture( _gl.TEXTURE_CUBE_MAP, this.getWebGLTexture(_gl) );
+            _gl.bindTexture(_gl.TEXTURE_CUBE_MAP, this.getWebGLTexture(_gl));
         },
-        unbind : function( _gl ){
-            _gl.bindTexture( _gl.TEXTURE_CUBE_MAP, null );
+        unbind : function(_gl) {
+            _gl.bindTexture(_gl.TEXTURE_CUBE_MAP, null);
         },
         // Overwrite the isPowerOfTwo method
-        isPowerOfTwo : function(){
-            if( this.image.px ){
-                return isPowerOfTwo( this.image.px.width ) &&
-                        isPowerOfTwo( this.image.px.height );
-            }else{
-                return isPowerOfTwo( this.width ) &&
-                        isPowerOfTwo( this.height );
+        isPowerOfTwo : function() {
+            if (this.image.px) {
+                return isPowerOfTwo(this.image.px.width) &&
+                        isPowerOfTwo(this.image.px.height);
+            } else {
+                return isPowerOfTwo(this.width) &&
+                        isPowerOfTwo(this.height);
             }
 
-            function isPowerOfTwo( value ){
+            function isPowerOfTwo(value) {
                 return value & (value-1) === 0
             }
         },
-        isRenderable : function(){
-            if( this.image.px ){
+        isRenderable : function() {
+            if (this.image.px) {
                 return isImageRenderable(this.image.px) &&
                        isImageRenderable(this.image.nx) &&
                        isImageRenderable(this.image.py) &&
                        isImageRenderable(this.image.ny) &&
                        isImageRenderable(this.image.pz) &&
                        isImageRenderable(this.image.nz);
-            }else{
+            } else {
                 return this.width && this.height;
             }
         }
     });
 
-    function isImageRenderable(image){
+    function isImageRenderable(image) {
         return image.nodeName === "CANVAS" ||
                 image.complete;
     }
 
     return TextureCube;
-} );
-define('3d/material',['require','core/base','./shader','util/util','./texture','./texture/texture2d','./texture/texturecube','_'], function(require){
+});
+define('3d/material',['require','core/base','./shader','util/util','./texture','./texture/texture2d','./texture/texturecube','_'],function(require) {
 
     var Base = require("core/base");
     var Shader = require("./shader");
@@ -14765,7 +15909,7 @@ define('3d/material',['require','core/base','./shader','util/util','./texture','
     var TextureCube = require('./texture/texturecube');
     var _ = require("_");
 
-    var Material = Base.derive( function(){
+    var Material = Base.derive(function() {
 
         var id = util.genGUID();
 
@@ -14796,116 +15940,116 @@ define('3d/material',['require','core/base','./shader','util/util','./texture','
             // http://www.khronos.org/registry/gles/specs/2.0/es_full_spec_2.0.25.pdf
             //
             // Example :
-            // function( _gl ){
-            //  _gl.blendEquation( _gl.FUNC_ADD );
-            //  _gl.blendFunc( _gl.SRC_ALPHA, _gl.ONE_MINUS_SRC_ALPHA);
+            // function(_gl) {
+            //  _gl.blendEquation(_gl.FUNC_ADD);
+            //  _gl.blendFunc(_gl.SRC_ALPHA, _gl.ONE_MINUS_SRC_ALPHA);
             // }
             blend : null,
 
             // Binding lights in the renderer automatically
             autoBindingLights : true
         }
-    }, function(){
-        if( this.shader ){
-            this.attachShader( this.shader );
+    }, function() {
+        if (this.shader) {
+            this.attachShader(this.shader);
         }
     }, {
 
-        bind : function( _gl ){
+        bind : function(_gl) {
 
             var slot = 0;
 
             // Set uniforms
-            _.each( this.uniforms, function( uniform, symbol ){
-                if( uniform.value === null ){
+            _.each(this.uniforms, function(uniform, symbol) {
+                if (uniform.value === null) {
                     return;
                 }
-                else if(uniform.value instanceof Array
-                    && ! uniform.value.length){
+                else if (uniform.value instanceof Array
+                    && ! uniform.value.length) {
                     return;
                 }
-                if( uniform.value.instanceof &&
-                    uniform.value.instanceof( Texture) ){
+                if (uniform.value.instanceof &&
+                    uniform.value.instanceof(Texture)) {
                 
                     var texture = uniform.value;
                     // Maybe texture is not loaded yet;
-                    if( ! texture.isRenderable() ){
+                    if (! texture.isRenderable()) {
                         return;
                     }
 
-                    _gl.activeTexture( _gl.TEXTURE0 + slot );
-                    texture.bind( _gl );
+                    _gl.activeTexture(_gl.TEXTURE0 + slot);
+                    texture.bind(_gl);
 
-                    this.shader.setUniform( _gl, '1i', symbol, slot );
+                    this.shader.setUniform(_gl, '1i', symbol, slot);
 
                     slot++;
                 }
-                else if( uniform.value instanceof Array ){
+                else if (uniform.value instanceof Array) {
                     // Texture Array
                     var exampleValue = uniform.value[0];
 
-                    if( exampleValue && 
+                    if (exampleValue && 
                         exampleValue.instanceof && 
-                        exampleValue.instanceof(Texture) ){
+                        exampleValue.instanceof(Texture)) {
 
                         var res = [];
-                        for( var i = 0; i < uniform.value.length; i++){
+                        for (var i = 0; i < uniform.value.length; i++) {
                             var texture = uniform.value[i];
                             // Maybe texture is not loaded yet;
-                            if( ! texture.isRenderable() ){
+                            if (! texture.isRenderable()) {
                                 continue;
                             }
 
-                            _gl.activeTexture( _gl.TEXTURE0 + slot );
+                            _gl.activeTexture(_gl.TEXTURE0 + slot);
                             texture.bind(_gl);
 
                             res.push(slot++);
                         }
-                        this.shader.setUniform( _gl, '1iv', symbol, res );
+                        this.shader.setUniform(_gl, '1iv', symbol, res);
 
-                    }else{
-                        this.shader.setUniform( _gl, uniform.type, symbol, uniform.value );
+                    } else {
+                        this.shader.setUniform(_gl, uniform.type, symbol, uniform.value);
                     }
                 }
                 else{
                     
-                    this.shader.setUniform( _gl, uniform.type, symbol, uniform.value );
+                    this.shader.setUniform(_gl, uniform.type, symbol, uniform.value);
                 }
 
-            }, this );
+            }, this);
         },
 
-        setUniform : function( symbol, value ){
+        setUniform : function(symbol, value) {
             var uniform = this.uniforms[symbol];
-            if( uniform ){
+            if (uniform) {
                 uniform.value = value;
-            }else{
+            } else {
                 // console.warn('Uniform "'+symbol+'" not exist');
             }
         },
 
-        setUniforms : function(obj){
-            for( var symbol in obj){
+        setUniforms : function(obj) {
+            for (var symbol in obj) {
                 var value = obj[symbol];
-                this.setUniform( symbol, value );
+                this.setUniform(symbol, value);
             }
         },
 
-        getUniform : function(symbol){
+        getUniform : function(symbol) {
             var uniform = this.uniforms[symbol];
-            if( uniform ){
+            if (uniform) {
                 return uniform.value;
-            }else{
+            } else {
                 // console.warn('Uniform '+symbol+' not exist');
             }
         },
 
-        attachShader : function( shader ){
+        attachShader : function(shader) {
             this.uniforms = shader.createUniforms();
             this.shader = shader;
         },
 
-        detachShader : function(){
+        detachShader : function() {
             this.shader = null;
             this.uniforms = {};
         }
@@ -14913,15 +16057,15 @@ define('3d/material',['require','core/base','./shader','util/util','./texture','
     })
 
     return Material;
-} );
-define('3d/mesh',['require','./node','_'], function(require){
+});
+define('3d/mesh',['require','./node','_'],function(require) {
 
     var Node = require("./node");
     var _ = require("_");
 
     var prevDrawID = 0;
 
-    var Mesh = Node.derive( function() {
+    var Mesh = Node.derive(function() {
 
         return {
             
@@ -14940,7 +16084,7 @@ define('3d/mesh',['require','./node','_'], function(require){
         }
     }, {
 
-        render : function( renderer, globalMaterial ) {
+        render : function(renderer, globalMaterial) {
 
             var _gl = renderer.gl;
 
@@ -14950,57 +16094,57 @@ define('3d/mesh',['require','./node','_'], function(require){
             var shader = material.shader;
             var geometry = this.geometry;
 
-            var glDrawMode = _gl[ this.mode.toUpperCase() ];
+            var glDrawMode = _gl[this.mode.toUpperCase()];
             
             // Set pose matrices of skinned mesh
-            if(this.skeleton){
+            if (this.skeleton) {
                 var skinMatricesArray = this.skeleton.getBoneMatricesArray();
                 shader.setUniform(_gl, "m4v", "boneMatrices", skinMatricesArray);
             }
             // Draw each chunk
-            var chunks = geometry.getBufferChunks( _gl );
+            var chunks = geometry.getBufferChunks(_gl);
 
-            for( var c = 0; c < chunks.length; c++){
+            for (var c = 0; c < chunks.length; c++) {
                 currentDrawID = _gl.__GUID__ + "_" + geometry.__GUID__ + "_" + c;
 
                 var chunk = chunks[c],
                     attributeBuffers = chunk.attributeBuffers,
                     indicesBuffer = chunk.indicesBuffer;
 
-                if( currentDrawID !== prevDrawID ){
+                if (currentDrawID !== prevDrawID) {
                     prevDrawID = currentDrawID;
                     
                     availableAttributes = {};
-                    for(var name in attributeBuffers){
+                    for (var name in attributeBuffers) {
                         var attributeBufferInfo = attributeBuffers[name];
                         var semantic = attributeBufferInfo.semantic;
 
-                        if( semantic ){
-                            var semanticInfo = shader.semantics[ semantic ];
+                        if (semantic) {
+                            var semanticInfo = shader.semantics[semantic];
                             var symbol = semanticInfo && semanticInfo.symbol;
-                        }else{
+                        } else {
                             var symbol = name;
                         }
-                        if(symbol && shader.attributeTemplates[symbol] ){
+                        if (symbol && shader.attributeTemplates[symbol]) {
                             availableAttributes[symbol] = attributeBufferInfo;
                         }
                     }
-                    shader.enableAttributes(_gl, Object.keys(availableAttributes) );
+                    shader.enableAttributes(_gl, Object.keys(availableAttributes));
                     // Setting attributes;
-                    for( var symbol in availableAttributes ){
+                    for (var symbol in availableAttributes) {
                         var attributeBufferInfo = availableAttributes[symbol];
                         var buffer = attributeBufferInfo.buffer;
 
-                        _gl.bindBuffer( _gl.ARRAY_BUFFER, buffer );
-                        shader.setMeshAttribute( _gl, symbol, attributeBufferInfo.type, attributeBufferInfo.size );
+                        _gl.bindBuffer(_gl.ARRAY_BUFFER, buffer);
+                        shader.setMeshAttribute(_gl, symbol, attributeBufferInfo.type, attributeBufferInfo.size);
                     }
                 }
                 //Do drawing
-                if( geometry.useFaces ){
-                    _gl.bindBuffer( _gl.ELEMENT_ARRAY_BUFFER, indicesBuffer.buffer );
-                    _gl.drawElements( glDrawMode, indicesBuffer.count, _gl.UNSIGNED_SHORT, 0 );
-                }else{
-                    _gl.drawArrays( glDrawMode, 0, geometry.vertexCount );
+                if (geometry.useFaces) {
+                    _gl.bindBuffer(_gl.ELEMENT_ARRAY_BUFFER, indicesBuffer.buffer);
+                    _gl.drawElements(glDrawMode, indicesBuffer.count, _gl.UNSIGNED_SHORT, 0);
+                } else {
+                    _gl.drawArrays(glDrawMode, 0, geometry.vertexCount);
                 }
             }
 
@@ -15014,7 +16158,7 @@ define('3d/mesh',['require','./node','_'], function(require){
             return drawInfo;
         },
 
-        bindGeometry : function( _gl ) {
+        bindGeometry : function(_gl) {
 
             var shader = this.material.shader;
             var geometry = this.geometry;
@@ -15026,12 +16170,12 @@ define('3d/mesh',['require','./node','_'], function(require){
     // Called when material is changed
     // In case the material changed and geometry not changed
     // And the previous material has less attributes than next material
-    Mesh.materialChanged = function(){
+    Mesh.materialChanged = function() {
         prevDrawID = 0;
     }
 
     return Mesh;
-} );
+});
 define('3d/compositor/shaders/vertex.essl',[],function () { return 'uniform mat4 worldViewProjection : WORLDVIEWPROJECTION;\n\nattribute vec3 position : POSITION;\nattribute vec2 texcoord : TEXCOORD_0;\n\nvarying vec2 v_Texcoord;\n\nvoid main(){\n\n    v_Texcoord = texcoord;\n    gl_Position = worldViewProjection * vec4(position, 1.0);\n}';});
 
 define('3d/compositor/shaders/coloradjust.essl',[],function () { return '@export buildin.compositor.coloradjust\n\nvarying vec2 v_Texcoord;\nuniform sampler2D texture;\n\nuniform float brightness;\nuniform float contrast;\nuniform float exposure;\nuniform float gamma;\nuniform float saturation;\n\n// Values from "Graphics Shaders: Theory and Practice" by Bailey and Cunningham\nconst vec3 w = vec3(0.2125, 0.7154, 0.0721);\n\nvoid main()\n{\n    vec4 tex = texture2D( texture, v_Texcoord);\n\n    // brightness\n    vec3 color = clamp( tex.rgb + vec3(brightness), 0.0, 1.0);\n    // contrast\n    color = clamp( (color-vec3(0.5))*contrast+vec3(0.5), 0.0, 1.0);\n    // exposure\n    color = clamp( color * pow(2.0, exposure), 0.0, 1.0);\n    // gamma\n    color = clamp( pow(color, vec3(gamma)), 0.0, 1.0);\n    // saturation\n    float luminance = dot( color, w );\n    color = mix(vec3(luminance), color, saturation);\n    \n    gl_FragColor = vec4(color, tex.a);\n}\n\n@end';});
@@ -15044,7 +16188,7 @@ define('3d/compositor/shaders/lut.essl',[],function () { return '\n// https://gi
 
 define('3d/compositor/shaders/output.essl',[],function () { return '\n@export buildin.compositor.output\n\nvarying vec2 v_Texcoord;\n\nuniform sampler2D texture;\n\nvoid main()\n{\n    vec4 tex = texture2D( texture, v_Texcoord );\n\n    gl_FragColor = tex;\n}\n\n@end';});
 
-define('3d/compositor/pass',['require','core/base','../scene','../camera/orthographic','../geometry/plane','../shader','../material','../mesh','../scene','./shaders/vertex.essl','../texture','../webglinfo','./shaders/coloradjust.essl','./shaders/blur.essl','./shaders/grayscale.essl','./shaders/lut.essl','./shaders/output.essl'], function(require){
+define('3d/compositor/pass',['require','core/base','../scene','../camera/orthographic','../geometry/plane','../shader','../material','../mesh','../scene','./shaders/vertex.essl','../texture','../webglinfo','./shaders/coloradjust.essl','./shaders/blur.essl','./shaders/grayscale.essl','./shaders/lut.essl','./shaders/output.essl'],function(require) {
 
     var Base = require("core/base");
     var Scene = require("../scene");
@@ -15067,7 +16211,7 @@ define('3d/compositor/pass',['require','core/base','../scene','../camera/orthogr
         
     scene.add(mesh);
 
-    var Pass = Base.derive( function(){
+    var Pass = Base.derive(function() {
         return {
             // Fragment shader string
             fragment : "",
@@ -15077,7 +16221,7 @@ define('3d/compositor/pass',['require','core/base','../scene','../camera/orthogr
             _material : null
 
         }
-    }, function(){
+    }, function() {
 
         var shader = new Shader({
             vertex : vertexShaderString,
@@ -15092,83 +16236,83 @@ define('3d/compositor/pass',['require','core/base','../scene','../camera/orthogr
 
     }, {
 
-        setUniform : function(name, value){
+        setUniform : function(name, value) {
             
             var uniform = this._material.uniforms[name];
-            if( uniform ){
+            if (uniform) {
                 uniform.value = value;
-            }else{
+            } else {
                 // console.warn('Unkown uniform "' + name + '"');
             }
         },
 
-        bind : function( renderer, frameBuffer ){
+        bind : function(renderer, frameBuffer) {
             
-            if( this.outputs ){
-                for( var attachment in this.outputs){
+            if (this.outputs) {
+                for (var attachment in this.outputs) {
                     var texture = this.outputs[attachment];
-                    frameBuffer.attach( renderer.gl, texture, attachment );
+                    frameBuffer.attach(renderer.gl, texture, attachment);
                 }
-                frameBuffer.bind( renderer );
+                frameBuffer.bind(renderer);
             }
         },
 
-        unbind : function( renderer, frameBuffer ){
-            frameBuffer.unbind( renderer );
+        unbind : function(renderer, frameBuffer) {
+            frameBuffer.unbind(renderer);
         },
 
-        render : function( renderer, frameBuffer ){
+        render : function(renderer, frameBuffer) {
 
             var _gl = renderer.gl;
 
             mesh.material = this._material;
 
-            if( frameBuffer ){
-                this.bind( renderer, frameBuffer );
+            if (frameBuffer) {
+                this.bind(renderer, frameBuffer);
             }
 
             // MRT Support in chrome
             // https://www.khronos.org/registry/webgl/sdk/tests/conformance/extensions/ext-draw-buffers.html
             var ext = WebGLInfo.getExtension(_gl, "EXT_draw_buffers");
-            if(ext){
+            if (ext) {
                 var bufs = [];
-                for( var attachment in this.outputs){
+                for (var attachment in this.outputs) {
                     attachment = parseInt(attachment);
-                    if(attachment >= _gl.COLOR_ATTACHMENT0 && attachment <= _gl.COLOR_ATTACHMENT0 + 8){
+                    if (attachment >= _gl.COLOR_ATTACHMENT0 && attachment <= _gl.COLOR_ATTACHMENT0 + 8) {
                         bufs.push(attachment);
                     }
                 }
                 ext.drawBuffersEXT(bufs);
             }
 
-            renderer.render( scene, camera, true );
+            renderer.render(scene, camera, true);
 
-            if( frameBuffer ){
-                this.unbind( renderer, frameBuffer );
+            if (frameBuffer) {
+                this.unbind(renderer, frameBuffer);
             }
         }
-    } )
+    })
 
     // Some build in shaders
-    Shader.import( require('./shaders/coloradjust.essl') );
-    Shader.import( require('./shaders/blur.essl') );
-    Shader.import( require('./shaders/grayscale.essl') );
-    Shader.import( require('./shaders/lut.essl') );
-    Shader.import( require('./shaders/output.essl') );
+    Shader.import(require('./shaders/coloradjust.essl'));
+    Shader.import(require('./shaders/blur.essl'));
+    Shader.import(require('./shaders/grayscale.essl'));
+    Shader.import(require('./shaders/lut.essl'));
+    Shader.import(require('./shaders/output.essl'));
 
     return Pass;
-} );
+});
 /**
  * @export{class} FrameBuffer
  */
-define('3d/framebuffer',['require','core/base','./texture/texture2d','./texture/texturecube','./webglinfo'], function(require) {
+define('3d/framebuffer',['require','core/base','./texture/texture2d','./texture/texturecube','./webglinfo'],function(require) {
     
     var Base = require("core/base");
     var Texture2D = require("./texture/texture2d");
     var TextureCube = require("./texture/texturecube");
     var WebGLInfo = require('./webglinfo');
 
-    var FrameBuffer = Base.derive( function(){
+    var FrameBuffer = Base.derive(function() {
 
         return {
             depthBuffer : true,
@@ -15178,94 +16322,94 @@ define('3d/framebuffer',['require','core/base','./texture/texture2d','./texture/
         }
     }, {
 
-        bind : function( renderer ){
+        bind : function(renderer) {
 
             var _gl = renderer.gl;
 
-            _gl.bindFramebuffer( _gl.FRAMEBUFFER, this.getFrameBuffer( _gl ) );
+            _gl.bindFramebuffer(_gl.FRAMEBUFFER, this.getFrameBuffer(_gl));
 
-            this.cache.put( "viewport", renderer.viewportInfo );
-            renderer.setViewport( 0, 0, this.cache.get('width'), this.cache.get('height') );
+            this.cache.put("viewport", renderer.viewportInfo);
+            renderer.setViewport(0, 0, this.cache.get('width'), this.cache.get('height'));
 
             // Create a new render buffer
-            if( this.cache.miss("renderbuffer") && this.depthBuffer && ! this.cache.get("depth_texture") ){
-                this.cache.put( "renderbuffer", _gl.createRenderbuffer() );
+            if (this.cache.miss("renderbuffer") && this.depthBuffer && ! this.cache.get("depth_texture")) {
+                this.cache.put("renderbuffer", _gl.createRenderbuffer());
             }
 
-            if( ! this.cache.get("depth_texture") && this.depthBuffer ){
+            if (! this.cache.get("depth_texture") && this.depthBuffer) {
 
                 var width = this.cache.get("width"),
                     height = this.cache.get("height"),
                     renderbuffer = this.cache.get('renderbuffer');
 
-                if( width !== this.cache.get("renderbuffer_width")
-                     || height !== this.cache.get("renderbuffer_height") ){
+                if (width !== this.cache.get("renderbuffer_width")
+                     || height !== this.cache.get("renderbuffer_height")) {
 
-                    _gl.bindRenderbuffer( _gl.RENDERBUFFER, renderbuffer );
+                    _gl.bindRenderbuffer(_gl.RENDERBUFFER, renderbuffer);
                     
-                    _gl.renderbufferStorage(_gl.RENDERBUFFER, _gl.DEPTH_COMPONENT16, width, height );
+                    _gl.renderbufferStorage(_gl.RENDERBUFFER, _gl.DEPTH_COMPONENT16, width, height);
                     this.cache.put("renderbuffer_width", width);
                     this.cache.put("renderbuffer_height", height);
 
-                    _gl.bindRenderbuffer( _gl.RENDERBUFFER, null );                 
+                    _gl.bindRenderbuffer(_gl.RENDERBUFFER, null);                 
                 }
-                if( ! this.cache.get("renderbuffer_attached") ){
+                if (! this.cache.get("renderbuffer_attached")) {
                     
-                    _gl.framebufferRenderbuffer( _gl.FRAMEBUFFER, _gl.DEPTH_ATTACHMENT, _gl.RENDERBUFFER, renderbuffer );
-                    this.cache.put( "renderbuffer_attached", true );
+                    _gl.framebufferRenderbuffer(_gl.FRAMEBUFFER, _gl.DEPTH_ATTACHMENT, _gl.RENDERBUFFER, renderbuffer);
+                    this.cache.put("renderbuffer_attached", true);
 
                 }
             }
             
         },
 
-        unbind : function( renderer ){
+        unbind : function(renderer) {
             var _gl = renderer.gl;
             
-            _gl.bindFramebuffer( _gl.FRAMEBUFFER, null );
+            _gl.bindFramebuffer(_gl.FRAMEBUFFER, null);
 
-            this.cache.use( _gl.__GUID__ );
+            this.cache.use(_gl.__GUID__);
             var viewportInfo = this.cache.get("viewport");
             // Reset viewport;
-            if( viewportInfo ){
-                renderer.setViewport( viewportInfo.x, viewportInfo.y, viewportInfo.width, viewportInfo.height );
+            if (viewportInfo) {
+                renderer.setViewport(viewportInfo.x, viewportInfo.y, viewportInfo.width, viewportInfo.height);
             }
 
             // Because the data of texture is changed over time,
             // Here update the mipmaps of texture each time after rendered;
-            for( var attachment in this._attachedTextures ){
+            for (var attachment in this._attachedTextures) {
                 var texture = this._attachedTextures[attachment];
-                if( ! texture.NPOT && texture.generateMipmaps ){
+                if (! texture.NPOT && texture.generateMipmaps) {
                     var target = texture.instanceof(TextureCube) ? _gl.TEXTURE_CUBE_MAP : _gl.TEXTURE_2D;
-                    _gl.bindTexture( target, texture.getWebGLTexture( _gl ) );
-                    _gl.generateMipmap( target );
-                    _gl.bindTexture( target, null );
+                    _gl.bindTexture(target, texture.getWebGLTexture(_gl));
+                    _gl.generateMipmap(target);
+                    _gl.bindTexture(target, null);
                 }
             }
         },
 
-        getFrameBuffer : function( _gl ){
+        getFrameBuffer : function(_gl) {
 
-            this.cache.use( _gl.__GUID__ );
+            this.cache.use(_gl.__GUID__);
 
-            if( this.cache.miss("framebuffer") ){
-                this.cache.put( "framebuffer", _gl.createFramebuffer() );
+            if (this.cache.miss("framebuffer")) {
+                this.cache.put("framebuffer", _gl.createFramebuffer());
             }
 
             return this.cache.get("framebuffer");
         },
 
-        attach : function( _gl, texture, attachment, target ){
+        attach : function(_gl, texture, attachment, target) {
 
-            if( ! texture.width ){
+            if (! texture.width) {
                 console.error("The texture attached to color buffer is not a valid.");
                 return;
             }
-            if( this._renderBuffer && this.depthBuffer && ( this._width !== texture.width || this.height !== texture.height) ){
-                console.warn( "Attached texture has different width or height, it will cause the render buffer recreate a storage ");
+            if (this._renderBuffer && this.depthBuffer && (this._width !== texture.width || this.height !== texture.height)) {
+                console.warn("Attached texture has different width or height, it will cause the render buffer recreate a storage ");
             }
 
-            _gl.bindFramebuffer( _gl.FRAMEBUFFER, this.getFrameBuffer( _gl ) );
+            _gl.bindFramebuffer(_gl.FRAMEBUFFER, this.getFrameBuffer(_gl));
 
             this.cache.put("width", texture.width);
             this.cache.put("height", texture.height);
@@ -15277,15 +16421,15 @@ define('3d/framebuffer',['require','core/base','./texture/texture2d','./texture/
             // http://blog.tojicode.com/2012/07/using-webgldepthtexture.html
             attachment = attachment || _gl.COLOR_ATTACHMENT0;
             
-            if( attachment === 'DEPTH_ATTACHMENT' ){
+            if (attachment === 'DEPTH_ATTACHMENT') {
 
                 var extension = WebGLInfo.getExtension(_gl, "WEBGL_depth_texture");
 
-                if( !extension ){
-                    console.error( " Depth texture is not supported by the browser ");
+                if (!extension) {
+                    console.error(" Depth texture is not supported by the browser ");
                     return;
                 }
-                if( texture.format !== "DEPTH_COMPONENT" ){
+                if (texture.format !== "DEPTH_COMPONENT") {
                     console.error("The texture attached to depth buffer is not a valid.");
                     return;
                 }
@@ -15295,33 +16439,33 @@ define('3d/framebuffer',['require','core/base','./texture/texture2d','./texture/
 
             this._attachedTextures[ attachment ] = texture;
 
-            _gl.framebufferTexture2D( _gl.FRAMEBUFFER, attachment, target, texture.getWebGLTexture( _gl ), 0)
+            _gl.framebufferTexture2D(_gl.FRAMEBUFFER, attachment, target, texture.getWebGLTexture(_gl), 0)
 
-            _gl.bindFramebuffer( _gl.FRAMEBUFFER, null);
+            _gl.bindFramebuffer(_gl.FRAMEBUFFER, null);
         },
 
-        detach : function(){},
+        detach : function() {},
 
-        dispose : function( _gl ){
+        dispose : function(_gl) {
 
-            this.cache.use( _gl.__GUID__ );
+            this.cache.use(_gl.__GUID__);
 
-            if( this.cache.get("renderbuffer") )
-                _gl.deleteRenderbuffer( this.cache.get("renderbuffer") );
-            if( this.cache.get("framebuffer") )
-                _gl.deleteFramebuffer( this.cache.get("framebuffer") );
+            if (this.cache.get("renderbuffer"))
+                _gl.deleteRenderbuffer(this.cache.get("renderbuffer"));
+            if (this.cache.get("framebuffer"))
+                _gl.deleteFramebuffer(this.cache.get("framebuffer"));
 
             this.cache.clearContext();
 
         }
-    } )
+    })
 
     return FrameBuffer;
-} );
+});
 /**
  * @export{class} TexturePool
  */
-define('3d/compositor/graph/texturepool',['require','../../texture/texture2d','_'], function(require){
+define('3d/compositor/graph/texturepool',['require','../../texture/texture2d','_'],function(require) {
     
     var Texture2D = require("../../texture/texture2d");
     var _ = require("_");
@@ -15330,31 +16474,31 @@ define('3d/compositor/graph/texturepool',['require','../../texture/texture2d','_
 
     var texturePool = {
 
-        get : function( parameters ){
-            var key = generateKey( parameters );
-            if( ! pool.hasOwnProperty( key ) ){
+        get : function(parameters) {
+            var key = generateKey(parameters);
+            if (!pool.hasOwnProperty(key)) {
                 pool[key] = [];
             }
             var list = pool[key];
-            if( ! list.length ){
-                var texture = new Texture2D( parameters );
+            if (!list.length) {
+                var texture = new Texture2D(parameters);
                 return texture;
             }
             return list.pop();
         },
 
-        put : function( texture ){
-            var key = generateKey( texture );
-            if( ! pool.hasOwnProperty( key ) ){
+        put : function(texture) {
+            var key = generateKey(texture);
+            if (!pool.hasOwnProperty(key)) {
                 pool[key] = [];
             }
             var list = pool[key];
-            list.push( texture );
+            list.push(texture);
         },
 
-        clear : function(gl){
-            for(name in pool){
-                for(var i = 0; i < pool[name].length; i++){
+        clear : function(gl) {
+            for (name in pool) {
+                for (var i = 0; i < pool[name].length; i++) {
                     pool[name][i].dispose(gl);
                 }
             }
@@ -15362,7 +16506,7 @@ define('3d/compositor/graph/texturepool',['require','../../texture/texture2d','_
         }
     }
 
-    function generateKey( parameters ){
+    function generateKey(parameters) {
         var defaultParams = {
             width : 512,
             height : 512,
@@ -15383,8 +16527,8 @@ define('3d/compositor/graph/texturepool',['require','../../texture/texture2d','_
         fallBack(parameters);
 
         var key = "";
-        for(var name in defaultParams) {
-            if( parameters[name] ){
+        for (var name in defaultParams) {
+            if (parameters[name]) {
                 var chunk = parameters[name].toString();
             }else{
                 var chunk = defaultParams[name].toString();
@@ -15394,24 +16538,24 @@ define('3d/compositor/graph/texturepool',['require','../../texture/texture2d','_
         return key;
     }
 
-    function fallBack(target){
+    function fallBack(target) {
 
         var IPOT = isPowerOfTwo(target.width, target.height);
 
-        if( target.format === "DEPTH_COMPONENT"){
+        if (target.format === "DEPTH_COMPONENT") {
             target.generateMipmaps = false;
         }
 
-        if( ! IPOT || ! target.generateMipmaps){
-            if( target.minFilter.indexOf("NEAREST") == 0){
+        if (!IPOT || !target.generateMipmaps) {
+            if (target.minFilter.indexOf("NEAREST") == 0) {
                 target.minFilter = 'NEAREST';
-            }else{
+            } else {
                 target.minFilter = 'LINEAR'
             }
 
-            if( target.magFilter.indexOf("NEAREST") == 0){
+            if (target.magFilter.indexOf("NEAREST") == 0) {
                 target.magFilter = 'NEAREST';
-            }else{
+            } else {
                 target.magFilter = 'LINEAR'
             }
             target.wrapS = 'CLAMP_TO_EDGE';
@@ -15419,13 +16563,13 @@ define('3d/compositor/graph/texturepool',['require','../../texture/texture2d','_
         }
     }
 
-    function isPowerOfTwo(width, height){
-        return ( width & (width-1) ) === 0 &&
-                ( height & (height-1) ) === 0;
+    function isPowerOfTwo(width, height) {
+        return (width & (width-1)) === 0 &&
+                (height & (height-1)) === 0;
     }
 
     return texturePool
-} );
+});
 /**
  * Example
  * {
@@ -15462,7 +16606,7 @@ define('3d/compositor/graph/texturepool',['require','../../texture/texture2d','_
  *
  * TODO blending 
  */
-define('3d/compositor/graph/node',['require','core/base','../pass','../../framebuffer','../../shader','./texturepool'], function( require ){
+define('3d/compositor/graph/node',['require','core/base','../pass','../../framebuffer','../../shader','./texturepool'],function(require) {
 
     var Base = require("core/base");
     var Pass = require("../pass");
@@ -15470,7 +16614,7 @@ define('3d/compositor/graph/node',['require','core/base','../pass','../../frameb
     var Shader = require("../../shader");
     var texturePool = require("./texturepool");
 
-    var Node = Base.derive( function(){
+    var Node = Base.derive(function() {
         return {
 
             name : "",
@@ -15502,86 +16646,85 @@ define('3d/compositor/graph/node',['require','core/base','../pass','../../frameb
             //}
             _outputReferences : {}
         }
-    }, function(){
-        if( this.shader ){
+    }, function() {
+        if (this.shader) {
             var pass = new Pass({
                 fragment : this.shader
             });
             this.pass = pass;   
         }
-        if(this.outputs){
+        if (this.outputs) {
             this.frameBuffer = new FrameBuffer({
                 depthBuffer : false
             })
         }
     }, {
 
-        render : function( renderer ){
+        render : function(renderer) {
             var _gl = renderer.gl;
-            for( var inputName in this.inputLinks ){
+            for (var inputName in this.inputLinks) {
                 var link = this.inputLinks[inputName];
-                var inputTexture = link.node.getOutput( renderer, link.pin );
-                this.pass.setUniform( inputName, inputTexture );
+                var inputTexture = link.node.getOutput(renderer, link.pin);
+                this.pass.setUniform(inputName, inputTexture);
             }
             // Output
-            if( ! this.outputs){
+            if (! this.outputs) {
                 this.pass.outputs = null;
-                this.pass.render( renderer );
-            }
-            else{
+                this.pass.render(renderer);
+            } else {
                 this.pass.outputs = {};
 
-                for( var name in this.outputs){
+                for (var name in this.outputs) {
 
                     var outputInfo = this.outputs[name];
 
-                    var texture = texturePool.get( outputInfo.parameters || {} );
+                    var texture = texturePool.get(outputInfo.parameters || {});
                     this._textures[name] = texture;
 
                     var attachment = outputInfo.attachment || _gl.COLOR_ATTACHMENT0;
-                    if(typeof(attachment) == "string"){
+                    if (typeof(attachment) == "string") {
                         attachment = _gl[attachment];
                     }
                     this.pass.outputs[ attachment ] = texture;
                 }
 
-                this.pass.render( renderer, this.frameBuffer );
+                this.pass.render(renderer, this.frameBuffer);
             }
             
-            for( var inputName in this.inputLinks ){
+            for (var inputName in this.inputLinks) {
                 var link = this.inputLinks[inputName];
-                link.node.removeReference( link.pin );
+                link.node.removeReference(link.pin);
             }
         },
 
-        setParameter : function( name, value ){
-            this.pass.setUniform( name, value );
+        setParameter : function(name, value) {
+            this.pass.setUniform(name, value);
         },
 
-        setParameters : function(obj){
-            for(var name in obj){
+        setParameters : function(obj) {
+            for (var name in obj) {
                 this.setParameter(name, obj[name]);
             }
         },
 
-        getOutput : function( renderer, name ){
+        getOutput : function(renderer, name) {
             var outputInfo = this.outputs[name];
-            if( ! outputInfo){
+            if (! outputInfo) {
                 return ;
             }
-            if( this._textures[name] ){
+            if (this._textures[name]) {
                 // Already been rendered in this frame
                 return this._textures[name];
             }
 
-            this.render( renderer );
+            this.render(renderer);
             
             return this._textures[name];
         },
 
-        removeReference : function( name ){
+        removeReference : function(name) {
             this._outputReferences[name]--;
-            if( this._outputReferences[name] === 0){
+            if (this._outputReferences[name] === 0) {
                 // Output of this node have alreay been used by all other nodes
                 // Put the texture back to the pool.
                 texturePool.put(this._textures[name]);
@@ -15589,29 +16732,29 @@ define('3d/compositor/graph/node',['require','core/base','../pass','../../frameb
             }
         },
 
-        link : function( inputPinName, fromNode, fromPinName){
+        link : function(inputPinName, fromNode, fromPinName) {
 
             // The relationship from output pin to input pin is one-on-multiple
             this.inputLinks[ inputPinName ] = {
                 node : fromNode,
                 pin : fromPinName
             }
-            if( ! fromNode.outputLinks[ fromPinName ] ){
+            if (! fromNode.outputLinks[ fromPinName ]) {
                 fromNode.outputLinks[ fromPinName ] = [];
             }
-            fromNode.outputLinks[ fromPinName ].push( {
+            fromNode.outputLinks[ fromPinName ].push({
                 node : this,
                 pin : inputPinName
-            } )
+            })
         },
 
-        clear : function(){
+        clear : function() {
             this.inputLinks = {};
             this.outputLinks = {};
         },
 
-        updateReference : function( ){
-            for( var name in this.outputLinks ){
+        updateReference : function() {
+            for (var name in this.outputLinks) {
                 this._outputReferences[ name ] = this.outputLinks[name].length;
             }
         }
@@ -15622,91 +16765,91 @@ define('3d/compositor/graph/node',['require','core/base','../pass','../../frameb
 /**
  * Node Group
  */
-define('3d/compositor/graph/group',['require','./node','./graph'],function(require){
+define('3d/compositor/graph/group',['require','./node','./graph'],function(require) {
 
     var Node = require("./node");
     var Graph = require("./graph");
 
-    var Group = Node.derive(function(){
+    var Group = Node.derive(function() {
         return {
             nodes : [],
 
             _textures : {}
         }
     }, {
-        add : function(node){
+        add : function(node) {
             return Graph.prototype.add.call(this, node);
         },
 
-        remove : function(node){
+        remove : function(node) {
             return Graph.prototype.remove.call(this, node);
         },
 
-        update : function(){
+        update : function() {
             return Graph.prototype.update.call(this);
         },
 
-        findPin : function(info){
+        findPin : function(info) {
             return Graph.prototype.findPin.call(this, info);
         },
 
-        render : function(renderer){
-            if(this.isDirty("graph")){
+        render : function(renderer) {
+            if (this.isDirty("graph")) {
                 this.update();
                 this.fresh("graph");
             }
             
             var groupInputTextures = {};
 
-            for(var inputName in this.inputLinks){
+            for (var inputName in this.inputLinks) {
                 var link = this.inputLinks[inputName];
                 var inputTexture = link.node.getOutput(renderer, link.pin);
                 groupInputTextures[inputName] = inputTexture;
             }
 
-            for(var i = 0; i < this.nodes.length; i++){
+            for (var i = 0; i < this.nodes.length; i++) {
                 var node = this.nodes[i];
                 // Update the reference number of each output texture
                 node.updateReference();
                 // Set the input texture to portal node of group
-                if(node.groupInputs){
+                if (node.groupInputs) {
                     this._updateGroupInputs(node, groupInputTextures);
                 }
             }
-            for(var i = 0; i < this.nodes.length; i++){
+            for (var i = 0; i < this.nodes.length; i++) {
                 var node = this.nodes[i];
-                if(node.groupOutputs){
+                if (node.groupOutputs) {
                     this._updateGroupOutputs(node, renderer);
                 }
                 // Direct output
-                if( ! node.outputs){
+                if ( ! node.outputs) {
                     node.render(renderer);
                 }
             }
-            for(var name in this.groupOutputs){
-                if( ! this._textures[name]){
+            for (var name in this.groupOutputs) {
+                if ( ! this._textures[name]) {
                     console.error('Group output pin "' + name + '" is not attached');
                 }
             }
 
-            for( var inputName in this.inputLinks ){
+            for (var inputName in this.inputLinks) {
                 var link = this.inputLinks[inputName];
                 link.node.removeReference( link.pin );
             }
         },
 
-        _updateGroupInputs : function(node, groupInputTextures){
-            for(var name in groupInputTextures){
+        _updateGroupInputs : function(node, groupInputTextures) {
+            for (var name in groupInputTextures) {
                 var texture = groupInputTextures[name];
-                if(node.groupInputs[name]){
+                if (node.groupInputs[name]) {
                     var pin  = node.groupInputs[name];
                     node.pass.setUniform(pin, texture);
                 }
             }
         },
 
-        _updateGroupOutputs : function(node, renderer){
-            for(var name in node.groupOutputs){
+        _updateGroupOutputs : function(node, renderer) {
+            for (var name in node.groupOutputs) {
                 var groupOutputPinName = node.groupOutputs[name];
                 var texture = node.getOutput(renderer, name);
                 this._textures[groupOutputPinName] = texture;
@@ -15719,7 +16862,7 @@ define('3d/compositor/graph/group',['require','./node','./graph'],function(requi
 /**
  * @export{class} SceneNode
  */
-define('3d/compositor/graph/scenenode',['require','./node','../pass','../../framebuffer','./texturepool','../../webglinfo'], function( require ){
+define('3d/compositor/graph/scenenode',['require','./node','../pass','../../framebuffer','./texturepool','../../webglinfo'],function(require) {
 
     var Node = require("./node");
     var Pass = require("../pass");
@@ -15727,78 +16870,78 @@ define('3d/compositor/graph/scenenode',['require','./node','../pass','../../fram
     var texturePool = require("./texturepool");
     var WebGLInfo = require('../../webglinfo');
 
-    var SceneNode = Node.derive( function(){
+    var SceneNode = Node.derive(function() {
         return {
             scene : null,
             camera : null,
             material : null
         }
-    }, function(){
-        if(this.frameBuffer){
+    }, function() {
+        if (this.frameBuffer) {
             this.frameBuffer.depthBuffer = true;
         }
     }, {
-        render : function( renderer ){
+        render : function(renderer) {
             
             var _gl = renderer.gl;
 
-            if( ! this.outputs){
-                renderer.render( this.scene, this.camera );
-            }else{
+            if (! this.outputs) {
+                renderer.render(this.scene, this.camera);
+            } else {
                 
                 var frameBuffer = this.frameBuffer;
 
-                for( var name in this.outputs){
+                for (var name in this.outputs) {
                     var outputInfo = this.outputs[name];
-                    var texture = texturePool.get( outputInfo.parameters || {} );
+                    var texture = texturePool.get(outputInfo.parameters || {});
                     this._textures[name] = texture;
 
                     var attachment = outputInfo.attachment || _gl.COLOR_ATTACHMENT0;
-                    if(typeof(attachment) == "string"){
+                    if (typeof(attachment) == "string") {
                         attachment = _gl[attachment];
                     }
-                    frameBuffer.attach( renderer.gl, texture, attachment);
+                    frameBuffer.attach(renderer.gl, texture, attachment);
                 }
-                frameBuffer.bind( renderer );
+                frameBuffer.bind(renderer);
 
                 // MRT Support in chrome
                 // https://www.khronos.org/registry/webgl/sdk/tests/conformance/extensions/ext-draw-buffers.html
                 var ext = WebGLInfo.getExtension(_gl, "EXT_draw_buffers");
-                if(ext){
+                if (ext) {
                     var bufs = [];
-                    for( var attachment in this.outputs){
+                    for (var attachment in this.outputs) {
                         attachment = parseInt(attachment);
-                        if(attachment >= _gl.COLOR_ATTACHMENT0 && attachment <= _gl.COLOR_ATTACHMENT0 + 8){
+                        if (attachment >= _gl.COLOR_ATTACHMENT0 && attachment <= _gl.COLOR_ATTACHMENT0 + 8) {
                             bufs.push(attachment);
                         }
                     }
                     ext.drawBuffersEXT(bufs);
                 }
 
-                if( this.material ){
+                if (this.material) {
                     this.scene.material = this.material;
                 }
-                renderer.render( this.scene, this.camera );
+                renderer.render(this.scene, this.camera);
                 this.scene.material = null;
 
-                frameBuffer.unbind( renderer );
+                frameBuffer.unbind(renderer);
             }
         }
     })
 
     return SceneNode;
-} );
+});
 /**
  * @export{class} TextureNode
  */
-define('3d/compositor/graph/texturenode',['require','./node','../../framebuffer','./texturepool','../../shader'], function( require ){
+define('3d/compositor/graph/texturenode',['require','./node','../../framebuffer','./texturepool','../../shader'],function(require) {
 
     var Node = require("./node");
     var FrameBuffer = require("../../framebuffer");
     var texturePool = require("./texturepool");
     var Shader = require("../../shader");
 
-    var TextureNode = Node.derive( function(){
+    var TextureNode = Node.derive(function() {
         return {
             
             shader : Shader.source("buildin.compositor.output"),
@@ -15806,50 +16949,50 @@ define('3d/compositor/graph/texturenode',['require','./node','../../framebuffer'
             texture : null
         }
     }, {
-        render : function( renderer ){
+        render : function(renderer) {
             var _gl = renderer.gl;
             this.pass.setUniform("texture", this.texture);
             
-            if( ! this.outputs){
+            if (! this.outputs) {
                 this.pass.outputs = null;
-                this.pass.render( renderer );
-            }else{
+                this.pass.render(renderer);
+            } else {
                 
                 this.pass.outputs = {};
 
-                for( var name in this.outputs){
+                for (var name in this.outputs) {
 
                     var outputInfo = this.outputs[name];
 
-                    var texture = texturePool.get( outputInfo.parameters || {} );
+                    var texture = texturePool.get(outputInfo.parameters || {});
                     this._textures[name] = texture;
 
                     var attachment = outputInfo.attachment || _gl.COLOR_ATTACHMENT0;
-                    if(typeof(attachment) == "string"){
+                    if (typeof(attachment) == "string") {
                         attachment = _gl[attachment];
                     }
                     this.pass.outputs[ attachment ] = texture;
 
                 }
 
-                this.pass.render( renderer, this.frameBuffer );
+                this.pass.render(renderer, this.frameBuffer);
             }
         }
     })
 
     return TextureNode;
-} );
+});
 ;
 define("3d/debug/pointlight", function(){});
 
 /**
  * @export{class} RenderInfo
  */
-define('3d/debug/renderinfo',['require','core/base'], function(require){
+define('3d/debug/renderinfo',['require','core/base'],function(require) {
 
     var Base = require("core/base");
 
-    var RenderInfo = Base.derive( function(){
+    var RenderInfo = Base.derive(function() {
         return {
             renderer : null,
 
@@ -15866,36 +17009,36 @@ define('3d/debug/renderinfo',['require','core/base'], function(require){
             _startTime : 0
         }
     }, {
-        enable : function(){
+        enable : function() {
             this.renderer.on("beforerender", this._beforeRender, this);
             this.renderer.on("afterrender", this._afterRender, this);
             this.renderer.on("afterrender:mesh", this._afterRenderMesh, this);
         },
-        disable : function(){
+        disable : function() {
             this.renderer.off("beforerender", this._beforeRender);
             this.renderer.off("afterrender", this._afterRender);
             this.renderer.off("afterrender:mesh", this._afterRenderMesh);
         },
-        clear : function(){
+        clear : function() {
             this.vertexNumber = 0;
             this.faceNumber = 0;
             this.drawcallNumber = 0;
             this.meshNumber = 0;
             this.frameTime = 0;
         },
-        _beforeRender : function(){
+        _beforeRender : function() {
             this.clear();
 
             this._startTime = new Date().getTime();
         },
 
-        _afterRender : function(){
+        _afterRender : function() {
             var endTime = new Date().getTime();
 
             this.frameTime = endTime - this._startTime;
         },
 
-        _afterRenderMesh : function(_gl, drawInfo){
+        _afterRenderMesh : function(_gl, drawInfo) {
             this.vertexNumber += drawInfo.vertexNumber;
             this.faceNumber += drawInfo.faceNumber;
             this.drawcallNumber += drawInfo.drawcallNumber;
@@ -15906,7 +17049,7 @@ define('3d/debug/renderinfo',['require','core/base'], function(require){
     return RenderInfo;
 } );
 
-define('3d/geometry/cube',['require','../geometry','./plane','core/matrix4','core/vector3','_'], function(require){
+define('3d/geometry/cube',['require','../geometry','./plane','core/matrix4','core/vector3','_'],function(require) {
 
     var Geometry = require('../geometry');
     var Plane = require('./plane');
@@ -15916,7 +17059,7 @@ define('3d/geometry/cube',['require','../geometry','./plane','core/matrix4','cor
 
     var planeMatrix = new Matrix4();
     
-    var Cube = Geometry.derive( function(){
+    var Cube = Geometry.derive(function() {
 
         return {
             widthSegments : 1,
@@ -15925,7 +17068,7 @@ define('3d/geometry/cube',['require','../geometry','./plane','core/matrix4','cor
             // TODO double side material
             inside : false
         }
-    }, function(){
+    }, function() {
         var planes = {
             "px" : createPlane("px", this.depthSegments, this.heightSegments),
             "nx" : createPlane("nx", this.depthSegments, this.heightSegments),
@@ -15935,29 +17078,29 @@ define('3d/geometry/cube',['require','../geometry','./plane','core/matrix4','cor
             "nz" : createPlane("nz", this.widthSegments, this.heightSegments),
         };
         var cursor = 0;
-        for( var pos in planes ){
-            _.each(['position', 'texcoord0', 'normal'], function(attrName){
+        for (var pos in planes) {
+            _.each(['position', 'texcoord0', 'normal'], function(attrName) {
                 var attrArray = planes[pos].attributes[attrName].value;
-                for(var i = 0; i < attrArray.length; i++ ){
+                for (var i = 0; i < attrArray.length; i++) {
                     var value = attrArray[i];
-                    if(this.inside && attrName === "normal"){
+                    if (this.inside && attrName === "normal") {
                         value[0] = -value[0];
                         value[1] = -value[1];
                         value[2] = -value[2];
                     }
-                    this.attributes[attrName].value.push( value );
+                    this.attributes[attrName].value.push(value);
                 }
                 var plane = planes[pos];
-                for(var i = 0; i < plane.faces.length; i++){
+                for (var i = 0; i < plane.faces.length; i++) {
                     var face = plane.faces[i];
-                    this.faces.push( [ face[0]+cursor, face[1]+cursor, face[2]+cursor ] );
+                    this.faces.push([ face[0]+cursor, face[1]+cursor, face[2]+cursor ]);
                 }
             }, this)
             cursor += planes[pos].getVerticesNumber();
         }
     })
 
-    function createPlane( pos, widthSegments, heightSegments ){
+    function createPlane(pos, widthSegments, heightSegments) {
 
         planeMatrix.identity();
 
@@ -15966,38 +17109,38 @@ define('3d/geometry/cube',['require','../geometry','./plane','core/matrix4','cor
             heightSegments : heightSegments
         })
 
-        switch( pos ){
+        switch(pos) {
             case "px":
-                planeMatrix.translate(new Vector3(1, 0, 0) );
-                planeMatrix.rotateY( Math.PI/2 );
+                planeMatrix.translate(new Vector3(1, 0, 0));
+                planeMatrix.rotateY(Math.PI/2);
                 break;
             case "nx":
-                planeMatrix.translate(new Vector3(-1, 0, 0) );
-                planeMatrix.rotateY( -Math.PI/2 );
+                planeMatrix.translate(new Vector3(-1, 0, 0));
+                planeMatrix.rotateY(-Math.PI/2);
                 break;
             case "py":
-                planeMatrix.translate(new Vector3(0, 1, 0) );
-                planeMatrix.rotateX( -Math.PI/2 );
+                planeMatrix.translate(new Vector3(0, 1, 0));
+                planeMatrix.rotateX(-Math.PI/2);
                 break;
             case "ny":
-                planeMatrix.translate(new Vector3(0, -1, 0) );
-                planeMatrix.rotateX( Math.PI/2 );
+                planeMatrix.translate(new Vector3(0, -1, 0));
+                planeMatrix.rotateX(Math.PI/2);
                 break;
             case "pz":
-                planeMatrix.translate(new Vector3(0, 0, 1) );
+                planeMatrix.translate(new Vector3(0, 0, 1));
                 break;
             case "nz":
-                planeMatrix.translate(new Vector3(0, 0, -1) );
-                planeMatrix.rotateY( Math.PI );
+                planeMatrix.translate(new Vector3(0, 0, -1));
+                planeMatrix.rotateY(Math.PI);
                 break;
         }
-        plane.applyMatrix( planeMatrix );
+        plane.applyMatrix(planeMatrix);
         return plane;
     }
 
     return Cube;
-} );
-define('3d/geometry/sphere',['require','../geometry','glmatrix'], function(require){
+});
+define('3d/geometry/sphere',['require','../geometry','glmatrix'],function(require) {
 
 	var Geometry = require('../geometry');
     var glMatrix = require('glmatrix');
@@ -16005,7 +17148,7 @@ define('3d/geometry/sphere',['require','../geometry','glmatrix'], function(requi
     var vec2 = glMatrix.vec2;
 
 	// From three.js SphereGeometry
-	var Sphere = Geometry.derive( function(){
+	var Sphere = Geometry.derive(function() {
 
 		return {
             widthSegments : 20,
@@ -16019,7 +17162,7 @@ define('3d/geometry/sphere',['require','../geometry','glmatrix'], function(requi
 
             radius : 1
 		}
-	}, function(){
+	}, function() {
         
         var positions = this.attributes.position.value;
         var texcoords = this.attributes.texcoord0.value;
@@ -16040,9 +17183,9 @@ define('3d/geometry/sphere',['require','../geometry','glmatrix'], function(requi
             radius = this.radius;
 
 
-        for ( j = 0; j <= heightSegments; j ++ ) {
+        for (j = 0; j <= heightSegments; j ++) {
 
-            for ( i = 0; i <= widthSegments; i ++ ) {
+            for (i = 0; i <= widthSegments; i ++) {
 
                 u = i / widthSegments;
                 v = j / heightSegments;
@@ -16051,11 +17194,11 @@ define('3d/geometry/sphere',['require','../geometry','glmatrix'], function(requi
                 y = radius * Math.cos(thetaStart + v * thetaLength);
                 z = radius * Math.sin(phiStart + u * phiLength) * Math.sin(thetaStart + v * thetaLength);
 
-                positions.push( vec3.fromValues(x, y, z) );
-                texcoords.push( vec2.fromValues(u, v) );
+                positions.push(vec3.fromValues(x, y, z));
+                texcoords.push(vec2.fromValues(u, v));
 
                 normal = vec3.fromValues(x, y, z);
-                normals.push( vec3.normalize(normal, normal) );
+                normals.push(vec3.normalize(normal, normal));
 
             }
 
@@ -16067,28 +17210,28 @@ define('3d/geometry/sphere',['require','../geometry','glmatrix'], function(requi
 
         var len = widthSegments+1;
 
-        for ( j = 0; j < heightSegments; j ++ ) {
+        for (j = 0; j < heightSegments; j ++) {
 
-            for ( i = 0; i < widthSegments; i ++ ) {
+            for (i = 0; i < widthSegments; i ++) {
 
                 i1 = j * len + i;
                 i2 = j * len + i + 1;
                 i3 = (j + 1) * len + i + 1;
                 i4 = (j + 1) * len + i;
 
-                faces.push( vec3.fromValues(i1, i2, i3) );
-                faces.push( vec3.fromValues(i3, i4, i1) );
+                faces.push(vec3.fromValues(i1, i2, i3));
+                faces.push(vec3.fromValues(i3, i4, i1));
             }
         }
 	})
 
     return Sphere;
-} );
-define('3d/light',['require','./node'], function(require){
+});
+define('3d/light',['require','./node'],function(require){
 
     var Node = require("./node");
 
-    var Light = Node.derive( function(){
+    var Light = Node.derive(function(){
         return {
             color : [1, 1, 1],
             intensity : 1.0,
@@ -16098,11 +17241,11 @@ define('3d/light',['require','./node'], function(require){
             shadowResolution : 512
         }
     }, {
-    } );
+    });
 
     return Light;
-} );
-define('3d/light/ambient',['require','../light','../shader'], function(require){
+});
+define('3d/light/ambient',['require','../light','../shader'],function(require) {
 
     var Light = require('../light'),
         Shader = require('../shader');
@@ -16113,7 +17256,7 @@ define('3d/light/ambient',['require','../light','../shader'], function(require){
 
     Shader.import(SHADER_STR);
 
-    var AmbientLight = Light.derive(function(){
+    var AmbientLight = Light.derive(function() {
         return {
             castShadow : false
         }
@@ -16124,18 +17267,18 @@ define('3d/light/ambient',['require','../light','../shader'], function(require){
         uniformTemplates : {
             'ambientLightColor' : {
                 type : '3f',
-                value : function( instance ){
+                value : function(instance) {
                     var color = instance.color,
                         intensity = instance.intensity;
-                    return [ color[0]*intensity, color[1]*intensity, color[1]*intensity ];
+                    return [color[0]*intensity, color[1]*intensity, color[1]*intensity];
                 }
             }
         }
     })
 
     return AmbientLight;
-} );
-define('3d/light/directional',['require','../light','../shader','core/vector3'], function(require){
+});
+define('3d/light/directional',['require','../light','../shader','core/vector3'],function(require) {
 
     var Light = require('../light');
     var Shader = require('../shader');
@@ -16148,7 +17291,7 @@ define('3d/light/directional',['require','../light','../shader','core/vector3'],
 
     Shader.import(SHADER_STR);
 
-    var DirectionalLight = Light.derive( function(){
+    var DirectionalLight = Light.derive(function() {
 
         return {
             // Config of orthographic camera for shadow mapping generate
@@ -16168,9 +17311,9 @@ define('3d/light/directional',['require','../light','../shader','core/vector3'],
         uniformTemplates : {
             'directionalLightDirection' : {
                 type : '3f',
-                value : ( function(){
+                value : (function() {
                     var z = new Vector3();
-                    return function( instance ){
+                    return function(instance) {
                         // Direction is target to eye
                         return z.copy(instance.matrix.forward).negate()._array;
                     }
@@ -16178,7 +17321,7 @@ define('3d/light/directional',['require','../light','../shader','core/vector3'],
             },
             'directionalLightColor' : {
                 type : '3f',
-                value : function( instance ){
+                value : function(instance) {
                     var color = instance.color,
                         intensity = instance.intensity;
                     return [ color[0]*intensity, color[1]*intensity, color[1]*intensity ];
@@ -16189,7 +17332,7 @@ define('3d/light/directional',['require','../light','../shader','core/vector3'],
 
     return DirectionalLight;
 } );
-define('3d/light/point',['require','../light','../shader'], function(require){
+define('3d/light/point',['require','../light','../shader'],function(require) {
 
     var Light = require('../light'),
         Shader = require('../shader');
@@ -16203,7 +17346,7 @@ define('3d/light/point',['require','../light','../shader'], function(require){
 
     Shader.import(SHADER_STR);
 
-    var PointLight = Light.derive(function(){
+    var PointLight = Light.derive(function() {
 
         return {
             range : 100,
@@ -16217,19 +17360,19 @@ define('3d/light/point',['require','../light','../shader'], function(require){
         uniformTemplates : {
             'pointLightPosition' : {
                 type : '3f',
-                value : function( instance ){
+                value : function(instance) {
                     return instance.getWorldPosition()._array;
                 }
             },
             'pointLightRange' : {
                 type : '1f',
-                value : function( instance ){
+                value : function(instance) {
                     return instance.range;
                 }
             },
             'pointLightColor' : {
                 type : '3f',
-                value : function( instance ){
+                value : function(instance) {
                     var color = instance.color,
                         intensity = instance.intensity;
                     return [ color[0]*intensity, color[1]*intensity, color[1]*intensity ];
@@ -16239,8 +17382,8 @@ define('3d/light/point',['require','../light','../shader'], function(require){
     })
 
     return PointLight;
-} );
-define('3d/light/spot',['require','../light','../shader','core/vector3'], function(require){
+});
+define('3d/light/spot',['require','../light','../shader','core/vector3'],function(require) {
 
     var Light = require('../light');
     var Shader = require('../shader');
@@ -16273,39 +17416,39 @@ define('3d/light/spot',['require','../light','../shader','core/vector3'], functi
         uniformTemplates : {
             'spotLightPosition' : {
                 type : '3f',
-                value : function( instance ){
+                value : function(instance) {
                     return instance.getWorldPosition()._array;
                 }
             },
             'spotLightRange' : {
                 type : '1f',
-                value : function( instance ){
+                value : function(instance) {
                     return instance.range;
                 }
             },
             'spotLightUmbraAngleCosine' : {
                 type : '1f',
-                value : function( instance ){
+                value : function(instance) {
                     return Math.cos(instance.umbraAngle * Math.PI / 180);
                 }
             },
             'spotLightPenumbraAngleCosine' : {
                 type : '1f',
-                value : function( instance ){
+                value : function(instance) {
                     return Math.cos(instance.penumbraAngle * Math.PI / 180);
                 }
             },
             'spotLightFalloffFactor' : {
                 type : '1f',
-                value : function( instance ){
+                value : function(instance) {
                     return instance.falloffFactor
                 }
             },
             'spotLightDirection' : {
                 type : '3f',
-                value : ( function(){
+                value : (function() {
                     var z = new Vector3();
-                    return function( instance ){
+                    return function(instance) {
                         // Direction is target to eye
                         return z.copy(instance.matrix.forward).negate()._array;
                     }
@@ -16313,7 +17456,7 @@ define('3d/light/spot',['require','../light','../shader','core/vector3'], functi
             },
             'spotLightColor' : {
                 type : '3f',
-                value : function( instance ){
+                value : function(instance) {
                     var color = instance.color,
                         intensity = instance.intensity;
                     return [ color[0]*intensity, color[1]*intensity, color[1]*intensity ];
@@ -16327,7 +17470,7 @@ define('3d/light/spot',['require','../light','../shader','core/vector3'], functi
 /**
  * @export{class} FirstPersonControl
  */
-define('3d/plugin/firstpersoncontrol',['require','core/base','core/vector3','core/matrix4','core/quaternion'], function(require){
+define('3d/plugin/firstpersoncontrol',['require','core/base','core/vector3','core/matrix4','core/quaternion'],function(require) {
 
     var Base = require("core/base");
     var Vector3 = require("core/vector3");
@@ -16336,7 +17479,7 @@ define('3d/plugin/firstpersoncontrol',['require','core/base','core/vector3','cor
 
     var upVector = new Vector3(0, 1, 0);
 
-    var FirstPersonControl = Base.derive(function(){
+    var FirstPersonControl = Base.derive(function() {
         return {
             camera : null,
             canvas : null,
@@ -16353,7 +17496,7 @@ define('3d/plugin/firstpersoncontrol',['require','core/base','core/vector3','cor
             _offsetRoll : 0
         }
     }, {
-        enable : function(){
+        enable : function() {
             this.camera.on("beforeupdate", this._beforeUpdateCamera, this);
 
             this.camera.eulerOrder = ["Y", "X", "Z"];
@@ -16373,7 +17516,7 @@ define('3d/plugin/firstpersoncontrol',['require','core/base','core/vector3','cor
             document.addEventListener("keyup", bindOnce(this._keyUp, this), false);
         },
 
-        disable : function(){
+        disable : function() {
 
             this.camera.off('beforeupdate', this._beforeUpdateCamera);
 
@@ -16383,16 +17526,16 @@ define('3d/plugin/firstpersoncontrol',['require','core/base','core/vector3','cor
                                     el.mozExitPointerLock ||
                                     el.webkitExitPointerLock
 
-            if( el.exitPointerLock ){
+            if (el.exitPointerLock) {
                 el.exitPointerLock();
             }
-            document.removeEventListener("pointerlockchange", bindOnce( this._lockChange, this ));
-            document.removeEventListener("mozpointerlockchange", bindOnce( this._lockChange, this ));
-            document.removeEventListener("webkitpointerlockchange", bindOnce( this._lockChange, this ));
+            document.removeEventListener("pointerlockchange", bindOnce(this._lockChange, this));
+            document.removeEventListener("mozpointerlockchange", bindOnce(this._lockChange, this));
+            document.removeEventListener("webkitpointerlockchange", bindOnce(this._lockChange, this));
         
         },
 
-        requestPointerLock : function(){
+        requestPointerLock : function() {
             var el = this;
             el.requestPointerLock = el.requestPointerLock ||
                                     el.mozRequestPointerLock ||
@@ -16401,11 +17544,11 @@ define('3d/plugin/firstpersoncontrol',['require','core/base','core/vector3','cor
             el.requestPointerLock();
         },
 
-        _beforeUpdateCamera : (function(){
+        _beforeUpdateCamera : (function() {
 
             var rotateQuat = new Quaternion();
             
-            return function(){
+            return function() {
                 
                 var camera = this.camera;
 
@@ -16413,17 +17556,17 @@ define('3d/plugin/firstpersoncontrol',['require','core/base','core/vector3','cor
                     xAxis = camera.matrix.right.normalize(),
                     zAxis = camera.matrix.forward.normalize();
 
-                if( this._moveForward){
+                if (this._moveForward) {
                     // Opposite direction of z
                     position.scaleAndAdd(zAxis, -this.speed);
                 }
-                if( this._moveBackward){
+                if (this._moveBackward) {
                     position.scaleAndAdd(zAxis, this.speed);
                 }
-                if( this._moveLeft){
+                if (this._moveLeft) {
                     position.scaleAndAdd(xAxis, -this.speed/2);
                 }
-                if( this._moveRight){
+                if (this._moveRight) {
                     position.scaleAndAdd(xAxis, this.speed/2);
                 }
 
@@ -16437,10 +17580,10 @@ define('3d/plugin/firstpersoncontrol',['require','core/base','core/vector3','cor
 
         })(),
 
-        _lockChange : function(){
-            if( document.pointerlockElement === this.canvas ||
+        _lockChange : function() {
+            if (document.pointerlockElement === this.canvas ||
                 document.mozPointerlockElement === this.canvas ||
-                document.webkitPointerLockElement === this.canvas){
+                document.webkitPointerLockElement === this.canvas) {
 
                 document.addEventListener('mousemove', bindOnce(this._mouseMove, this), false);
             }else{
@@ -16448,7 +17591,7 @@ define('3d/plugin/firstpersoncontrol',['require','core/base','core/vector3','cor
             }
         },
 
-        _mouseMove : function(e){
+        _mouseMove : function(e) {
             var dx = e.movementX || 
                     e.mozMovementX ||
                     e.webkitMovementX || 0;
@@ -16461,8 +17604,8 @@ define('3d/plugin/firstpersoncontrol',['require','core/base','core/vector3','cor
             
         },
 
-        _keyDown : function(e){
-            switch( e.keyCode){
+        _keyDown : function(e) {
+            switch(e.keyCode) {
                 case 87: //w
                 case 37: //up arrow
                     this._moveForward = true;
@@ -16482,8 +17625,8 @@ define('3d/plugin/firstpersoncontrol',['require','core/base','core/vector3','cor
             }
         },
 
-        _keyUp : function(e){
-            switch( e.keyCode){
+        _keyUp : function(e) {
+            switch(e.keyCode) {
                 case 87: //w
                 case 37: //up arrow
                     this._moveForward = false;
@@ -16504,9 +17647,9 @@ define('3d/plugin/firstpersoncontrol',['require','core/base','core/vector3','cor
         }
     })
 
-    function bindOnce( func, context){
-        if( ! func.__bindfuc__){
-            func.__bindfuc__ = function(){
+    function bindOnce(func, context) {
+        if (!func.__bindfuc__) {
+            func.__bindfuc__ = function() {
                 return func.apply(context, arguments); 
             }
         }
@@ -16514,11 +17657,11 @@ define('3d/plugin/firstpersoncontrol',['require','core/base','core/vector3','cor
     }
 
     return FirstPersonControl;
-} );
+});
 /**
  * @export{class} OrbitControl
  */
-define('3d/plugin/orbitcontrol',['require','core/base','core/vector3','core/matrix4','core/quaternion'], function(require){
+define('3d/plugin/orbitcontrol',['require','core/base','core/vector3','core/matrix4','core/quaternion'],function(require) {
 
     var Base = require("core/base");
     var Vector3 = require("core/vector3");
@@ -16527,7 +17670,7 @@ define('3d/plugin/orbitcontrol',['require','core/base','core/vector3','core/matr
 
     var upVector = new Vector3(0, 1, 0);
 
-    var OrbitControl = Base.derive(function(){
+    var OrbitControl = Base.derive(function() {
         return {
             
             camera : null,
@@ -16556,7 +17699,7 @@ define('3d/plugin/orbitcontrol',['require','core/base','core/vector3','core/matr
         }
     }, {
 
-        enable : function(){
+        enable : function() {
 
             this.camera.on("beforeupdate", this._beforeUpdateCamera, this);
 
@@ -16565,7 +17708,7 @@ define('3d/plugin/orbitcontrol',['require','core/base','core/vector3','core/matr
             this.canvas.addEventListener("DOMMouseScroll", bindOnce(this._mouseWheel, this), false);
         },
 
-        disable : function(){
+        disable : function() {
             this.camera.off("beforeupdate", this._beforeUpdateCamera);
             this.canvas.removeEventListener("mousedown", bindOnce(this._mouseDown, this));
             this.canvas.removeEventListener("mousewheel", bindOnce(this._mouseWheel, this));
@@ -16573,7 +17716,7 @@ define('3d/plugin/orbitcontrol',['require','core/base','core/vector3','core/matr
             this._mouseUp();
         },
 
-        _mouseWheel : function(e){
+        _mouseWheel : function(e) {
             e.preventDefault();
             var delta = e.wheelDelta // Webkit 
                         || -e.detail; // Firefox
@@ -16581,7 +17724,7 @@ define('3d/plugin/orbitcontrol',['require','core/base','core/vector3','core/matr
             this._forward += delta * this.sensitivity;
         },
 
-        _mouseDown : function(e){
+        _mouseDown : function(e) {
             document.addEventListener("mousemove", bindOnce(this._mouseMove, this), false);
             document.addEventListener("mouseup", bindOnce(this._mouseUp, this), false);
             document.addEventListener("mouseout", bindOnce(this._mouseOut, this), false);
@@ -16590,21 +17733,21 @@ define('3d/plugin/orbitcontrol',['require','core/base','core/vector3','core/matr
             this._offsetY = e.pageY;
 
             // Rotate
-            if( e.button === 0){
+            if (e.button === 0) {
                 this._op = 0;
-            }else if( e.button === 1){
+            } else if (e.button === 1) {
                 this._op = 1;
             }
         },
 
-        _mouseMove : function(e){
+        _mouseMove : function(e) {
             var dx = e.pageX - this._offsetX,
                 dy = e.pageY - this._offsetY;
 
-            if(this._op === 0){
+            if (this._op === 0) {
                 this._offsetPitch += dx * this.sensitivity / 100;
                 this._offsetRoll += dy * this.sensitivity / 100;
-            }else if(this._op === 1){
+            } else if (this._op === 1) {
                 var len = this.origin.distance(this.camera.position);
                 var tmp = Math.sin(this.camera.fov/2) / 100;
                 this._panX -= dx * this.sensitivity * len * tmp;
@@ -16615,29 +17758,28 @@ define('3d/plugin/orbitcontrol',['require','core/base','core/vector3','core/matr
             this._offsetY = e.pageY;
         },
 
-        _mouseUp : function(){
+        _mouseUp : function() {
 
             document.removeEventListener("mousemove", bindOnce(this._mouseMove, this));
             document.removeEventListener("mouseup", bindOnce(this._mouseUp, this));
             document.removeEventListener("mouseout", bindOnce(this._mouseOut, this));
         },
 
-        _mouseOut : function(){
+        _mouseOut : function() {
             this._mouseUp();
         },
 
-        _beforeUpdateCamera : function(){
+        _beforeUpdateCamera : function() {
 
             var camera = this.camera;
 
-            if( this._op === 0){
+            if (this._op === 0) {
                 // Rotate
                 camera.rotateAround(this.origin, upVector, -this._offsetPitch);            
                 var xAxis = camera.matrix.right;
                 camera.rotateAround(this.origin, xAxis, -this._offsetRoll);
                 this._offsetRoll = this._offsetPitch = 0;
-            }
-            else if( this._op === 1){
+            } else if (this._op === 1) {
                 // Pan
                 var xAxis = camera.matrix.right.normalize().scale(-this._panX);
                 var yAxis = camera.matrix.up.normalize().scale(this._panY);
@@ -16655,9 +17797,9 @@ define('3d/plugin/orbitcontrol',['require','core/base','core/vector3','core/matr
         }
     });
 
-    function bindOnce( func, context){
-        if( ! func.__bindfuc__){
-            func.__bindfuc__ = function(){
+    function bindOnce(func, context) {
+        if (!func.__bindfuc__) {
+            func.__bindfuc__ = function() {
                 return func.apply(context, arguments); 
             }
         }
@@ -16679,7 +17821,7 @@ define('3d/shader/source/util.essl',[],function () { return '// Use light attenu
 /**
  * @export{object} library
  */
-define('3d/shader/library',['require','../shader','_','./source/basic.essl','./source/lambert.essl','./source/phong.essl','./source/wireframe.essl','./source/util.essl'], function(require){
+define('3d/shader/library',['require','../shader','_','./source/basic.essl','./source/lambert.essl','./source/phong.essl','./source/wireframe.essl','./source/util.essl'],function(require) {
 
     var Shader = require("../shader");
     var _ = require("_");
@@ -16692,21 +17834,21 @@ define('3d/shader/library',['require','../shader','_','./source/basic.essl','./s
     // ShaderLibrary.get("buildin.phong", "diffuse", "normal");
     // Or
     // ShaderLibrary.get("buildin.phong", ["diffuse", "normal"]);
-    function get(name, enabledTextures){
-        if( !enabledTextures){
+    function get(name, enabledTextures) {
+        if (!enabledTextures) {
             enabledTextures = [];
-        }
-        else if(typeof(enabledTextures) === "string"){
+        } 
+        else if (typeof(enabledTextures) === "string") {
             enabledTextures = Array.prototype.slice.call(arguments, 1);
         }
         // Sort as first letter in increase order
         // And merge with name as a key string
         var key = name + "_" + enabledTextures.sort().join(",");
-        if( _pool[key] ){
+        if (_pool[key]) {
             return _pool[key];
-        }else{
+        } else {
             var source = _library[name];
-            if( ! source){
+            if (! source) {
                 console.error('Shader "'+name+'"'+' is not in the library');
                 return;
             }
@@ -16714,7 +17856,7 @@ define('3d/shader/library',['require','../shader','_','./source/basic.essl','./s
                 "vertex" : source.vertex,
                 "fragment" : source.fragment
             })
-            _.each(enabledTextures, function(symbol){
+            _.each(enabledTextures, function(symbol) {
                 shader.enableTexture(symbol);
             });
             _pool[key] = shader;
@@ -16722,7 +17864,7 @@ define('3d/shader/library',['require','../shader','_','./source/basic.essl','./s
         }
     }
 
-    function put(name, vertex, fragment){
+    function put(name, vertex, fragment) {
         _library[name] = {
             vertex : vertex,
             fragment : fragment
@@ -16730,12 +17872,12 @@ define('3d/shader/library',['require','../shader','_','./source/basic.essl','./s
     }
 
     // Some build in shaders
-    Shader.import( require('./source/basic.essl') );
-    Shader.import( require('./source/lambert.essl') );
-    Shader.import( require('./source/phong.essl') );
-    Shader.import( require('./source/wireframe.essl') );
-    Shader.import( require('./source/util.essl') );
-    // Shader.import( require('3d/shader/source/depth.essl') );
+    Shader.import(require('./source/basic.essl'));
+    Shader.import(require('./source/lambert.essl'));
+    Shader.import(require('./source/phong.essl'));
+    Shader.import(require('./source/wireframe.essl'));
+    Shader.import(require('./source/util.essl'));
+    // Shader.import(require('3d/shader/source/depth.essl'));
 
     put("buildin.basic", Shader.source("buildin.basic.vertex"), Shader.source("buildin.basic.fragment"));
     put("buildin.lambert", Shader.source("buildin.lambert.vertex"), Shader.source("buildin.lambert.fragment"));
@@ -16747,13 +17889,13 @@ define('3d/shader/library',['require','../shader','_','./source/basic.essl','./s
         get : get,
         put : put
     }
-} );
+});
 define('3d/prepass/sm.essl',[],function () { return '/**\n * NORMAL\n */\n@export buildin.sm.depth.vertex\n\nuniform mat4 worldViewProjection : WORLDVIEWPROJECTION;\n\nattribute vec3 position : POSITION;\nvarying vec4 v_ViewPosition;\nvoid main(){\n\n    v_ViewPosition = worldViewProjection * vec4( position, 1.0 );\n    gl_Position = worldViewProjection * vec4( position , 1.0 );\n\n}\n@end\n////////////////////////////////////////////////////////////////\n@export buildin.sm.depth.fragment\n\nvarying vec4 v_ViewPosition;\n\n@import buildin.util.pack_depth\n\nvoid main(){\n    // Whats the difference between gl_FragCoord.z and this v_ViewPosition\n    // gl_FragCoord consider the polygon offset ?\n    float z = v_ViewPosition.z / v_ViewPosition.w;\n    // Map to 0.0 - 1.0\n    gl_FragColor = packDepth((z + 1.0) / 2.0);\n}\n@end\n\n\n\n@export buildin.sm.distance.vertex\n\nuniform mat4 worldViewProjection : WORLDVIEWPROJECTION;\nuniform mat4 world : WORLD;\n\nattribute vec3 position : POSITION;\n\nvarying vec3 v_WorldPosition;\n\nvoid main(){\n\n    gl_Position = worldViewProjection * vec4( position , 1.0 );\n    v_WorldPosition = ( world * vec4(position, 1.0) ).xyz;\n}\n\n@end\n\n@export buildin.sm.distance.fragment\n\nuniform vec3 lightPosition;\n\nvarying vec3 v_WorldPosition;\n\n@import buildin.util.pack_depth\n\nvoid main(){\n\n    float dist = distance(lightPosition, v_WorldPosition);\n\n    gl_FragColor = packDepth( dist );\n}\n@end\n\n/**\n * PCF\n */\n\n\n////////////////////////////////////////////////////////////////\n@export buildin.plugin.compute_shadow_map\n\n#if defined(SPOT_LIGHT_SHADOWMAP_NUMBER) || defined(DIRECTIONAL_LIGHT_SHADOWMAP_NUMBER) || defined(POINT_LIGHT_SHADOWMAP_NUMBER)\n\n#ifdef SPOT_LIGHT_SHADOWMAP_NUMBER\nuniform sampler2D spotLightShadowMap[ SPOT_LIGHT_SHADOWMAP_NUMBER ];\nuniform mat4 spotLightMatrix[ SPOT_LIGHT_SHADOWMAP_NUMBER ]; \n#endif\n\n#ifdef DIRECTIONAL_LIGHT_SHADOWMAP_NUMBER\nuniform sampler2D directionalLightShadowMap[ DIRECTIONAL_LIGHT_SHADOWMAP_NUMBER ];\nuniform mat4 directionalLightMatrix[ DIRECTIONAL_LIGHT_SHADOWMAP_NUMBER ];\n#endif\n\n#ifdef POINT_LIGHT_SHADOWMAP_NUMBER\nuniform samplerCube pointLightShadowMap[ POINT_LIGHT_SHADOWMAP_NUMBER ];\n#endif\n\nuniform bool shadowEnabled : true;\n\n// Normal\n@import buildin.util.unpack_depth\n\n#if defined(DIRECTIONAL_LIGHT_NUMBER) || defined(SPOT_LIGHT_SHADOWMAP_NUMBER)\n\nfloat shadowContrib(sampler2D map, vec2 uv, float z){\n    vec4 tex = texture2D(map, uv);\n    return (unpackDepth(tex) * 2.0 - 1.0) + 0.003 < z ? 0.0 : 1.0;\n}\n\nfloat pcf(sampler2D map, vec2 uv, float z){\n\n    float shadowFalloff = shadowContrib(map, uv, z);\n    float offset = 1.0/512.0;\n    shadowFalloff += shadowContrib(map, uv+vec2(offset, 0.0), z);\n    shadowFalloff += shadowContrib(map, uv+vec2(offset, offset), z);\n    shadowFalloff += shadowContrib(map, uv+vec2(-offset, offset), z);\n    shadowFalloff += shadowContrib(map, uv+vec2(0.0, offset), z);\n    shadowFalloff += shadowContrib(map, uv+vec2(-offset, 0.0), z);\n    shadowFalloff += shadowContrib(map, uv+vec2(-offset, -offset), z);\n    shadowFalloff += shadowContrib(map, uv+vec2(offset, -offset), z);\n    shadowFalloff += shadowContrib(map, uv+vec2(0.0, -offset), z);\n\n    return shadowFalloff / 9.0;\n}\n\nfloat computeShadowFalloff(sampler2D map, mat4 lightVPM, vec3 position){\n    float shadowFalloff = 1.0;\n    vec4 posInLightSpace = lightVPM * vec4(v_WorldPosition, 1.0);\n    posInLightSpace.xyz /= posInLightSpace.w;\n    // In frustum\n    if( all(greaterThan(posInLightSpace.xyz, vec3(-1.0))) &&\n        all(lessThan(posInLightSpace.xyz, vec3(1.0))) ){\n        // To texture uv\n        vec2 uv = (posInLightSpace.xy+1.0) / 2.0;\n\n        shadowFalloff = pcf(map, uv, posInLightSpace.z);\n    }\n    return shadowFalloff;\n}\n\n#endif\n\n#ifdef POINT_LIGHT_SHADOWMAP_NUMBER\n\nfloat computeShadowFallOfCube( samplerCube map, vec3 direction ){\n    vec4 shadowTex = textureCube(map, direction);\n    float dist = length(direction);\n\n    if( unpackDepth(shadowTex) + 0.002 < dist ){\n        return 0.0;\n    }else{\n        return 1.0;\n    }\n}\n#endif\n\n#if defined(SPOT_LIGHT_SHADOWMAP_NUMBER)\n\nvoid computeShadowFallOfSpotLights( vec3 position, inout float shadowFalloffs[SPOT_LIGHT_NUMBER]  ){\n    for( int i = 0; i < SPOT_LIGHT_SHADOWMAP_NUMBER; i++){\n        float shadowFalloff = computeShadowFalloff( spotLightShadowMap[i], spotLightMatrix[i], position );\n        shadowFalloffs[ i ] = shadowFalloff;\n    }\n    // set default fallof of rest lights\n    for( int i = SPOT_LIGHT_SHADOWMAP_NUMBER; i < SPOT_LIGHT_NUMBER; i++){\n        shadowFalloffs[i] = 1.0;\n    }\n}\n\n#endif\n\n\n#if defined(POINT_LIGHT_SHADOWMAP_NUMBER)\n\nvoid computeShadowFallOfPointLights( vec3 position, inout float shadowFalloffs[POINT_LIGHT_NUMBER]  ){\n    for( int i = 0; i < POINT_LIGHT_SHADOWMAP_NUMBER; i++){\n        vec3 lightPosition = pointLightPosition[i];\n        vec3 direction = position - lightPosition;\n        shadowFalloffs[ i ] = computeShadowFallOfCube( pointLightShadowMap[i], direction );\n    }\n    for( int i = POINT_LIGHT_SHADOWMAP_NUMBER; i < POINT_LIGHT_NUMBER; i++){\n        shadowFalloffs[i] = 1.0;\n    }\n}\n\n#endif\n\n\n#if defined(DIRECTIONAL_LIGHT_SHADOWMAP_NUMBER)\n\nvoid computeShadowFallOfDirectionalLights( vec3 position, inout float shadowFalloffs[DIRECTIONAL_LIGHT_NUMBER] ){\n    for( int i = 0; i < DIRECTIONAL_LIGHT_SHADOWMAP_NUMBER; i++){\n        float shadowFalloff = computeShadowFalloff( directionalLightShadowMap[i], directionalLightMatrix[i], position );\n        shadowFalloffs[i] = shadowFalloff;\n    }\n    // set default fallof of rest lights\n    for( int i = DIRECTIONAL_LIGHT_SHADOWMAP_NUMBER; i < DIRECTIONAL_LIGHT_NUMBER; i++){\n        shadowFalloffs[i] = 1.0;\n    }\n}\n\n#endif\n\n#endif\n\n@end';});
 
 /**
  * @export{class} ShadowMap
  */
-define('3d/prepass/shadowmap',['require','core/base','core/vector3','../shader','../light','../light/spot','../light/directional','../light/point','../shader/library','../material','../framebuffer','../texture/texture2d','../texture/texturecube','../camera/perspective','../camera/orthographic','core/matrix4','_','./sm.essl'], function(require){
+define('3d/prepass/shadowmap',['require','core/base','core/vector3','../shader','../light','../light/spot','../light/directional','../light/point','../shader/library','../material','../framebuffer','../texture/texture2d','../texture/texturecube','../camera/perspective','../camera/orthographic','core/matrix4','_','./sm.essl'],function(require) {
 
     var Base = require("core/base");
     var Vector3 = require("core/vector3");
@@ -16776,9 +17918,9 @@ define('3d/prepass/shadowmap',['require','core/base','core/vector3','../shader',
 
     var frameBuffer = new FrameBuffer();
 
-    Shader.import( require('./sm.essl') );
+    Shader.import(require('./sm.essl'));
 
-    var ShadowMapPlugin = Base.derive(function(){
+    var ShadowMapPlugin = Base.derive(function() {
         return {
             _textures : {},
 
@@ -16796,7 +17938,7 @@ define('3d/prepass/shadowmap',['require','core/base','core/vector3','../shader',
             }
 
         }
-    }, function(){
+    }, function() {
         this._depthMaterial =  new Material({
             shader : new Shader({
                 vertex : Shader.source("buildin.sm.depth.vertex"),
@@ -16813,11 +17955,11 @@ define('3d/prepass/shadowmap',['require','core/base','core/vector3','../shader',
         })
     }, {
 
-        render : function( renderer, scene ){
-            this._renderShadowPass( renderer, scene );
+        render : function(renderer, scene) {
+            this._renderShadowPass(renderer, scene);
         },
 
-        _renderShadowPass : function( renderer, scene ){
+        _renderShadowPass : function(renderer, scene) {
 
             var renderQueue = [],
                 lightCastShadow = [],
@@ -16827,17 +17969,17 @@ define('3d/prepass/shadowmap',['require','core/base','core/vector3','../shader',
 
             scene.update();
 
-            scene.traverse( function(node){
-                if( node.instanceof(Light) ){
-                    if( node.castShadow ){
+            scene.traverse(function(node) {
+                if (node.instanceof(Light)) {
+                    if (node.castShadow) {
                         lightCastShadow.push(node);
                     }
                 }
-                if( node.material && node.material.shader ){
-                    if( node.castShadow ){
+                if (node.material && node.material.shader) {
+                    if (node.castShadow) {
                         renderQueue.push(node);
                     }
-                    if( node.receiveShadow ){
+                    if (node.receiveShadow) {
                         meshReceiveShadow.push(node);
 
                         node.material.setUniform("shadowEnabled", 1);
@@ -16845,10 +17987,10 @@ define('3d/prepass/shadowmap',['require','core/base','core/vector3','../shader',
                         node.material.setUniform("shadowEnabled", 0);
                     }
                 };
-            } );
+            });
 
-            _gl.enable( _gl.DEPTH_TEST );
-            _gl.disable( _gl.BLEND );
+            _gl.enable(_gl.DEPTH_TEST);
+            _gl.disable(_gl.BLEND);
 
             _gl.clearColor(0.0, 0.0, 0.0, 0.0);
             _gl.clear(_gl.COLOR_BUFFER_BIT | _gl.DEPTH_BUFFER_BIT);
@@ -16873,29 +18015,29 @@ define('3d/prepass/shadowmap',['require','core/base','core/vector3','../shader',
 
             var order = this._shadowMapOrder;
             // Store the shadow map in order
-            lightCastShadow.sort(function(a, b){
+            lightCastShadow.sort(function(a, b) {
                 return order[a] - order[b];
             })
             // reset
-            for(var name in this._shadowMapNumber){
+            for (var name in this._shadowMapNumber) {
                 this._shadowMapNumber[name] = 0;
             }
             // Create textures for shadow map
-            _.each( lightCastShadow, function( light ){
+            _.each(lightCastShadow, function(light) {
 
-                if( light.instanceof(SpotLight) ||
-                    light.instanceof(DirectionalLight) ){
+                if (light.instanceof(SpotLight) ||
+                    light.instanceof(DirectionalLight)) {
                     
                     var texture = this._getTexture(light.__GUID__, light);
                     var camera = this._getCamera(light.__GUID__, light);
 
-                    frameBuffer.attach( renderer.gl, texture );
+                    frameBuffer.attach(renderer.gl, texture);
                     frameBuffer.bind(renderer);
 
                     _gl.clear(_gl.COLOR_BUFFER_BIT | _gl.DEPTH_BUFFER_BIT);
 
                     renderer._scene = scene;
-                    renderer.renderQueue( renderQueue, camera, this._depthMaterial, true );
+                    renderer.renderQueue(renderQueue, camera, this._depthMaterial, true);
 
                     frameBuffer.unbind(renderer);
         
@@ -16904,31 +18046,31 @@ define('3d/prepass/shadowmap',['require','core/base','core/vector3','../shader',
                         .invert()
                         .multiplyLeft(camera.projectionMatrix);
 
-                    if( light.instanceof(SpotLight) ){
+                    if (light.instanceof(SpotLight)) {
                         spotLightShadowMaps.push(texture);
                         spotLightMatrices.push(matrix._array);
-                    }else{
+                    } else {
                         directionalLightShadowMaps.push(texture);
                         directionalLightMatrices.push(matrix._array);
                     }
 
-                }else if(light.instanceof(PointLight) ){
+                } else if (light.instanceof(PointLight)) {
                     
                     var texture = this._getTexture(light.__GUID__, light);
-                    pointLightShadowMaps.push( texture );
+                    pointLightShadowMaps.push(texture);
 
-                    for(var i = 0; i < 6; i++){
+                    for (var i = 0; i < 6; i++) {
                         var target = targets[i];
                         var camera = this._getCamera(light.__GUID__, light, target);
 
-                        frameBuffer.attach( renderer.gl, texture, _gl.COLOR_ATTACHMENT0, targetMap[target] );
+                        frameBuffer.attach(renderer.gl, texture, _gl.COLOR_ATTACHMENT0, targetMap[target]);
                         frameBuffer.bind(renderer);
 
                         _gl.clear(_gl.COLOR_BUFFER_BIT | _gl.DEPTH_BUFFER_BIT);
 
                         renderer._scene = scene;
                         this._pointLightDepthMaterial.setUniform("lightPosition", light.position._array);
-                        renderer.renderQueue( renderQueue, camera, this._pointLightDepthMaterial, true );
+                        renderer.renderQueue(renderQueue, camera, this._pointLightDepthMaterial, true);
 
                         frameBuffer.unbind(renderer);
                     }
@@ -16936,26 +18078,26 @@ define('3d/prepass/shadowmap',['require','core/base','core/vector3','../shader',
                 }
 
                 this._shadowMapNumber[ light.type ] ++;
-            }, this );
+            }, this);
 
-            for(var i = 0; i < meshReceiveShadow.length; i++){
+            for (var i = 0; i < meshReceiveShadow.length; i++) {
                 var mesh = meshReceiveShadow[i],
                     material = mesh.material;
 
                 var shader = material.shader;
 
                 var shaderNeedsUpdate = false;
-                for( var name in this._shadowMapNumber ){
+                for (var name in this._shadowMapNumber) {
                     var number = this._shadowMapNumber[name];
                     var key = name + "_SHADOWMAP_NUMBER";
 
-                    if( shader.fragmentDefines[key] !== number &&
-                        number > 0){
+                    if (shader.fragmentDefines[key] !== number &&
+                        number > 0) {
                         shader.fragmentDefines[key] = number;
                         shaderNeedsUpdate = true;
                     }
                 }
-                if( shaderNeedsUpdate){
+                if (shaderNeedsUpdate) {
                     shader.update();
                 }
 
@@ -16969,20 +18111,20 @@ define('3d/prepass/shadowmap',['require','core/base','core/vector3','../shader',
             }
         },
 
-        _getTexture : function(key, light){
+        _getTexture : function(key, light) {
             var texture = this._textures[ key ];
             var resolution = light.shadowResolution || 512;
             var needsUpdate = false;
-            if( texture ){
-                if( texture.width !== resolution){
+            if (texture) {
+                if (texture.width !== resolution) {
                     texture.dispose();
                     needsUpdate = true;
                 }
-            }else{
+            } else{
                 needsUpdate = true;
             }
-            if( needsUpdate){
-                if( light.instanceof(PointLight) ){
+            if (needsUpdate) {
+                if (light.instanceof(PointLight)) {
                     texture = new TextureCube({
                         width : resolution,
                         height : resolution,
@@ -16991,7 +18133,7 @@ define('3d/prepass/shadowmap',['require','core/base','core/vector3','../shader',
                         generateMipmaps : false
                         // type : 'FLOAT'
                     });
-                }else{
+                } else {
                     texture = new Texture2d({
                         width : resolution,
                         height : resolution,
@@ -17008,60 +18150,60 @@ define('3d/prepass/shadowmap',['require','core/base','core/vector3','../shader',
             return texture;
         },
 
-        _getCamera : function(key, light, target){
+        _getCamera : function(key, light, target) {
             var camera = this._cameras[ key ];
-            if( target && ! camera){
+            if (target && !camera) {
                 camera = this._cameras[key] = {};
             }
-            if( target){
+            if (target) {
                 camera = camera[target];   
             }
-            if( ! camera ){
-                if( light.instanceof(SpotLight) ||
-                    light.instanceof(PointLight) ){
+            if (!camera) {
+                if (light.instanceof(SpotLight) ||
+                    light.instanceof(PointLight)) {
                     camera = new PerspectiveCamera({
                         near : 0.1
                     });
-                }else if( light.instanceof(DirectionalLight) ){
-                    camera = new OrthoCamera( light.shadowCamera );
+                } else if (light.instanceof(DirectionalLight)) {
+                    camera = new OrthoCamera(light.shadowCamera);
                 }
-                if( target ){
+                if (target) {
                     this._cameras[key][target] = camera;
-                }else{
+                } else {
                     this._cameras[key] = camera;
                 }
             }
-            if( light.instanceof(SpotLight) ){
+            if (light.instanceof(SpotLight)) {
                 // Update properties
                 camera.fov = light.penumbraAngle * 2;
                 camera.far = light.range;
             }
-            if( light.instanceof(PointLight) ){
+            if (light.instanceof(PointLight)) {
                 camera.far = light.range;
                 camera.fov = 90;
 
                 camera.position.set(0, 0, 0);
-                switch(target){
+                switch (target) {
                     case 'px':
-                        camera.lookAt( px, ny );
+                        camera.lookAt(px, ny);
                         break;
                     case 'nx':
-                        camera.lookAt( nx, ny );
+                        camera.lookAt(nx, ny);
                         break;
                     case 'py':
-                        camera.lookAt( py, pz );
+                        camera.lookAt(py, pz);
                         break;
                     case 'ny':
-                        camera.lookAt( ny, nz );
+                        camera.lookAt(ny, nz);
                         break;
                     case 'pz':
-                        camera.lookAt( pz, ny );
+                        camera.lookAt(pz, ny);
                         break;
                     case 'nz':
-                        camera.lookAt( nz, ny );
+                        camera.lookAt(nz, ny);
                         break;
                 }
-                camera.position.copy( light.position );
+                camera.position.copy(light.position);
                 camera.update();
 
             }else{
@@ -17081,16 +18223,16 @@ define('3d/prepass/shadowmap',['require','core/base','core/vector3','../shader',
     var nz = new Vector3(0, 0, -1);
 
 
-    function createEmptyArray(size, value){
+    function createEmptyArray(size, value) {
         var arr = [];
-        for(var i = 0; i < size; i++){
+        for (var i = 0; i < size; i++) {
             arr.push(value);
         }
         return arr;
     }
     return ShadowMapPlugin;
-} );
-define('3d/renderer',['require','core/base','_','glmatrix','util/util','./light','./mesh','./webglinfo'], function(require){
+});
+define('3d/renderer',['require','core/base','_','glmatrix','util/util','./light','./mesh','./webglinfo'],function(require) {
 
     var Base = require("core/base");
     var _ = require("_");
@@ -17101,7 +18243,7 @@ define('3d/renderer',['require','core/base','_','glmatrix','util/util','./light'
     var Mesh = require("./mesh");
     var WebGLInfo = require('./webglinfo');
 
-    var Renderer = Base.derive( function() {
+    var Renderer = Base.derive(function() {
         return {
 
             __GUID__ : util.genGUID(),
@@ -17131,8 +18273,8 @@ define('3d/renderer',['require','core/base','_','glmatrix','util/util','./light'
             viewportInfo : {},
 
         }
-    }, function(){
-        if ( ! this.canvas) {
+    }, function() {
+        if (! this.canvas) {
             this.canvas = document.createElement("canvas");
         }
         try {
@@ -17146,7 +18288,7 @@ define('3d/renderer',['require','core/base','_','glmatrix','util/util','./light'
             });
             this.gl.__GUID__ = this.__GUID__;
 
-            this.resize( this.canvas.width, this.canvas.height );
+            this.resize(this.canvas.width, this.canvas.height);
 
             WebGLInfo.initialize(this.gl);
         }
@@ -17159,7 +18301,7 @@ define('3d/renderer',['require','core/base','_','glmatrix','util/util','./light'
             var canvas = this.canvas;
             // http://www.khronos.org/webgl/wiki/HandlingHighDPI
             // set the display size of the canvas.
-            if( this.devicePixelRatio !== 1.0){
+            if (this.devicePixelRatio !== 1.0) {
                 canvas.style.width = width + "px";
                 canvas.style.height = height + "px";
             }
@@ -17168,12 +18310,12 @@ define('3d/renderer',['require','core/base','_','glmatrix','util/util','./light'
             canvas.width = width * this.devicePixelRatio;
             canvas.height = height * this.devicePixelRatio;
 
-            this.setViewport(0, 0, canvas.width, canvas.height );
+            this.setViewport(0, 0, canvas.width, canvas.height);
         },
 
         setViewport : function(x, y, width, height) {
 
-            this.gl.viewport( x, y, width, height );
+            this.gl.viewport(x, y, width, height);
 
             this.viewportInfo = {
                 x : x,
@@ -17183,11 +18325,11 @@ define('3d/renderer',['require','core/base','_','glmatrix','util/util','./light'
             }
         },
 
-        render : function( scene, camera, silent ) {
+        render : function(scene, camera, silent) {
             
             var _gl = this.gl;
             
-            if( ! silent){
+            if (! silent) {
                 // Render plugin like shadow mapping must set the silent true
                 this.trigger("beforerender", scene, camera);
             }
@@ -17208,69 +18350,69 @@ define('3d/renderer',['require','core/base','_','glmatrix','util/util','./light'
 
             // Traverse the scene and add the renderable
             // object to the render queue;
-            scene.traverse( function(node) {
-                if( ! node.visible){
+            scene.traverse(function(node) {
+                if (! node.visible) {
                     return true;
                 }
-                if( node.instanceof( Light ) ){
-                    lights.push( node );
+                if (node.instanceof(Light)) {
+                    lights.push(node);
                 }
                 // A node have render method and material property
                 // can be rendered on the scene
-                if( ! node.render ) {
+                if (! node.render) {
                     return;
                 }
-                if( sceneMaterial ){
-                    if( sceneMaterial.transparent ){
-                        transparentQueue.push( node );
+                if (sceneMaterial) {
+                    if (sceneMaterial.transparent) {
+                        transparentQueue.push(node);
                     }else{
-                        opaqueQueue.push( node );
+                        opaqueQueue.push(node);
                     }
                 }else{
-                    if(! node.material || ! node.material.shader){
+                    if (! node.material || ! node.material.shader) {
                         return;
                     }
-                    if( ! node.geometry){
+                    if (! node.geometry) {
                         return;
                     }
-                    if( node.material.transparent ){
-                        transparentQueue.push( node );
+                    if (node.material.transparent) {
+                        transparentQueue.push(node);
                     }else{
-                        opaqueQueue.push( node );
+                        opaqueQueue.push(node);
                     }
                 }
-            } )
+            })
     
-            if( scene.filter ){
-                opaqueQueue = _.filter( opaqueQueue, scene.filter );
-                transparentQueue = _.filter( transparentQueue, scene.filter );
+            if (scene.filter) {
+                opaqueQueue = _.filter(opaqueQueue, scene.filter);
+                transparentQueue = _.filter(transparentQueue, scene.filter);
             }
 
             var lightNumber = {};
             for (var i = 0; i < lights.length; i++) {
                 var light = lights[i];
-                if( ! lightNumber[light.type] ){
+                if (! lightNumber[light.type]) {
                     lightNumber[light.type] = 0;
                 }
                 lightNumber[light.type]++;
             }
             scene.lightNumber = lightNumber;
-            this.updateLightUnforms( lights );
+            this.updateLightUnforms(lights);
 
             // Sort material to reduce the cost of setting uniform in material
             // PENDING : sort geometry ??
-            opaqueQueue.sort( this._materialSortFunc );
-            transparentQueue.sort( this._materialSortFunc );
+            opaqueQueue.sort(this._materialSortFunc);
+            transparentQueue.sort(this._materialSortFunc);
 
-            if( ! silent){
+            if (! silent) {
                 this.trigger("beforerender:opaque", opaqueQueue);
             }
 
-            _gl.enable( _gl.DEPTH_TEST );
-            _gl.disable( _gl.BLEND );
-            this.renderQueue( opaqueQueue, camera, sceneMaterial, silent );
+            _gl.enable(_gl.DEPTH_TEST);
+            _gl.disable(_gl.BLEND);
+            this.renderQueue(opaqueQueue, camera, sceneMaterial, silent);
 
-            if( ! silent){
+            if (! silent) {
                 this.trigger("afterrender:opaque", opaqueQueue);
                 this.trigger("beforerender:transparent", transparentQueue);
             }
@@ -17278,12 +18420,12 @@ define('3d/renderer',['require','core/base','_','glmatrix','util/util','./light'
             _gl.disable(_gl.DEPTH_TEST);
             _gl.enable(_gl.BLEND);
             // Default blend function
-            _gl.blendEquation( _gl.FUNC_ADD );
-            _gl.blendFunc( _gl.SRC_ALPHA, _gl.ONE_MINUS_SRC_ALPHA);
+            _gl.blendEquation(_gl.FUNC_ADD);
+            _gl.blendFunc(_gl.SRC_ALPHA, _gl.ONE_MINUS_SRC_ALPHA);
 
-            this.renderQueue( transparentQueue, camera, sceneMaterial, silent );
+            this.renderQueue(transparentQueue, camera, sceneMaterial, silent);
 
-            if( ! silent){
+            if (! silent) {
                 this.trigger("afterrender:transparent", transparentQueue);
                 this.trigger("afterrender", scene, camera);
             }
@@ -17293,26 +18435,26 @@ define('3d/renderer',['require','core/base','_','glmatrix','util/util','./light'
         updateLightUnforms : function(lights) {
             
             var lightUniforms = this._scene.lightUniforms;
-            for(var symbol in lightUniforms){
+            for (var symbol in lightUniforms) {
                 lightUniforms[symbol].value.length = 0;
             }
             for (var i = 0; i < lights.length; i++) {
                 
                 var light = lights[i];
                 
-                for ( symbol in light.uniformTemplates) {
+                for (symbol in light.uniformTemplates) {
 
                     var uniformTpl = light.uniformTemplates[symbol];
-                    if( ! lightUniforms[symbol] ){
+                    if (! lightUniforms[symbol]) {
                         lightUniforms[ symbol] = {
                             type : "",
                             value : []
                         }
                     }
-                    var value = uniformTpl.value( light );
+                    var value = uniformTpl.value(light);
                     var lu = lightUniforms[symbol];
                     lu.type = uniformTpl.type + "v";
-                    switch(uniformTpl.type){
+                    switch (uniformTpl.type) {
                         case "1i":
                         case "1f":
                             lu.value.push(value);
@@ -17320,7 +18462,7 @@ define('3d/renderer',['require','core/base','_','glmatrix','util/util','./light'
                         case "2f":
                         case "3f":
                         case "4f":
-                            for(var j =0; j < value.length; j++){
+                            for (var j =0; j < value.length; j++) {
                                 lu.value.push(value[j]);
                             }
                             break;
@@ -17331,15 +18473,15 @@ define('3d/renderer',['require','core/base','_','glmatrix','util/util','./light'
             }
         },
 
-        renderQueue : function( queue, camera, globalMaterial, silent ){
+        renderQueue : function(queue, camera, globalMaterial, silent) {
 
             // Calculate view and projection matrix
-            mat4.invert( matrices['VIEW'],  camera.worldMatrix._array );
-            mat4.copy( matrices['PROJECTION'], camera.projectionMatrix._array );
-            mat4.multiply( matrices['VIEWPROJECTION'], camera.projectionMatrix._array, matrices['VIEW'] );
-            mat4.copy( matrices['VIEWINVERSE'], camera.worldMatrix._array );
-            mat4.invert( matrices['PROJECTIONINVERSE'], matrices['PROJECTION'] );
-            mat4.invert( matrices['VIEWPROJECTIONINVERSE'], matrices['VIEWPROJECTION'] );
+            mat4.invert(matrices['VIEW'],  camera.worldMatrix._array);
+            mat4.copy(matrices['PROJECTION'], camera.projectionMatrix._array);
+            mat4.multiply(matrices['VIEWPROJECTION'], camera.projectionMatrix._array, matrices['VIEW']);
+            mat4.copy(matrices['VIEWINVERSE'], camera.worldMatrix._array);
+            mat4.invert(matrices['PROJECTIONINVERSE'], matrices['PROJECTION']);
+            mat4.invert(matrices['VIEWPROJECTIONINVERSE'], matrices['VIEWPROJECTION']);
 
             var prevMaterialID;
             var prevShaderID;
@@ -17353,13 +18495,13 @@ define('3d/renderer',['require','core/base','_','glmatrix','util/util','./light'
                 var geometry = object.geometry;
                 var customBlend = material.transparent && material.blend;
 
-                if (prevShaderID !== shader.__GUID__ ) {
+                if (prevShaderID !== shader.__GUID__) {
                     // Set lights number
                     var lightNumberChanged = false;
-                    if ( ! _.isEqual(shader.lightNumber, scene.lightNumber)) {
+                    if (! _.isEqual(shader.lightNumber, scene.lightNumber)) {
                         lightNumberChanged = true;
                     }
-                    if ( lightNumberChanged ) {
+                    if (lightNumberChanged) {
                         for (var type in scene.lightNumber) {
                             var number = scene.lightNumber[ type ];
                             shader.lightNumber[ type ] = number;
@@ -17367,10 +18509,10 @@ define('3d/renderer',['require','core/base','_','glmatrix','util/util','./light'
                         shader.update();
                     }
 
-                    shader.bind( _gl );
+                    shader.bind(_gl);
 
                     // Set lights uniforms
-                    for (var symbol in scene.lightUniforms ) {
+                    for (var symbol in scene.lightUniforms) {
                         var lu = scene.lightUniforms[symbol];
                         shader.setUniform(_gl, lu.type, symbol, lu.value);
                     }
@@ -17378,87 +18520,87 @@ define('3d/renderer',['require','core/base','_','glmatrix','util/util','./light'
                 }
                 if (prevMaterialID !== material.__GUID__) {
 
-                    material.bind( _gl );
+                    material.bind(_gl);
                     prevMaterialID = material.__GUID__;
 
                     Mesh.materialChanged();
                 }
 
-                if ( customBlend ){
-                    customBlend( _gl );
+                if (customBlend) {
+                    customBlend(_gl);
                 }
 
                 var worldM = object.worldMatrix._array;
 
                 // All matrices ralated to world matrix will be updated on demand;
-                if ( shader.semantics.hasOwnProperty('WORLD') ||
-                    shader.semantics.hasOwnProperty('WORLDTRANSPOSE') ) {
-                    mat4.copy( matrices['WORLD'], worldM );
+                if (shader.semantics.hasOwnProperty('WORLD') ||
+                    shader.semantics.hasOwnProperty('WORLDTRANSPOSE')) {
+                    mat4.copy(matrices['WORLD'], worldM);
                 }
-                if ( shader.semantics.hasOwnProperty('WORLDVIEW') ||
+                if (shader.semantics.hasOwnProperty('WORLDVIEW') ||
                     shader.semantics.hasOwnProperty('WORLDVIEWINVERSE') ||
-                    shader.semantics.hasOwnProperty('WORLDVIEWINVERSETRANSPOSE') ) {
-                    mat4.multiply( matrices['WORLDVIEW'], matrices['VIEW'] , worldM);
+                    shader.semantics.hasOwnProperty('WORLDVIEWINVERSETRANSPOSE')) {
+                    mat4.multiply(matrices['WORLDVIEW'], matrices['VIEW'] , worldM);
                 }
-                if ( shader.semantics.hasOwnProperty('WORLDVIEWPROJECTION') ||
+                if (shader.semantics.hasOwnProperty('WORLDVIEWPROJECTION') ||
                     shader.semantics.hasOwnProperty('WORLDVIEWPROJECTIONINVERSE') ||
-                    shader.semantics.hasOwnProperty('WORLDVIEWPROJECTIONINVERSETRANSPOSE') ){
-                    mat4.multiply( matrices['WORLDVIEWPROJECTION'], matrices['VIEWPROJECTION'] , worldM);
+                    shader.semantics.hasOwnProperty('WORLDVIEWPROJECTIONINVERSETRANSPOSE')) {
+                    mat4.multiply(matrices['WORLDVIEWPROJECTION'], matrices['VIEWPROJECTION'] , worldM);
                 }
-                if ( shader.semantics.hasOwnProperty('WORLDINVERSE') ||
-                    shader.semantics.hasOwnProperty('WORLDINVERSETRANSPOSE') ) {
-                    mat4.invert( matrices['WORLDINVERSE'], worldM );
+                if (shader.semantics.hasOwnProperty('WORLDINVERSE') ||
+                    shader.semantics.hasOwnProperty('WORLDINVERSETRANSPOSE')) {
+                    mat4.invert(matrices['WORLDINVERSE'], worldM);
                 }
-                if ( shader.semantics.hasOwnProperty('WORLDVIEWINVERSE') ||
-                    shader.semantics.hasOwnProperty('WORLDVIEWINVERSETRANSPOSE') ) {
-                    mat4.invert( matrices['WORLDVIEWINVERSE'], matrices['WORLDVIEW'] );
+                if (shader.semantics.hasOwnProperty('WORLDVIEWINVERSE') ||
+                    shader.semantics.hasOwnProperty('WORLDVIEWINVERSETRANSPOSE')) {
+                    mat4.invert(matrices['WORLDVIEWINVERSE'], matrices['WORLDVIEW']);
                 }
-                if ( shader.semantics.hasOwnProperty('WORLDVIEWPROJECTIONINVERSE') ||
-                    shader.semantics.hasOwnProperty('WORLDVIEWPROJECTIONINVERSETRANSPOSE') ){
-                    mat4.invert( matrices['WORLDVIEWPROJECTIONINVERSE'], matrices['WORLDVIEWPROJECTION'] );
+                if (shader.semantics.hasOwnProperty('WORLDVIEWPROJECTIONINVERSE') ||
+                    shader.semantics.hasOwnProperty('WORLDVIEWPROJECTIONINVERSETRANSPOSE')) {
+                    mat4.invert(matrices['WORLDVIEWPROJECTIONINVERSE'], matrices['WORLDVIEWPROJECTION']);
                 }
 
                 for (var semantic in matrices) {
 
-                    if( shader.semantics.hasOwnProperty( semantic ) ){
+                    if (shader.semantics.hasOwnProperty(semantic)) {
                         var matrix = matrices[semantic];
                         var semanticInfo = shader.semantics[semantic];
-                        shader.setUniform( _gl, semanticInfo.type, semanticInfo.symbol, matrix);
+                        shader.setUniform(_gl, semanticInfo.type, semanticInfo.symbol, matrix);
                     }
 
                     var semanticTranspose = semantic + "TRANSPOSE";
-                    if( shader.semantics.hasOwnProperty( semantic + "TRANSPOSE") ) {
+                    if (shader.semantics.hasOwnProperty(semantic + "TRANSPOSE")) {
                         var matrixTranspose = matrices[semantic+'TRANSPOSE'];
                         var matrix = matrices[semantic];
                         var semanticTransposeInfo = shader.semantics[semantic+"TRANSPOSE"];
-                        mat4.transpose( matrixTranspose, matrix);
-                        shader.setUniform( _gl, semanticTransposeInfo.type, semanticTransposeInfo.symbol, matrixTranspose  );
+                        mat4.transpose(matrixTranspose, matrix);
+                        shader.setUniform(_gl, semanticTransposeInfo.type, semanticTransposeInfo.symbol, matrixTranspose );
                     }
                 }
 
-                if( ! silent){
+                if (! silent) {
                     this.trigger("beforerender:mesh", object);
                 }
-                var drawInfo = object.render( this, globalMaterial );
-                if( ! silent){
+                var drawInfo = object.render(this, globalMaterial);
+                if (! silent) {
                     this.trigger("afterrender:mesh", object, drawInfo);
                 }
                 // Restore the default blend function
                 if (customBlend) {
-                    _gl.blendEquation( _gl.FUNC_ADD );
-                    _gl.blendFunc( _gl.SRC_ALPHA, _gl.ONE_MINUS_SRC_ALPHA );    
+                    _gl.blendEquation(_gl.FUNC_ADD);
+                    _gl.blendFunc(_gl.SRC_ALPHA, _gl.ONE_MINUS_SRC_ALPHA);    
                 }
 
             }
         },
 
-        _materialSortFunc : function(x, y){
-            if ( x.material.shader == y.material.shader) {
+        _materialSortFunc : function(x, y) {
+            if (x.material.shader == y.material.shader) {
                 return x.material.__GUID__ - y.material.__GUID__;
             }
             return x.material.shader.__GUID__ - y.material.__GUID__;
         }
-    } )
+    })
 
 
     var matrices = {
@@ -17491,13 +18633,13 @@ define('3d/renderer',['require','core/base','_','glmatrix','util/util','./light'
     };
 
     return Renderer;
-} );
-define('3d/skeleton',['require','core/base','core/matrix4'], function(require){
+});
+define('3d/skeleton',['require','core/base','core/matrix4'],function(require) {
 
     var Base = require("core/base");
     var Matrix4 = require("core/matrix4");
 
-    var Skeleton = Base.derive(function(){
+    var Skeleton = Base.derive(function() {
         return {
             // Root bones
             roots : [],
@@ -17514,17 +18656,17 @@ define('3d/skeleton',['require','core/base','core/matrix4'], function(require){
 
             _boneMatricesArray : null
         }
-    }, function(){
+    }, function() {
         this.updateHierarchy();
         this.updateJointMatrices();
     }, {
 
-        updateHierarchy : function(){
+        updateHierarchy : function() {
             this.roots = [];
             var bones = this.bones;
-            for(var i = 0; i < bones.length; i++){
+            for (var i = 0; i < bones.length; i++) {
                 var bone = bones[i];
-                if(bone.parentIndex >= 0){
+                if (bone.parentIndex >= 0) {
                     var parent = bones[bone.parentIndex];
                     parent.add(bone);
                 }else{
@@ -17533,43 +18675,43 @@ define('3d/skeleton',['require','core/base','core/matrix4'], function(require){
             }
         },
 
-        updateJointMatrices : function(){
-            for(var i = 0; i < this.roots.length; i++){
+        updateJointMatrices : function() {
+            for (var i = 0; i < this.roots.length; i++) {
                 this.roots[i].update();
             }
-            for(var i = 0; i < this.bones.length; i++){
+            for (var i = 0; i < this.bones.length; i++) {
                 var bone = this.bones[i];
                 this._jointMatrices[i] = (new Matrix4()).copy(bone.worldMatrix).invert();
                 this._boneMatrices[i] = new Matrix4();
             }
         },
 
-        update : function(){
-            for(var i = 0; i < this.roots.length; i++){
+        update : function() {
+            for (var i = 0; i < this.roots.length; i++) {
                 this.roots[i].update();
             }
             var boneMatricesArray = this.getBoneMatricesArray();
             var cursor = 0;
-            for(var i = 0; i < this.bones.length; i++){
+            for (var i = 0; i < this.bones.length; i++) {
                 var matrixCurrentPose = this.bones[i].worldMatrix;
                 this._boneMatrices[i].copy(matrixCurrentPose).multiply(this._jointMatrices[i]);
 
-                for(var j = 0; j < 16; j++){
+                for (var j = 0; j < 16; j++) {
                     var array = this._boneMatrices[i]._array;
                     boneMatricesArray[cursor++] = array[j];
                 }
             }
         },
 
-        getBoneMatricesArray : function(){
-            if( ! this._boneMatricesArray ){
+        getBoneMatricesArray : function() {
+            if (! this._boneMatricesArray) {
                 this._boneMatricesArray = new Float32Array(this.bones.length * 16);
             }
             return this._boneMatricesArray;
         },
 
-        setPose : function(time){
-            for(var i = 0; i < this.bones.length; i++){
+        setPose : function(time) {
+            for (var i = 0; i < this.bones.length; i++) {
                 this.bones[i].setPose(time);
             }
             this.update();
@@ -17577,7 +18719,7 @@ define('3d/skeleton',['require','core/base','core/matrix4'], function(require){
     });
 
     return Skeleton;
-} );
+});
 ;
 define("3d/texture/compressed2d", function(){});
 
@@ -17588,7 +18730,7 @@ define("3d/texture/compressedcube", function(){});
  *
  * @export{object} mesh
  */
-define('3d/util/mesh',['require','../geometry','../mesh','glmatrix','_'], function( require ){
+define('3d/util/mesh',['require','../geometry','../mesh','glmatrix','_'],function(require) {
     
     var Geometry = require("../geometry");
     var Mesh = require("../mesh");
@@ -17602,9 +18744,9 @@ define('3d/util/mesh',['require','../geometry','../mesh','glmatrix','_'], functi
          * Merge multiple meshes to one.
          * Note that these meshes must have the same material
          */
-        merge : function( meshes, clone ){
+        merge : function(meshes, clone) {
 
-            if( ! meshes.length ){
+            if (! meshes.length) {
                 return;
             }
             var clone = typeof(clone) === "undefined" ? true : clone;
@@ -17613,19 +18755,19 @@ define('3d/util/mesh',['require','../geometry','../mesh','glmatrix','_'], functi
             var templateGeo = templateMesh.geometry;
             var material = templateMesh.material;
 
-            if( _.any( meshes, function(mesh){
+            if (_.any(meshes, function(mesh) {
                 return mesh.material !== material;  
-            }) ){
+            })) {
                 console.warn("Material of meshes to merge is not the same, program will use the material of first mesh by default");
             }
 
             var geometry = new Geometry,
                 faces = geometry.faces;
 
-            for(var name in templateGeo.attributes){
+            for (var name in templateGeo.attributes) {
                 var attr = templateGeo.attributes[name];
                 // Extend custom attributes
-                if( ! geometry.attributes[name] ){
+                if (! geometry.attributes[name]) {
                     geometry.attributes[name] = {
                         value : [],
                         type : attr.type
@@ -17637,61 +18779,61 @@ define('3d/util/mesh',['require','../geometry','../mesh','glmatrix','_'], functi
             var faceOffset = 0,
                 useFaces = templateGeo.faces.length !== 0;
                 
-            for( var k = 0; k < meshes.length; k++){
+            for (var k = 0; k < meshes.length; k++) {
                 var mesh = meshes[k];  
                 var currentGeo = mesh.geometry;
 
                 mesh.updateMatrix();
                 var vertexCount = currentGeo.getVerticesNumber();
 
-                for(var name in currentGeo.attributes ){
+                for (var name in currentGeo.attributes) {
 
                     var currentAttr = currentGeo.attributes[name];
                     var targetAttr = geometry.attributes[name];
                     // Skip the unused attributes;
-                    if( ! currentAttr.value.length ){
+                    if (!currentAttr.value.length) {
                         continue;
                     }
-                    for(var i = 0; i < vertexCount; i++){
+                    for (var i = 0; i < vertexCount; i++) {
 
                         // Transform position, normal and tangent
-                        if( name === "position" ){
+                        if (name === "position") {
                             var newValue = cloneValue(currentAttr.value[i]);
                             vec3.transformMat4(newValue, newValue, mesh.matrix._array);
-                            targetAttr.value.push( newValue );   
+                            targetAttr.value.push(newValue);   
                         }
-                        else if( name === "normal" ){
+                        else if (name === "normal") {
                             var newValue = cloneValue(currentAttr.value[i]);
-                            targetAttr.value.push( newValue );
+                            targetAttr.value.push(newValue);
                         }
-                        else if( name === "tangent" ){
+                        else if (name === "tangent") {
                             var newValue = cloneValue(currentAttr.value[i]);
-                            targetAttr.value.push( newValue );
+                            targetAttr.value.push(newValue);
                         }else{
-                            targetAttr.value.push( cloneValue(currentAttr.value[i]) );
+                            targetAttr.value.push(cloneValue(currentAttr.value[i]));
                         }
 
                     }
                 }
 
-                if( useFaces ){
+                if (useFaces) {
                     var len = currentGeo.faces.length;
-                    for(i =0; i < len; i++){
+                    for (i =0; i < len; i++) {
                         var newFace = [];
                         var face = currentGeo.faces[i];
                         newFace[0] = face[0] + faceOffset;
                         newFace[1] = face[1] + faceOffset;
                         newFace[2] = face[2] + faceOffset;
 
-                        faces.push( newFace );
+                        faces.push(newFace);
                     }
                 }
 
                 faceOffset += vertexCount;
             }
 
-            function cloneValue( val ){
-                if( ! clone ){
+            function cloneValue(val) {
+                if (! clone) {
                     return val;
                 }
                 return val && Array.prototype.slice.call(val);
@@ -17705,7 +18847,7 @@ define('3d/util/mesh',['require','../geometry','../mesh','glmatrix','_'], functi
     }
 
     return ret;
-} );
+});
 /**
  * 缓动代码来自 https://github.com/sole/tween.js/blob/master/src/Tween.js
  * author: lang(shenyi01@baidu.com)
@@ -17932,6 +19074,14 @@ define('animation/controller',['require','./easing'],function(require) {
         this.loop = typeof(options.loop) == 'undefined'
                     ? false : options.loop;
 
+        if (this.loop) {
+            if (typeof(this.loop) == 'number') {
+                this._currentLoop = this.loop;
+            } else {
+                this._currentLoop = 9999999;
+            }
+        }
+
         this.gap = options.gap || 0;
 
         this.easing = options.easing || 'Linear';
@@ -17965,10 +19115,10 @@ define('animation/controller',['require','./easing'],function(require) {
             this.fire('frame', schedule);
 
             if (percent == 1) {
-                if (this.loop) {
+                if (this.loop && this._currentLoop) {
                     this.restart();
+                    this._currentLoop--;
                     return 'restart';
-
                 }else{
                     // Mark this controller to be deleted
                     // In the animation.update
@@ -17995,7 +19145,7 @@ define('animation/controller',['require','./easing'],function(require) {
 
     return Controller;
 });
-define('animation/animation',['require','./controller','_'],function(require){
+define('animation/animation',['require','./controller','_'],function(require) {
     
     var Controller = require('./controller');
     var _ = require("_");
@@ -18004,13 +19154,13 @@ define('animation/animation',['require','./controller','_'],function(require){
                                 || window.mozRequestAnimationFrame
                                 || window.webkitRequestAnimationFrame;
 
-    var Animation = function(options){
+    var Animation = function(options) {
 
         options = options || {};
 
         this.stage = options.stage || {};
 
-        this.onframe = options.onframe || function(){};
+        this.onframe = options.onframe || function() {};
 
         // private properties
         this._controllerPool = [];
@@ -18019,28 +19169,28 @@ define('animation/animation',['require','./controller','_'],function(require){
     };
 
     Animation.prototype = {
-        add : function(controller){
+        add : function(controller) {
             this._controllerPool.push(controller);
         },
-        remove : function(controller){
+        remove : function(controller) {
             var idx = this._controllerPool.indexOf(controller);
-            if (idx >= 0){
+            if (idx >= 0) {
                 this._controllerPool.splice(idx, 1);
             }
         },
-        update : function(){
+        update : function() {
             var time = new Date().getTime();
             var cp = this._controllerPool;
             var len = cp.length;
 
             var deferredEvents = [];
             var deferredCtls = [];
-            for(var i = 0; i < len; i++){
+            for (var i = 0; i < len; i++) {
                 var controller = cp[i];
                 var e = controller.step(time);
                 // Throw out the events need to be called after
                 // stage.update, like destroy
-                if( e ){
+                if ( e ) {
                     deferredEvents.push(e);
                     deferredCtls.push(controller);
                 }
@@ -18048,14 +19198,14 @@ define('animation/animation',['require','./controller','_'],function(require){
             if (this.stage
                 && this.stage.render
                 && this._controllerPool.length
-            ){
+            ) {
                 this.stage.render();
             }
 
             // Remove the finished controller
             var newArray = [];
-            for(var i = 0; i < len; i++){
-                if(!cp[i]._needsRemove){
+            for (var i = 0; i < len; i++) {
+                if (!cp[i]._needsRemove) {
                     newArray.push(cp[i]);
                     cp[i]._needsRemove = false;
                 }
@@ -18063,14 +19213,14 @@ define('animation/animation',['require','./controller','_'],function(require){
             this._controllerPool = newArray;
 
             len = deferredEvents.length;
-            for(var i = 0; i < len; i++){
+            for (var i = 0; i < len; i++) {
                 deferredCtls[i].fire( deferredEvents[i] );
             }
 
             this.onframe();
 
         },
-        start : function(){
+        start : function() {
             var self = this;
 
             this._running = true;
@@ -18084,13 +19234,13 @@ define('animation/animation',['require','./controller','_'],function(require){
 
             requrestAnimationFrame(step);
         },
-        stop : function(){
+        stop : function() {
             this._running = false;
         },
-        clear : function(){
+        clear : function() {
             this._controllerPool = [];
         },
-        animate : function(options){
+        animate : function(options) {
             var deferred = new Deferred(options.target, 
                                         options.loop, 
                                         options.getter, 
@@ -18102,17 +19252,17 @@ define('animation/animation',['require','./controller','_'],function(require){
     };
     Animation.prototype.constructor = Animation;
 
-    function _defaultGetter(target, key){
+    function _defaultGetter(target, key) {
         return target[key];
     }
-    function _defaultSetter(target, key, value){
+    function _defaultSetter(target, key, value) {
         target[key] = value;
     }
 
-    function _defaultInterpolate(prevValue, nextValue, percent){
+    function _defaultInterpolate(prevValue, nextValue, percent) {
         return (nextValue-prevValue) * percent + prevValue;
     }
-    function Deferred(target, loop, getter, setter, interpolate){
+    function Deferred(target, loop, getter, setter, interpolate) {
         this._tracks = {};
         this._target = target;
 
@@ -18132,9 +19282,9 @@ define('animation/animation',['require','./controller','_'],function(require){
     }
 
     Deferred.prototype = {
-        when : function(time /* ms */, props, easing){
-            for(var propName in props){
-                if (! this._tracks[ propName ]){
+        when : function(time /* ms */, props, easing) {
+            for (var propName in props) {
+                if (! this._tracks[ propName ]) {
                     this._tracks[ propName ] = [];
                     // Initialize value
                     this._tracks[ propName ].push({
@@ -18150,48 +19300,48 @@ define('animation/animation',['require','./controller','_'],function(require){
             }
             return this;
         },
-        during : function(callback){
+        during : function(callback) {
             this._onframeList.push(callback);
             return this;
         },
-        start : function(){
+        start : function() {
             var self = this;
             var delay;
             var track;
             var trackMaxTime;
             var value;
 
-            function createOnframe(now, next, propName){
+            function createOnframe(now, next, propName) {
                 var prevValue = now.value;
                 var nextValue = next.value;
-                return function(target, schedule){
+                return function(target, schedule) {
                     value = self._interpolate(prevValue, nextValue, schedule);
                     setter(target, propName, value);
-                    for(var i = 0; i < self._onframeList.length; i++){
+                    for (var i = 0; i < self._onframeList.length; i++) {
                         self._onframeList[i](target, schedule);
                     }
                 };
             }
 
-            function ondestroy(){
+            function ondestroy() {
                 self._controllerCount--;
-                if (self._controllerCount === 0){
+                if (self._controllerCount === 0) {
                     var len = self._doneList.length;
-                    for(var i = 0; i < len; i++){
+                    for (var i = 0; i < len; i++) {
                         self._doneList[i]();
                     }
                 }
             }
 
-            for(var propName in this._tracks){
+            for (var propName in this._tracks) {
                 delay = 0;
                 track = this._tracks[ propName ];
-                if (track.length){
+                if (track.length) {
                     trackMaxTime = track[ track.length-1].time;
                 }else{
                     continue;
                 }
-                for(var i = 0; i < track.length-1; i++){
+                for (var i = 0; i < track.length-1; i++) {
                     var now = track[i],
                         next = track[i+1];
 
@@ -18215,13 +19365,13 @@ define('animation/animation',['require','./controller','_'],function(require){
             }
             return this;
         },
-        stop : function(){
-            for(var i = 0; i < this._controllerList.length; i++){
+        stop : function() {
+            for (var i = 0; i < this._controllerList.length; i++) {
                 var controller = this._controllerList[i];
                 this.animation.remove(controller);
             }
         },
-        done : function(func){
+        done : function(func) {
             this._doneList.push(func);
             return this;
         }
@@ -18230,37 +19380,133 @@ define('animation/animation',['require','./controller','_'],function(require){
     return Animation;
 });
 
-define('core/event',['require','./base'], function(require){
+define('core/event',['require','./base'], function(require) {
 
     var Base = require('./base');
 
     var Event = Base.derive({
         cancelBubble : false
     }, {
-        stopPropagation : function(){
+        stopPropagation : function() {
             this.cancelBubble = true;
         }
     })
 
-    Event.throw = function(eventType, target, props){
-        var e = new MouseEvent(props);
-        e.sourceTarget = target;
+    Event.throw = function(eventType, target, props) {
+        
+        var e = new Event(props);
 
-        // enable bubble
-        while(target && !e.cancelBubble ){
-            e.target = target;
+        e.type = eventType;
+        e.target = target;
+
+        // enable bubbling
+        while (target && !e.cancelBubble ) {
+            e.currentTarget = target;
             target.trigger(eventType, e);
 
             target = target.parent;
         }
     }
+
+    return Event;
 } );
+define('core/matrix2',['require','glmatrix'],function(require) {
+
+    var glMatrix = require("glmatrix");
+    var mat2 = glMatrix.mat2;
+
+    function makeProperty(n) {
+        return {
+            configurable : false,
+            set : function(value) {
+                this._array[n] = value;
+                this._dirty = true;
+            },
+            get : function() {
+                return this._array[n];
+            }
+        }
+    }
+
+    var Matrix2 = function() {
+
+        return Object.create(Matrix2Proto, {
+
+            m00 : makeProperty(0),
+            m01 : makeProperty(1),
+            m10 : makeProperty(2),
+            m11 : makeProperty(3),
+            
+            _array : {
+                writable : false,
+                configurable : false,
+                value : mat2.create()
+            }
+        })
+    };
+
+    var Matrix2Proto = {
+
+        constructor : Matrix2,
+
+        clone : function() {
+            return (new Matrix2()).copy(this);
+        },
+        copy : function(b) {
+            mat2.copy(this._array, b._array);
+            return this;
+        },
+        adjoint : function() {
+            mat2.adjoint(this._array, this._array);
+            return this;
+        },
+        determinant : function() {
+            return mat2.determinant(this._array);
+        },
+        identity : function() {
+            mat2.identity(this._array);
+            return this;
+        },
+        invert : function() {
+            mat2.invert(this._array, this._array);
+            return this;
+        },
+        mul : function(b) {
+            mat2.mul(this._array, this._array, b._array);
+            return this;
+        },
+        mulLeft : function(b) {
+            mat2.mul(this._array, b._array, this._array);
+            return this;
+        },
+        multiply : function(b) {
+            mat2.multiply(this._array, this._array, b._array);
+            return this;
+        },
+        multiplyLeft : function(b) {
+            mat2.multiply(this._array, b._array, this._array);
+            return this;
+        },
+        rotate : function(rad) {
+            mat2.rotate(this._array, this._array, rad);
+            return this;
+        },
+        scale : function(s) {
+            mat2.scale(this._array, this._array, s);
+        },
+        toString : function() {
+            return "[" + Array.prototype.join.call(this._array, ",") + "]";
+        }
+    }
+
+    return Matrix2;
+});
 /**
  *  @export{object} requester
  */
-define('core/request',['require'], function(require){
+define('core/request',['require'],function(require) {
 
-    function get(options){
+    function get(options) {
 
         var xhr = new XMLHttpRequest();
 
@@ -18271,27 +19517,27 @@ define('core/request',['require'], function(require){
         // arraybuffer, blob, document, json, text
         xhr.responseType = options.responseType || "text";
 
-        if(options.onprogress){
+        if (options.onprogress) {
             //https://developer.mozilla.org/en-US/docs/DOM/XMLHttpRequest/Using_XMLHttpRequest
-            xhr.onprogress = function(e){
-                if(e.lengthComputable){
+            xhr.onprogress = function(e) {
+                if (e.lengthComputable) {
                     var percent = e.loaded / e.total;
                     options.onprogress(percent, e.loaded, e.total);
-                }else{
+                } else {
                     options.onprogress(null);
                 }
             }
         }
-        xhr.onload = function(e){
+        xhr.onload = function(e) {
             options.onload && options.onload(xhr.response);
         }
-        if(options.onerror){
+        if (options.onerror) {
             xhr.onerror = options.onerror;
         }
         xhr.send(null);
     }
 
-    function put(options){
+    function put(options) {
 
     }
 
@@ -18299,16 +19545,13 @@ define('core/request',['require'], function(require){
         get : get,
         put : put
     }
-} );
-;
-define("core/vector2", function(){});
-
-define('core/vector4',['require','glmatrix'], function(require){
+});
+define('core/vector4',['require','glmatrix'], function(require) {
 
     var glMatrix = require("glmatrix");
     var vec4 = glMatrix.vec4;
 
-    var Vector4 = function(x, y, z, w){
+    var Vector4 = function(x, y, z, w) {
         
         x = x || 0;
         y = y || 0;
@@ -18319,41 +19562,41 @@ define('core/vector4',['require','glmatrix'], function(require){
 
             x : {
                 configurable : false,
-                set : function(value){
+                set : function(value) {
                     this._array[0] = value;
                     this._dirty = true;
                 },
-                get : function(){
+                get : function() {
                     return this._array[0];
                 }
             },
             y : {
                 configurable : false,
-                set : function(value){
+                set : function(value) {
                     this._array[1] = value;
                     this._dirty = true;
                 },
-                get : function(){
+                get : function() {
                     return this._array[1];
                 }
             },
             z : {
                 configurable : false,
-                set : function(value){
+                set : function(value) {
                     this._array[2] = value;
                     this._dirty = true;
                 },
-                get : function(){
+                get : function() {
                     return this._array[2];
                 }
             },
             w : {
                 configurable : false,
-                set : function(value){
+                set : function(value) {
                     this._array[2] = value;
                     this._dirty = true;
                 },
-                get : function(){
+                get : function() {
                     return this._array[2];
                 }
             },
@@ -18375,13 +19618,13 @@ define('core/vector4',['require','glmatrix'], function(require){
 
         constructor : Vector4,
 
-        add : function(b){
+        add : function(b) {
             vec4.add( this._array, this._array, b._array );
             this._dirty = true;
             return this;
         },
 
-        set : function(x, y, z, w){
+        set : function(x, y, z, w) {
             this._array[0] = x;
             this._array[1] = y;
             this._array[2] = z;
@@ -18390,92 +19633,104 @@ define('core/vector4',['require','glmatrix'], function(require){
             return this;
         },
 
-        clone : function(){
+        clone : function() {
             return new Vector4( this.x, this.y, this.z, this.w);
         },
 
-        copy : function(b){
+        copy : function(b) {
             vec4.copy( this._array, b._array );
             this._dirty = true;
             return this;
         },
 
-        cross : function(out, b){
+        cross : function(out, b) {
             vec4.cross(out._array, this._array, b._array);
             return this;
         },
 
-        dist : function(b){
+        dist : function(b) {
             return vec4.dist(this._array, b._array);
         },
 
-        distance : function(b){
+        distance : function(b) {
             return vec4.distance(this._array, b._array);
         },
 
-        div : function(b){
+        div : function(b) {
             vec4.div(this._array, this._array, b._array);
             this._dirty = true;
             return this;
         },
 
-        divide : function(b){
+        divide : function(b) {
             vec4.divide(this._array, this._array, b._array);
             this._dirty = true;
             return this;
         },
 
-        dot : function(b){
+        dot : function(b) {
             return vec4.dot(this._array, b._array);
         },
 
-        len : function(){
+        len : function() {
             return vec4.len(this._array);
         },
 
-        length : function(){
+        length : function() {
             return vec4.length(this._array);
         },
         /**
          * Perform linear interpolation between a and b
          */
-        lerp : function(a, b, t){
+        lerp : function(a, b, t) {
             vec4.lerp(this._array, a._array, b._array, t);
             this._dirty = true;
             return this;
         },
 
-        mul : function(b){
+        min : function(b) {
+            vec2.min(this._array, this._array, b._array);
+            this._dirty = true;
+            return this;
+        },
+
+        max : function(b) {
+            vec2.max(this._array, this._array, b._array);
+            this._dirty = true;
+            return this;
+        },
+
+        mul : function(b) {
             vec4.mul(this._array, this._array, b._array);
             this._dirty = true;
             return this;
         },
 
-        multiply : function(b){
+        multiply : function(b) {
             vec4.multiply(this._array, this._array, b._array);
             this._dirty = true;
             return this;
         },
 
-        negate : function(){
+        negate : function() {
             vec4.negate(this._array, this._array);
             this._dirty = true;
             return this;
         },
 
-        normalize : function(){
+        normalize : function() {
             vec4.normalize(this._array, this._array);
             this._dirty = true;
             return this;
         },
 
-        random : function(scale){
+        random : function(scale) {
             vec4.random(this._array, scale);
             this._dirty = true;
             return this;
         },
 
-        scale : function(s){
+        scale : function(s) {
             vec4.scale(this._array, this._array, s);
             this._dirty = true;
             return this;
@@ -18483,53 +19738,53 @@ define('core/vector4',['require','glmatrix'], function(require){
         /**
          * add b by a scaled factor
          */
-        scaleAndAdd : function(b, s){
+        scaleAndAdd : function(b, s) {
             vec4.scaleAndAdd(this._array, this._array, b._array, s);
             this._dirty = true;
             return this;
         },
 
-        sqrDist : function(b){
+        sqrDist : function(b) {
             return vec4.sqrDist(this._array, b._array);
         },
 
-        squaredDistance : function(b){
+        squaredDistance : function(b) {
             return vec4.squaredDistance(this._array, b._array);
         },
 
-        sqrLen : function(){
+        sqrLen : function() {
             return vec4.sqrLen(this._array);
         },
 
-        squaredLength : function(){
+        squaredLength : function() {
             return vec4.squaredLength(this._array);
         },
 
-        sub : function(b){
+        sub : function(b) {
             vec4.sub(this._array, this._array, b._array);
             this._dirty = true;
             return this;
         },
 
-        subtract : function(b){
+        subtract : function(b) {
             vec4.subtract(this._array, this._array, b._array);
             this._dirty = true;
             return this;
         },
 
-        transformMat4 : function(m){
+        transformMat4 : function(m) {
             vec4.transformMat4(this._array, this._array, m._array);
             this._dirty = true;
             return this;
         },
 
-        transformQuat : function(q){
+        transformQuat : function(q) {
             vec4.transformQuat(this._array, this._array, q._array);
             this._dirty = true;
             return this;
         },     
 
-        toString : function(){
+        toString : function() {
             return "[" + Array.prototype.join.call(this._array, ",") + "]";
         }
     }
@@ -18537,12 +19792,382 @@ define('core/vector4',['require','glmatrix'], function(require){
     return Vector4;
 } );
 /**
+ * @export{class} SVG
+ * shapes : circle, line, polygon, rect, polyline, ellipse, path
+ */
+define('loader/svg',['require','core/base','core/request','2d/node','2d/shape/circle','2d/shape/rectangle','2d/shape/ellipse','2d/shape/line','2d/shape/path','2d/shape/polygon','2d/shape/textbox','2d/shape/svgpath','2d/lineargradient','2d/radialgradient','2d/pattern','_','2d/style','core/vector2'],function(require) {
+
+    var Base = require("core/base");
+
+    var request = require("core/request");
+
+    var Node = require("2d/node");
+    var Circle = require("2d/shape/circle");
+    var Rectangle = require("2d/shape/rectangle");
+    var Ellipse = require("2d/shape/ellipse");
+    var Line = require("2d/shape/line");
+    var Path = require("2d/shape/path");
+    var Polygon = require("2d/shape/polygon");
+    var TextBox = require("2d/shape/textbox");
+    var SVGPath = require("2d/shape/svgpath");
+    var LinearGradient = require("2d/lineargradient");
+    var RadialGradient = require("2d/radialgradient");
+    var Pattern = require("2d/pattern");
+    var _ = require("_");
+
+    var Style = require("2d/style");
+
+    var Vector2 = require("core/vector2");
+
+    var Loader = Base.derive(function() {
+        return {
+            _defs : []
+        };
+    }, {
+        load : function(url) {
+            var self = this;
+
+            request.get({
+                url : url,
+                onprogress : function(percent, loaded, total) {
+                    self.trigger("progress", percent, loaded, total);
+                },
+                onerror : function(e) {
+                    self.trigger("error", e);
+                },
+                responseType : "text",
+                onload : function(xmlString) {
+                    self.parse(xmlString);
+                }
+            })
+        },
+        parse : function(xml, callback) {
+            if (typeof(xml) === "string") {
+                var parser = new DOMParser();
+                var doc = parser.parseFromString(xml, 'text/xml');
+                var svg = doc.firstChild;
+                while (svg.nodeName.toLowerCase() !== 'svg') {
+                    svg = svg.nextSibling;
+                }
+            } else {
+                var svg = xml;
+            }
+            var root = new Node();
+            
+            // parse view port
+            var viewBox = svg.getAttribute("viewBox") || '';
+            var viewBoxArr = viewBox.split(/\s+/);
+
+            var width = parseFloat(svg.getAttribute("width") || 0);
+            var height = parseFloat(svg.getAttribute("height") || 0);
+
+            var x = parseFloat(viewBoxArr[0] || 0);
+            var y = parseFloat(viewBoxArr[1] || 0);
+            var vWidth = parseFloat(viewBoxArr[2]);
+            var vHeight = parseFloat(viewBoxArr[3]);
+
+            root.position.set(x, y);
+
+            var child = svg.firstChild;
+            while (child) {
+                this._parseNode(child, root);
+                child = child.nextSibling;
+            }
+
+            callback && callback(root);
+
+            return root;
+        },
+
+        _parseNode : function(xmlNode, parent) {
+            var nodeName = xmlNode.nodeName.toLowerCase();
+            var nodeParser = nodeParsers[nodeName];
+            if (nodeParser) {
+                var node = nodeParser(xmlNode, parent);
+                parent.add(node);
+
+                var child = xmlNode.firstChild;
+                while (child) {
+                    this._parseNode(child, node);
+                    child = child.nextSibling;
+                }
+            }
+        }
+    });
+    
+    var nodeParsers = {
+        "g" : function(xmlNode, parentNode) {
+            var node = new Node();
+            _inheritStyle(parentNode, node);
+            _parseAttributes(xmlNode, node);
+            return node;
+        },
+        "rect" : function(xmlNode, parentNode) {
+            var rect = new Rectangle();
+            _inheritStyle(parentNode, rect);
+            _parseAttributes(xmlNode, rect);
+
+            var x = parseFloat(xmlNode.getAttribute("x") || 0);
+            var y = parseFloat(xmlNode.getAttribute("y") || 0);
+            var width = parseFloat(xmlNode.getAttribute("width") || 0);
+            var height = parseFloat(xmlNode.getAttribute("height") || 0);
+            rect.start.set(x, y);
+            rect.size.set(x, y);
+
+            return rect;
+        },
+        "circle" : function(xmlNode, parentNode) {
+            var circle = new Circle();
+            _inheritStyle(parentNode, circle);
+            _parseAttributes(xmlNode, circle);
+
+            var cx = parseFloat(xmlNode.getAttribute("cx") || 0);
+            var cy = parseFloat(xmlNode.getAttribute("cy") || 0);
+            var r = parseFloat(xmlNode.getAttribute("r") || 0);
+            circle.center.set(cx, cy);
+            circle.radius = r;
+
+            return circle;
+        },
+        'line' : function(xmlNode, parentNode){
+            var line = new Line();
+            _inheritStyle(parentNode, line);
+            _parseAttributes(xmlNode, line);
+
+            var x1 = parseFloat(xmlNode.getAttribute("x1") || 0);
+            var y1 = parseFloat(xmlNode.getAttribute("y1") || 0);
+            var x2 = parseFloat(xmlNode.getAttribute("x2") || 0);
+            var y2 = parseFloat(xmlNode.getAttribute("y2") || 0);
+            line.start.set(x1, y1);
+            line.end.set(x2, y2);
+
+            return line;
+        },
+        "ellipse" : function(xmlNode, parentNode) {
+            var ellipse = new Ellipse();
+            _inheritStyle(parentNode, ellipse);
+            _parseAttributes(xmlNode, ellipse);
+
+            var cx = parseFloat(xmlNode.getAttribute("cx") || 0);
+            var cy = parseFloat(xmlNode.getAttribute("cy") || 0);
+            var rx = parseFloat(xmlNode.getAttribute("rx") || 0);
+            var ry = parseFloat(xmlNode.getAttribute("ry") || 0);
+
+            ellipse.center.set(cx, cy);
+            ellipse.radius.set(rx, ry);
+            return ellipse;
+        },
+        'polygon' : function(xmlNode, parentNode) {
+            var points = xmlNode.getAttribute("points");
+            if (points) {
+                points = _parsePoints(points);
+            }
+            var polygon = new Polygon({
+                points : points
+            });
+            _inheritStyle(parentNode, polygon);
+            _parseAttributes(xmlNode, polygon);
+
+            return polygon;
+        },
+        'polyline' : function(xmlNode, parentNode) {
+            var path = new Path();
+            _inheritStyle(parentNode, path);
+            _parseAttributes(xmlNode, path);
+
+            var points = xmlNode.getAttribute("points");
+            if (points) {
+                points = _parsePoints(points);
+                path.pushPoints(points);
+            }
+
+            return path;
+        },
+        'image' : function(xmlNode, parentNode) {
+
+        },
+        'text' : function(xmlNode, parentNode) {
+
+        },
+        "path" : function(xmlNode, parentNode) {
+            var path = new SVGPath();
+            _inheritStyle(parentNode, path);
+            _parseAttributes(xmlNode, path);
+
+            // TODO svg fill rule
+            // https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/fill-rule
+            // path.style.globalCompositeOperation = 'xor';
+
+            var d = xmlNode.getAttribute("d") || "";
+            path.description = d;
+
+            return path;
+        },
+
+        'linearGradient' : function(xmlNode) {
+            var x1 = parseInt(xmlNode.getAttribute("x1") || 0);
+            var y1 = parseInt(xmlNode.getAttribute("y1") || 0);
+            var x2 = parseInt(xmlNode.getAttribute("x2") || 100);
+            var y2 = parseInt(xmlNode.getAttribute("y2") || 0);
+
+            var stop = xmlNode.firstChild;
+
+            while (stop) {
+
+            }
+        },
+
+        'radialGradient' : function(xmlNode) {
+
+        }
+    }
+
+    function _inheritStyle(parent, child) {
+        child.stroke = parent.stroke;
+        child.fill = parent.fill;
+    }
+
+    function _parsePoints(pointsString) {
+        var list = pointsString.trim().replace(/,/g, " ").split(/\s+/);
+        var points = [];
+
+        for (var i = 0; i < list.length; i+=2) {
+            var x = parseFloat(list[i]);
+            var y = parseFloat(list[i+1]);
+            points.push(new Vector2(x, y));
+        }
+        return points;
+    }
+
+    function _parseAttributes(xmlNode, node) {
+        _parseTransformAttribute(xmlNode, node);
+
+        var styleList = {
+            fill : xmlNode.getAttribute('fill'),
+            stroke : xmlNode.getAttribute("stroke"),
+            lineWidth : xmlNode.getAttribute("stroke-width"),
+            opacity : xmlNode.getAttribute('opacity'),
+            lineDash : xmlNode.getAttribute('stroke-dasharray'),
+            lineDashOffset : xmlNode.getAttribute('stroke-dashoffset'),
+            lineCap : xmlNode.getAttribute('stroke-linecap'),
+            lineJoin : xmlNode.getAttribute('stroke-linjoin'),
+            miterLimit : xmlNode.getAttribute("stroke-miterlimit")
+        }
+
+        _.extend(styleList, _parseStyleAttribute(xmlNode));
+
+        node.style = new Style({
+            fill : _getPaint(styleList.fill),
+            stroke : _getPaint(styleList.stroke),
+            lineWidth : parseFloat(styleList.lineWidth),
+            opacity : parseFloat(styleList.opacity),
+            lineDashOffset : styleList.lineDashOffset,
+            lineCap : styleList.lineCap,
+            lineJoin : styleList.lineJoin,
+            miterLimit : parseFloat(styleList.miterLimit)
+        });
+        if (styleList.lineDash) {
+            node.style.lineDash = styleList.lineDash.trim().split(/\s*,\s*/);
+        }
+
+        if (styleList.stroke && styleList.stroke !== "none") {
+            // enable stroke
+            node.stroke = true;
+        }
+    }
+
+
+    function _getPaint(str) {
+        return str;
+    }
+
+    var transformRegex = /(translate|scale|rotate|skewX|skewY|matrix)\(([\-\s0-9\.,]*)\)/g;
+
+    function _parseTransformAttribute(xmlNode, node) {
+        var transform = xmlNode.getAttribute("transform");
+        if (transform) {
+            var m = node.transform;
+            m.identity();
+            var transformOps = [];
+            transform.replace(transformRegex, function(str, type, value){
+                transformOps.push(type, value);
+            })
+            for(var i = transformOps.length-1; i > 0; i-=2){
+                var value = transformOps[i];
+                var type = transformOps[i-1];
+                switch(type) {
+                    case "translate":
+                        value = value.trim().split(/\s+/);
+                        m.translate(new Vector2(parseFloat(value[0]), parseFloat(value[1] || 0)));
+                        break;
+                    case "scale":
+                        value = value.trim().split(/\s+/);
+                        m.scale(new Vector2(parseFloat(value[0]), parseFloat(value[1] || value[0])));
+                        break;
+                    case "rotate":
+                        value = value.trim().split(/\s*/);
+                        m.rotate(parseFloat(value[0]));
+                        break;
+                    case "skew":
+                        value = value.trim().split(/\s*/);
+                        console.warn("Skew transform is not supported yet");
+                        break;
+                    case "matrix":
+                        var value = value.trim().split(/\s*,\s*/);
+                        var arr = m._array;
+                        arr[0] = parseFloat(value[0]);
+                        arr[1] = parseFloat(value[1]);
+                        arr[2] = parseFloat(value[2]);
+                        arr[3] = parseFloat(value[3]);
+                        arr[4] = parseFloat(value[4]);
+                        arr[5] = parseFloat(value[5]);
+                        break;
+                }
+            }
+        }
+        node.autoUpdate = false;
+    }
+
+    var styleRegex = /(\S*?):(.*?);/g;
+    function _parseStyleAttribute(xmlNode) {
+        var style = xmlNode.getAttribute("style");
+
+        if (style) {
+            var styleList = {};
+            style = style.replace(/\s*([;:])\s*/g, "$1");
+            style.replace(styleRegex, function(str, key, val){
+                styleList[key] = val;
+            });
+
+            return {
+                fill : styleList['fill'],
+                stroke : styleList['stroke'],
+                lineWidth : styleList['stroke-width'],
+                opacity : styleList['opacity'],
+                lineDash : styleList['stroke-dasharray'],
+                lineDashOffset : styleList['stroke-dashoffset'],
+                lineCap : styleList['stroke-linecap'],
+                lineJoin : styleList['stroke-linjoin'],
+                miterLimit : styleList['stroke-miterlimit']
+            }
+        }
+        return {};
+    }
+
+    function _parseCSSRules(doc) {
+
+    }
+
+
+    return Loader
+});
+/**
  * Load three.js JSON Format model
  *
  * Format specification : https://github.com/mrdoob/three.js/wiki/JSON-Model-format-3.1
  * @export{class} Model
  */
-define('loader/three/model',['require','core/base','core/request','3d/shader','3d/material','3d/geometry','3d/mesh','3d/node','3d/texture/texture2d','3d/texture/texturecube','3d/shader/library','3d/skeleton','3d/bone','core/vector3','core/quaternion','_','glmatrix'], function(require){
+define('loader/three/model',['require','core/base','core/request','3d/shader','3d/material','3d/geometry','3d/mesh','3d/node','3d/texture/texture2d','3d/texture/texturecube','3d/shader/library','3d/skeleton','3d/bone','core/vector3','core/quaternion','_','glmatrix'], function(require) {
 
     var Base = require('core/base');
 
@@ -18565,32 +20190,32 @@ define('loader/three/model',['require','core/base','core/request','3d/shader','3
     var vec3 = glMatrix.vec3;
     var vec2 = glMatrix.vec2;
 
-    var Loader = Node.derive(function(){
+    var Loader = Base.derive(function() {
         return {
             textureRootPath : "",
 
             textureNumber : 0
         };
     }, {
-        load : function(url){
+        load : function(url) {
             var self = this;
 
             this.textureNumber = 0;
             request.get({
                 url : url,
-                onprogress : function(percent, loaded, total){
+                onprogress : function(percent, loaded, total) {
                     self.trigger("progress", percent, loaded, total);
                 },
-                onerror : function(e){
+                onerror : function(e) {
                     self.trigger("error", e);
                 },
                 responseType : "text",
-                onload : function(data){
-                    self.parse( JSON.parse(data) )
+                onload : function(data) {
+                    self.parse(JSON.parse(data))
                 }
             })
         },
-        parse : function(data){
+        parse : function(data) {
             
             var geometryList = this.parseGeometry(data);
 
@@ -18599,14 +20224,14 @@ define('loader/three/model',['require','core/base','core/request','3d/shader','3
             var skinned = dSkinIndices && dSkinIndices.length
                         && dSkinWeights && dSkinWeights.length;
 
-            if(skinned){
+            if (skinned) {
                 var skeleton = this.parseSkeleton(data);
                 var boneNumber = skeleton.bones.length;
             }else{
                 var boneNumber = 0;
             }
 
-            if(skinned){
+            if (skinned) {
                 var skeleton = this.parseSkeleton(data);
                 var boneNumber = skeleton.bones.length;
             }else{
@@ -18614,17 +20239,18 @@ define('loader/three/model',['require','core/base','core/request','3d/shader','3
             }
 
             var meshList = [];
-            for(var i = 0; i < data.materials.length; i++){
+            for (var i = 0; i < data.materials.length; i++) {
                 var geometry = geometryList[i];
-                if( geometry 
+                if (geometry 
                     && geometry.faces.length 
-                    && geometry.attributes.position.value.length ){
+                    && geometry.attributes.position.value.length) {
+
                     var material = this.parseMaterial(data.materials[i], boneNumber);
                     var mesh = new Mesh({
                         geometry : geometryList[i],
                         material : material
                     }) ;
-                    if( skinned){
+                    if ( skinned) {
                         mesh.skeleton = skeleton;
                     }
                     meshList.push(mesh);
@@ -18635,12 +20261,12 @@ define('loader/three/model',['require','core/base','core/request','3d/shader','3
             return meshList;
         },
 
-        parseGeometry : function(data){
+        parseGeometry : function(data) {
 
             var geometryList = [];
             var cursorList = [];
             
-            for(var i = 0; i < data.materials.length; i++){
+            for (var i = 0; i < data.materials.length; i++) {
                 geometryList[i] = null;
                 cursorList[i] = 0;
             }
@@ -18671,10 +20297,10 @@ define('loader/three/model',['require','core/base','core/request','3d/shader','3
                 faces = geometry.faces;
 
             var nUvLayers = 0;
-            if( dUvs[0] && dUvs[0].length ){
+            if (dUvs[0] && dUvs[0].length) {
                 nUvLayers++;
             }
-            if( dUvs[1] && dUvs[1].length ){
+            if (dUvs[1] && dUvs[1].length) {
                 nUvLayers++;
             }
 
@@ -18684,15 +20310,15 @@ define('loader/three/model',['require','core/base','core/request','3d/shader','3
             // Cache the reorganized index
             var newIndexMap = [];
             var geoIndexMap = [];
-            for(var i = 0; i < dVertices.length; i++){
+            for (var i = 0; i < dVertices.length; i++) {
                 newIndexMap[i] = -1;
                 geoIndexMap[i] = -1;
             }
 
             var currentGeometryIndex = 0;
             var isNew = [];
-            function getNewIndex(oi, faceIndex){
-                if( newIndexMap[oi] >= 0){
+            function getNewIndex(oi, faceIndex) {
+                if ( newIndexMap[oi] >= 0) {
                     // Switch to the geometry of existed index 
                     currentGeometryIndex = geoIndexMap[oi];
                     geometry = geometryList[currentGeometryIndex];
@@ -18709,11 +20335,11 @@ define('loader/three/model',['require','core/base','core/request','3d/shader','3
                     return newIndexMap[oi];
                 }else{
 
-                    positions.push( [ dVertices[oi*3], dVertices[oi*3+1], dVertices[oi*3+2] ] );
+                    positions.push([dVertices[oi*3], dVertices[oi*3+1], dVertices[oi*3+2]]);
                     //Skin data
-                    if(skinned){
-                        boneWeights.push( [dSkinWeights[oi*2], dSkinWeights[oi*2+1], 0] );
-                        boneIndices.push( [dSkinIndices[oi*2], dSkinIndices[oi*2+1], -1, -1] );
+                    if (skinned) {
+                        boneWeights.push([dSkinWeights[oi*2], dSkinWeights[oi*2+1], 0]);
+                        boneIndices.push([dSkinIndices[oi*2], dSkinIndices[oi*2+1], -1, -1]);
                     }
 
                     newIndexMap[oi] = cursorList[materialIndex];
@@ -18729,29 +20355,29 @@ define('loader/three/model',['require','core/base','core/request','3d/shader','3
             var faceUvs = [];
             var faceNormals = [];
             var faceColors = [];
-            for(var i =0; i < 4; i++){
+            for (var i =0; i < 4; i++) {
                 faceUvs[i] = [0, 0];
                 faceNormals[i] = [0, 0, 0];
                 faceColors[i] = [0, 0, 0];
             }
             var materialIndex = 0;
 
-            while(offset < len){
+            while (offset < len) {
                 var type = dFaces[offset++];
-                var isQuad = isBitSet( type, 0 ),
-                    hasMaterial = isBitSet( type, 1 ),
-                    hasFaceUv = isBitSet( type, 2 ),
-                    hasFaceVertexUv = isBitSet( type, 3 ),
-                    hasFaceNormal = isBitSet( type, 4 ),
-                    hasFaceVertexNormal = isBitSet( type, 5 ),
-                    hasFaceColor = isBitSet( type, 6 ),
-                    hasFaceVertexColor = isBitSet( type, 7 );
+                var isQuad = isBitSet(type, 0),
+                    hasMaterial = isBitSet(type, 1),
+                    hasFaceUv = isBitSet(type, 2),
+                    hasFaceVertexUv = isBitSet(type, 3),
+                    hasFaceNormal = isBitSet(type, 4),
+                    hasFaceVertexNormal = isBitSet(type, 5),
+                    hasFaceColor = isBitSet(type, 6),
+                    hasFaceVertexColor = isBitSet(type, 7);
 
                 var nVertices = isQuad ? 4 : 3;
 
-                if(hasMaterial){
+                if (hasMaterial) {
                     materialIndex = dFaces[ offset+ (isQuad ? 4 : 3) ];
-                    if( ! geometryList[materialIndex] ){
+                    if ( ! geometryList[materialIndex] ) {
                         geometryList[materialIndex] = new Geometry;
                     }
                     geometry = geometryList[materialIndex];
@@ -18765,7 +20391,7 @@ define('loader/three/model',['require','core/base','core/request','3d/shader','3
                     boneIndices = attributes.boneIndex.value;
                     faces = geometry.faces;
                 }
-                if(isQuad){
+                if (isQuad) {
                     // Split into two triangle faces, 1-2-4 and 2-3-4
                     var i1o = dFaces[offset++],
                         i2o = dFaces[offset++],
@@ -18780,7 +20406,7 @@ define('loader/three/model',['require','core/base','core/request','3d/shader','3
                         i5 = getNewIndex(i3o, 4),
                         i6 = getNewIndex(i4o, 5);
                     faces.push([i1, i2, i3], [i4, i5, i6]);
-                }else{
+                } else {
                     var i1 = dFaces[offset++],
                         i2 = dFaces[offset++],
                         i3 = dFaces[offset++];
@@ -18789,16 +20415,16 @@ define('loader/three/model',['require','core/base','core/request','3d/shader','3
                     i3 = getNewIndex(i3, 2);
                     faces.push([i1, i2, i3]);
                 }
-                if(hasMaterial){
+                if (hasMaterial) {
                     offset++;
                 }
-                if(hasFaceUv){
-                    for(var i = 0; i < nUvLayers; i++){
+                if (hasFaceUv) {
+                    for (var i = 0; i < nUvLayers; i++) {
                         var uvLayer = dUvs[i];
                         var uvIndex = faces[offset++];
                         var u = uvLayer[uvIndex*2];
                         var v = uvLayer[uvIndex*2+1];
-                        if(isQuad){
+                        if (isQuad) {
                             // Random write of array seems not slow
                             // http://jsperf.com/random-vs-sequence-array-set
                             isNew[0] && (texcoords[i][i1] = [u, v]);
@@ -18807,22 +20433,22 @@ define('loader/three/model',['require','core/base','core/request','3d/shader','3
                             isNew[3] && (texcoords[i][i4] = [u, v]);
                             isNew[4] && (texcoords[i][i5] = [u, v]);
                             isNew[5] && (texcoords[i][i6] = [u, v]);
-                        }else{
+                        } else {
                             isNew[0] && (texcoords[i][i1] = [u, v]);
                             isNew[1] && (texcoords[i][i2] = [u, v]);
                             isNew[2] && (texcoords[i][i3] = [u, v]);
                         }
                     }
                 }
-                if(hasFaceVertexUv){
-                    for(var i = 0; i < nUvLayers; i++){
+                if (hasFaceVertexUv) {
+                    for (var i = 0; i < nUvLayers; i++) {
                         var uvLayer = dUvs[i];
-                        for(var j = 0; j < nVertices; j++){
+                        for (var j = 0; j < nVertices; j++) {
                             var uvIndex = dFaces[offset++];
                             faceUvs[j][0] = uvLayer[uvIndex*2];
                             faceUvs[j][1] = uvLayer[uvIndex*2+1];
                         }
-                        if(isQuad){
+                        if (isQuad) {
                             // Use array slice to clone array is incredibly faster than 
                             // Construct from Float32Array
                             // http://jsperf.com/typedarray-v-s-array-clone/2
@@ -18832,19 +20458,19 @@ define('loader/three/model',['require','core/base','core/request','3d/shader','3
                             isNew[3] && (texcoords[i][i4] = faceUvs[1].slice());
                             isNew[4] && (texcoords[i][i5] = faceUvs[2].slice());
                             isNew[5] && (texcoords[i][i6] = faceUvs[3].slice());
-                        }else{
+                        } else {
                             isNew[0] && (texcoords[i][i1] = faceUvs[0].slice());
                             isNew[1] && (texcoords[i][i2] = faceUvs[1].slice());
                             isNew[2] && (texcoords[i][i3] = faceUvs[2].slice());
                         }
                     }
                 }
-                if(hasFaceNormal){
+                if (hasFaceNormal) {
                     var normalIndex = dFaces[offset++]*3;
                     var x = dNormals[normalIndex++];
                     var y = dNormals[normalIndex++];
                     var z = dNormals[normalIndex];
-                    if(isQuad){
+                    if (isQuad) {
                         isNew[0] && (normals[i1] = [x, y, z]);
                         isNew[1] && (normals[i2] = [x, y, z]);
                         isNew[2] && (normals[i3] = [x, y, z]);
@@ -18857,30 +20483,30 @@ define('loader/three/model',['require','core/base','core/request','3d/shader','3
                         isNew[2] && (normals[i3] = [x, y, z]);
                     }
                 }
-                if(hasFaceVertexNormal){
-                    for(var i = 0; i < nVertices; i++){
+                if (hasFaceVertexNormal) {
+                    for (var i = 0; i < nVertices; i++) {
                         var normalIndex = dFaces[offset++]*3;
                         faceNormals[i][0] = dNormals[normalIndex++];
                         faceNormals[i][1] = dNormals[normalIndex++];
                         faceNormals[i][2] = dNormals[normalIndex];
                     }
-                    if(isQuad){
+                    if (isQuad) {
                         isNew[0] && (normals[i1] = faceNormals[0].slice());
                         isNew[1] && (normals[i2] = faceNormals[1].slice());
                         isNew[2] && (normals[i3] = faceNormals[3].slice());
                         isNew[3] && (normals[i4] = faceNormals[1].slice());
                         isNew[4] && (normals[i5] = faceNormals[2].slice());
                         isNew[5] && (normals[i6] = faceNormals[3].slice());
-                    }else{
+                    } else {
                         isNew[0] && (normals[i1] = faceNormals[0].slice());
                         isNew[1] && (normals[i2] = faceNormals[1].slice());
                         isNew[2] && (normals[i3] = faceNormals[2].slice());
                     }
                 }
-                if(hasFaceColor){
+                if (hasFaceColor) {
                     var colorIndex = dFaces[offset++];
                     var color = hex2rgb(dColors[colorIndex]);
-                    if(isQuad){
+                    if (isQuad) {
                         // Does't clone the color here
                         isNew[0] && (colors[i1] = color);
                         isNew[1] && (colors[i2] = color);
@@ -18888,25 +20514,25 @@ define('loader/three/model',['require','core/base','core/request','3d/shader','3
                         isNew[3] && (colors[i4] = color);
                         isNew[4] && (colors[i5] = color);
                         isNew[5] && (colors[i6] = color);
-                    }else{
+                    } else {
                         isNew[0] && (colors[i1] = color);
                         isNew[1] && (colors[i2] = color);
                         isNew[2] && (colors[i3] = color);
                     }
                 }
-                if(hasFaceVertexColor){
-                    for(var i = 0; i < nVertices; i++){
+                if (hasFaceVertexColor) {
+                    for (var i = 0; i < nVertices; i++) {
                         var colorIndex = dFaces[offset++];
                         faceColors[i] = hex2rgb(dColors[colorIndex]);
                     }
-                    if(isQuad){
+                    if (isQuad) {
                         isNew[0] && (colors[i1] = faceColors[0].slice());
                         isNew[1] && (colors[i2] = faceColors[1].slice());
                         isNew[2] && (colors[i3] = faceColors[3].slice());
                         isNew[3] && (colors[i4] = faceColors[1].slice());
                         isNew[4] && (colors[i5] = faceColors[2].slice());
                         isNew[5] && (colors[i6] = faceColors[3].slice());
-                    }else{
+                    } else {
                         isNew[0] && (colors[i1] = faceColors[0].slice());
                         isNew[1] && (colors[i2] = faceColors[1].slice());
                         isNew[2] && (colors[i3] = faceColors[2].slice());
@@ -18917,10 +20543,10 @@ define('loader/three/model',['require','core/base','core/request','3d/shader','3
             return geometryList;
         },
 
-        parseSkeleton : function(data){
+        parseSkeleton : function(data) {
             var bones = [];
             var dBones = data.bones;
-            for( var i = 0; i < dBones.length; i++){
+            for ( var i = 0; i < dBones.length; i++) {
                 var dBone = dBones[i];
                 var bone = new Bone({
                     parentIndex : dBone.parent,
@@ -18937,25 +20563,25 @@ define('loader/three/model',['require','core/base','core/request','3d/shader','3
             });
             skeleton.update();
 
-            if( data.animation){
+            if ( data.animation) {
                 var dFrames = data.animation.hierarchy;
 
                 // Parse Animations
-                for(var i = 0; i < dFrames.length; i++){
+                for (var i = 0; i < dFrames.length; i++) {
                     var channel = dFrames[i];
                     var bone = bones[i];
-                    for(var j = 0; j < channel.keys.length; j++){
+                    for (var j = 0; j < channel.keys.length; j++) {
                         var key = channel.keys[j];
                         bone.poses[j] = {};
                         var pose = bone.poses[j];
                         pose.time = parseFloat(key.time);
-                        if(key.pos){
+                        if (key.pos) {
                             pose.position = new Vector3(key.pos[0], key.pos[1], key.pos[2]);
                         }
-                        if(key.rot){
+                        if (key.rot) {
                             pose.rotation = new Quaternion(key.rot[0], key.rot[1], key.rot[2], key.rot[3]);
                         }
-                        if(key.scl){
+                        if (key.scl) {
                             pose.scale = new Vector3(key.scl[0], key.scl[1], key.scl[2]);
                         }
                     }
@@ -18965,28 +20591,28 @@ define('loader/three/model',['require','core/base','core/request','3d/shader','3
             return skeleton;
         },
 
-        parseMaterial : function(mConfig, boneNumber){
+        parseMaterial : function(mConfig, boneNumber) {
             var shaderName = "buildin.lambert";
             var shading = mConfig.shading && mConfig.shading.toLowerCase();
-            if( shading === "phong" || shading === "lambert"){
+            if (shading === "phong" || shading === "lambert") {
                 shaderName = "buildin." + shading;
             }
             var enabledTextures = [];
-            if( mConfig.mapDiffuse ){
+            if (mConfig.mapDiffuse) {
                 enabledTextures.push("diffuseMap");
             }
-            if( mConfig.mapNormal || mConfig.mapBump ){
+            if (mConfig.mapNormal || mConfig.mapBump) {
                 enabledTextures.push('normalMap');
             }
-            if(boneNumber == 0){
+            if (boneNumber == 0) {
                 var shader = shaderLibrary.get(shaderName, enabledTextures);
-            }else{
+            } else {
                 // Shader for skinned mesh
                 var shader = new Shader({
                     vertex : Shader.source(shaderName+".vertex"),
                     fragment : Shader.source(shaderName+".fragment")
                 })
-                for(var i = 0; i < enabledTextures; i++){
+                for (var i = 0; i < enabledTextures; i++) {
                     shader.enableTexture(enabledTextures[i]);
                 }
                 shader.vertexDefines["SKINNING"] = null;
@@ -18996,46 +20622,46 @@ define('loader/three/model',['require','core/base','core/request','3d/shader','3
             var material = new Material({
                 shader : shader
             });
-            if( mConfig.colorDiffuse ){
+            if (mConfig.colorDiffuse) {
                 material.setUniform("color", mConfig.colorDiffuse );
-            }else if( mConfig.DbgColor){
+            } else if (mConfig.DbgColor) {
                 material.setUniform("color", hex2rgb(mConfig.DbgColor));
             }
-            if( mConfig.colorSpecular ){
+            if (mConfig.colorSpecular) {
                 material.setUniform("specular", mConfig.colorSpecular );
             }
-            if(mConfig.transparent !== undefined && mConfig.transparent){
+            if (mConfig.transparent !== undefined && mConfig.transparent) {
                 material.transparent = true;
             }
-            if( ! _.isUndefined(mConfig.depthTest)){
+            if ( ! _.isUndefined(mConfig.depthTest)) {
                 material.depthTest = mConfig.depthTest;
             }
-            if( ! _.isUndefined(mConfig.depthWrite)){
+            if ( ! _.isUndefined(mConfig.depthWrite)) {
                 material.depthTest = mConfig.depthWrite;
             }
             
-            if(mConfig.transparency && mConfig.transparency < 1){
+            if (mConfig.transparency && mConfig.transparency < 1) {
                 material.setUniform("opacity", mConfig.transparency);
             }
-            if(mConfig.specularCoef){
+            if (mConfig.specularCoef) {
                 material.setUniform("shininess", mConfig.specularCoef);
             }
 
             // Textures
-            if( mConfig.mapDiffuse ){
+            if (mConfig.mapDiffuse) {
                 material.setUniform("diffuseMap", this.loadTexture(mConfig.mapDiffuse, mConfig.mapDiffuseWrap) );
             }
-            if( mConfig.mapBump){
+            if (mConfig.mapBump) {
                 material.setUniform("normalMap", this.loadTexture(mConfig.mapBump, mConfig.mapBumpWrap) );
             }
-            if( mConfig.mapNormal){
+            if (mConfig.mapNormal) {
                 material.setUniform("normalMap", this.loadTexture(mConfig.mapNormal, mConfig.mapBumpWrap) );
             }
 
             return material;
         },
 
-        loadTexture : function(path, wrap){
+        loadTexture : function(path, wrap) {
             var self = this;
 
             var img = new Image();
@@ -19044,11 +20670,11 @@ define('loader/three/model',['require','core/base','core/request','3d/shader','3
 
             this.textureNumber++;
 
-            if( wrap && wrap.length ){
+            if (wrap && wrap.length) {
                 texture.wrapS = wrap[0].toUpperCase();
                 texture.wrapT = wrap[1].toUpperCase();
             }
-            img.onload = function(){
+            img.onload = function() {
                 self.trigger("load:texture", texture);
                 texture.dirty();
             }
@@ -19059,25 +20685,25 @@ define('loader/three/model',['require','core/base','core/request','3d/shader','3
     })
 
 
-    function isBitSet(value, position){
+    function isBitSet(value, position) {
         return value & ( 1 << position );
     }
 
 
-    function hex2rgb(hex){
+    function hex2rgb(hex) {
         var r = (hex >> 16) & 0xff,
             g = (hex >> 8) & 0xff,
             b = hex & 0xff;
         return [r/255, g/255, b/255];
     }
 
-    function translateColor(color){
+    function translateColor(color) {
         return [color[0]/255, color[1]/255, color[2]/255];
     }
 
     return Loader
 } );
-define('loader/three/scene',['require','core/base','core/request','3d/scene','./model','3d/light/ambient','3d/light/directional','3d/light/spot','3d/light/point','3d/node','3d/texture/texture2d','3d/texture/texturecube','3d/mesh','3d/material','3d/geometry'],function(require){
+define('loader/three/scene',['require','core/base','core/request','3d/scene','./model','3d/light/ambient','3d/light/directional','3d/light/spot','3d/light/point','3d/node','3d/texture/texture2d','3d/texture/texturecube','3d/mesh','3d/material','3d/geometry'],function(require) {
 
     var Base = require("core/base");
     var request = require("core/request");
@@ -19094,44 +20720,44 @@ define('loader/three/scene',['require','core/base','core/request','3d/scene','./
     var Material = require("3d/material");
     var Geometry = require("3d/geometry");
 
-    var SceneLoader = Base.derive(function(){
+    var SceneLoader = Base.derive(function() {
         return {
             textureRootPath : "",
             textureNumber : 0
         }
     }, {
 
-        load : function(url){
+        load : function(url) {
             var self = this;
 
             this.textureNumber = 0;
 
             request.get({
                 url : url,
-                onprogress : function(percent, loaded, total){
+                onprogress : function(percent, loaded, total) {
                     self.trigger("progress", percent, loaded, total);
                 },
-                onerror : function(e){
+                onerror : function(e) {
                     self.trigger("error", e);
                 },
                 responseType : "text",
-                onload : function(data){
+                onload : function(data) {
                     self.parse( JSON.parse(data) );
                 }
             })
         },
-        parse : function(data){
+        parse : function(data) {
             var scene = new Scene();
             this.parseHierarchy(root, scene);
         },
 
-        parseHierarchy : function(parentObjData, parentNode){
+        parseHierarchy : function(parentObjData, parentNode) {
             
-            for(var name in parentObjData){
+            for (var name in parentObjData) {
                 var childData = parentObjData[name];
-                if(childData.geometry && childData.material){
+                if (childData.geometry && childData.material) {
                     var child = new Mesh();
-                }else{
+                } else {
                     var child = new Node();
                 }
             }
@@ -19142,30 +20768,34 @@ define('util/color',['require'], function(require){
 
 	
 } );
-define('util/xmlparser',['require'], function(require){
-
-});
-define('qtek',['require','2d/camera','2d/node','2d/renderable/arc','2d/renderable/circle','2d/renderable/image','2d/renderable/line','2d/renderable/path','2d/renderable/polygon','2d/renderable/rectangle','2d/renderable/roundedrectangle','2d/renderable/sector','2d/renderable/text','2d/renderable/textbox','2d/renderer','2d/scene','2d/style','2d/util','3d/bone','3d/camera','3d/camera/orthographic','3d/camera/perspective','3d/compositor','3d/compositor/graph/graph','3d/compositor/graph/group','3d/compositor/graph/node','3d/compositor/graph/scenenode','3d/compositor/graph/texturenode','3d/compositor/graph/texturepool','3d/compositor/pass','3d/debug/pointlight','3d/debug/renderinfo','3d/framebuffer','3d/geometry','3d/geometry/cube','3d/geometry/plane','3d/geometry/sphere','3d/light','3d/light/ambient','3d/light/directional','3d/light/point','3d/light/spot','3d/material','3d/mesh','3d/node','3d/plugin/firstpersoncontrol','3d/plugin/orbitcontrol','3d/prepass/shadowmap','3d/renderer','3d/scene','3d/shader','3d/shader/library','3d/skeleton','3d/texture','3d/texture/compressed2d','3d/texture/compressedcube','3d/texture/texture2d','3d/texture/texturecube','3d/util/mesh','3d/webglinfo','animation/animation','animation/controller','animation/easing','core/base','core/cache','core/event','core/matrix3','core/matrix4','core/mixin/derive','core/mixin/dirty','core/mixin/notifier','core/quaternion','core/request','core/vector2','core/vector3','core/vector4','loader/three/model','loader/three/scene','util/color','util/util','util/xmlparser','glmatrix'], function(require){
+define('qtek',['require','2d/camera','2d/gradient','2d/layer','2d/lineargradient','2d/node','2d/pattern','2d/radialgradient','2d/shape/arc','2d/shape/circle','2d/shape/ellipse','2d/shape/html','2d/shape/image','2d/shape/line','2d/shape/path','2d/shape/polygon','2d/shape/rectangle','2d/shape/roundedrectangle','2d/shape/sector','2d/shape/svgpath','2d/shape/text','2d/shape/textbox','2d/stage','2d/style','2d/util','3d/bone','3d/camera','3d/camera/orthographic','3d/camera/perspective','3d/compositor','3d/compositor/graph/graph','3d/compositor/graph/group','3d/compositor/graph/node','3d/compositor/graph/scenenode','3d/compositor/graph/texturenode','3d/compositor/graph/texturepool','3d/compositor/pass','3d/debug/pointlight','3d/debug/renderinfo','3d/framebuffer','3d/geometry','3d/geometry/cube','3d/geometry/plane','3d/geometry/sphere','3d/light','3d/light/ambient','3d/light/directional','3d/light/point','3d/light/spot','3d/material','3d/mesh','3d/node','3d/plugin/firstpersoncontrol','3d/plugin/orbitcontrol','3d/prepass/shadowmap','3d/renderer','3d/scene','3d/shader','3d/shader/library','3d/skeleton','3d/texture','3d/texture/compressed2d','3d/texture/compressedcube','3d/texture/texture2d','3d/texture/texturecube','3d/util/mesh','3d/webglinfo','animation/animation','animation/controller','animation/easing','core/base','core/cache','core/event','core/matrix2','core/matrix2d','core/matrix3','core/matrix4','core/mixin/derive','core/mixin/dirty','core/mixin/notifier','core/quaternion','core/request','core/vector2','core/vector3','core/vector4','loader/svg','loader/three/model','loader/three/scene','util/color','util/util','glmatrix'], function(require){
 	
 	var exportsObject =  {
 	"2d": {
 		"Camera": require('2d/camera'),
+		"Gradient": require('2d/gradient'),
+		"Layer": require('2d/layer'),
+		"LinearGradient": require('2d/lineargradient'),
 		"Node": require('2d/node'),
-		"renderable": {
-			"Arc": require('2d/renderable/arc'),
-			"Circle": require('2d/renderable/circle'),
-			"Image": require('2d/renderable/image'),
-			"Line": require('2d/renderable/line'),
-			"Path": require('2d/renderable/path'),
-			"Polygon": require('2d/renderable/polygon'),
-			"Rectangle": require('2d/renderable/rectangle'),
-			"RoundedRectangle": require('2d/renderable/roundedrectangle'),
-			"Sector": require('2d/renderable/sector'),
-			"Text": require('2d/renderable/text'),
-			"TextBox": require('2d/renderable/textbox')
+		"Pattern": require('2d/pattern'),
+		"RadialGradient": require('2d/radialgradient'),
+		"shape": {
+			"Arc": require('2d/shape/arc'),
+			"Circle": require('2d/shape/circle'),
+			"Ellipse": require('2d/shape/ellipse'),
+			"HTML": require('2d/shape/html'),
+			"Image": require('2d/shape/image'),
+			"Line": require('2d/shape/line'),
+			"Path": require('2d/shape/path'),
+			"Polygon": require('2d/shape/polygon'),
+			"Rectangle": require('2d/shape/rectangle'),
+			"RoundedRectangle": require('2d/shape/roundedrectangle'),
+			"Sector": require('2d/shape/sector'),
+			"SVGPath": require('2d/shape/svgpath'),
+			"Text": require('2d/shape/text'),
+			"TextBox": require('2d/shape/textbox')
 		},
-		"Renderer": require('2d/renderer'),
-		"Scene": require('2d/scene'),
+		"Stage": require('2d/stage'),
 		"Style": require('2d/style'),
 		"util": require('2d/util')
 	},
@@ -19244,6 +20874,8 @@ define('qtek',['require','2d/camera','2d/node','2d/renderable/arc','2d/renderabl
 		"Base": require('core/base'),
 		"Cache": require('core/cache'),
 		"Event": require('core/event'),
+		"Matrix2": require('core/matrix2'),
+		"Matrix2d": require('core/matrix2d'),
 		"Matrix3": require('core/matrix3'),
 		"Matrix4": require('core/matrix4'),
 		"mixin": {
@@ -19258,6 +20890,7 @@ define('qtek',['require','2d/camera','2d/node','2d/renderable/arc','2d/renderabl
 		"Vector4": require('core/vector4')
 	},
 	"loader": {
+		"SVG": require('loader/svg'),
 		"three": {
 			"Model": require('loader/three/model'),
 			"Scene": require('loader/three/scene')
@@ -19265,8 +20898,7 @@ define('qtek',['require','2d/camera','2d/node','2d/renderable/arc','2d/renderabl
 	},
 	"util": {
 		"Color": require('util/color'),
-		"Util": require('util/util'),
-		"Xmlparser": require('util/xmlparser')
+		"Util": require('util/util')
 	}
 };
 
