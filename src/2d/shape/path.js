@@ -11,10 +11,9 @@ define(function(require) {
     var minTmp = new Vector2();
     var maxTmp = new Vector2();
 
-    var Path = Node.derive( function() {
+    var Path = Node.derive(function() {
         return {
             segments : [],
-            globalStyle : true,
             closePath : false
         }
     }, {
@@ -48,20 +47,13 @@ define(function(require) {
             }
         },
         draw : function(ctx) {
-            if (this.globalStyle) {
-                this.drawWithSameStyle(ctx);
-            } else {
-                this.drawWithDifferentStyle(ctx);
-            }
-        },
-        drawWithSameStyle : function(ctx) {
             
             var l = this.segments.length;
             var segs = this.segments;
             
             ctx.beginPath();
             ctx.moveTo(segs[0].point.x, segs[0].point.y);
-            for (var i =1; i < l; i++) {
+            for (var i = 1; i < l; i++) {
                 if (segs[i-1].handleOut || segs[i].handleIn) {
                     var prevHandleOut = segs[i-1].handleOut || segs[i-1].point;
                     var handleIn = segs[i].handleIn || segs[i].point;
@@ -72,44 +64,20 @@ define(function(require) {
                 }
             }
             if (this.closePath) {
-                ctx.closePath();
+                if (segs[l-1].handleOut || segs[0].handleIn) {
+                    var prevHandleOut = segs[l-1].handleOut || segs[l-1].point;
+                    var handleIn = segs[0].handleIn || segs[0].point;
+                    ctx.bezierCurveTo(prevHandleOut.x, prevHandleOut.y,
+                            handleIn.x, handleIn.y, segs[0].point.x, segs[0].point.y);
+                } else {
+                    ctx.lineTo(segs[0].point.x, segs[0].point.y);
+                }
             }
             if (this.fill) {
                 ctx.fill();
             }
             if (this.stroke) {
                 ctx.stroke();
-            }   
-        },
-        drawWithDifferentStyle : function(ctx) {
-            
-            var l = this.segments.length;
-            var segs = this.segments;
-
-            for (var i =0; i < l-1; i++) {
-
-                ctx.save();
-                segs[i].style && segs[i].style.bind(ctx);
-
-                ctx.beginPath();
-                ctx.moveTo(segs[i].point.x, segs[i].point.y);
-
-                if (segs[i].handleOut || segs[i+1].handleIn) {
-                    var handleOut = segs[i].handleOut || segs[i].point;
-                    var nextHandleIn = segs[i+1].handleIn || segs[i+1].point;
-                    ctx.bezierCurveTo(handleOut.x, handleOut.y,
-                            nextHandleIn.x, nextHandleIn.y, segs[i+1].point.x, segs[i+1].point.y);
-                } else {
-                    ctx.lineTo(segs[i+1].point.x, segs[i+1].point.y);
-                }
-
-                if (this.stroke) {
-                    ctx.stroke();
-                }
-                if (this.fill) {
-                    ctx.fill();
-                }
-                ctx.restore();
             }
         },
         smooth : function(degree) {
@@ -149,8 +117,8 @@ define(function(require) {
                 segs[i].handleIn = middleMiddlePoint.clone().add(v2).add(dv);
                 segs[i].handleOut = middleMiddlePoint.clone().add(v1).add(dv);
             }
-            segs[0].handleOut = segs[0].handleIn = null;
-            segs[len-1].handleIn = segs[len-1].handleOut = null;
+            // segs[0].handleOut = segs[0].handleIn = null;
+            // segs[len-1].handleIn = segs[len-1].handleOut = null;
             
         },
         pushPoints : function(points) {

@@ -10504,10 +10504,12 @@ define('2d/gradient',['require','core/base','core/vector2'],function(require) {
     var Vector2 = require("core/vector2");
 
     var Gradient = Base.derive(function(){
-        stops : []
+        return {
+            stops : []
+        }
     }, {
-        addColorStop : function(percent, color){
-            this.stops.push([percent, color]);
+        addColorStop : function(offset, color){
+            this.stops.push([offset, color]);
             this.dirty();
         },
         removeAt : function(idx){
@@ -11180,9 +11182,10 @@ define('2d/shape/ellipse',['require','../node','core/vector2'],function(require)
         },
         draw : function(ctx) {
             ctx.save();
+            ctx.translate(this.center.x, this.center.y);
             ctx.scale(1, this.radius.y / this.radius.x);
             ctx.beginPath();
-            ctx.arc(this.center.x, this.center.y, this.radius.x, 0, 2*Math.PI, false);
+            ctx.arc(0, 0, this.radius.x, 0, 2*Math.PI, false);
             
             if (this.stroke) {
                 ctx.stroke();
@@ -11364,23 +11367,69 @@ define('2d/util',['require','core/vector2','glmatrix'],function(require) {
 
         // http://pomax.github.io/bezierinfo/#extremities
         computeCubeBezierBoundingBox : function(p0, p1, p2, p3, min, max) {
-            var seg = (p0.dist(p1) + p2.dist(p3) + p0.dist(p3)) / 20;
+            // var seg = (p0.dist(p1) + p2.dist(p3) + p0.dist(p3)) / 20;
 
-            min.copy(p0).min(p3);
-            max.copy(p0).max(p3);
+            // min.copy(p0).min(p3);
+            // max.copy(p0).max(p3);
 
-            for (var i = 1; i < seg; i++) {
-                var t = i / seg;
-                var t2 = t * t;
-                var ct = 1 - t;
-                var ct2 = ct * ct;
-                var x = ct2 * ct * p0.x + 3 * ct2 * t * p1.x + 3 * ct * t2 * p2.x + t2 * t * p3.x;
-                var y = ct2 * ct * p0.y + 3 * ct2 * t * p1.y + 3 * ct * t2 * p2.y + t2 * t * p3.y;
+            // for (var i = 1; i < seg; i++) {
+            //     var t = i / seg;
+            //     var t2 = t * t;
+            //     var ct = 1 - t;
+            //     var ct2 = ct * ct;
+            //     var x = ct2 * ct * p0.x + 3 * ct2 * t * p1.x + 3 * ct * t2 * p2.x + t2 * t * p3.x;
+            //     var y = ct2 * ct * p0.y + 3 * ct2 * t * p1.y + 3 * ct * t2 * p2.y + t2 * t * p3.y;
 
-                tmp.set(x, y);
-                min.min(tmp);
-                max.max(tmp);
+            //     tmp.set(x, y);
+            //     min.min(tmp);
+            //     max.max(tmp);
+            // }
+            var xDim = util._computeCubeBezierExtremitiesDim(p0.x, p1.x, p2.x, p3.x);
+            var yDim = util._computeCubeBezierExtremitiesDim(p0.y, p1.y, p2.y, p3.y);
+
+            xDim.push(p0.x, p3.x);
+            yDim.push(p0.y, p3.y);
+
+            var left = Math.min.apply(null, xDim);
+            var right = Math.max.apply(null, xDim);
+            var top = Math.min.apply(null, yDim);
+            var bottom = Math.max.apply(null, yDim);
+
+            min.set(left, top);
+            max.set(right, bottom);
+        },
+
+        _computeCubeBezierExtremitiesDim : function(p0, p1, p2, p3) {
+            var extremities = [];
+
+            var b = 6 * p2 - 12 * p1 + 6 * p0;
+            var a = 9 * p1 + 3 * p3 - 3 * p0 - 9 * p2;
+            var c = 3 * p1 - 3 * p0;
+
+            var tmp = b * b - 4 * a * c;
+            if (tmp > 0){
+                var tmpSqrt = Math.sqrt(tmp);
+                var t1 = (-b + tmpSqrt) / (2 * a);
+                var t2 = (-b - tmpSqrt) / (2 * a);
+                extremities.push(t1, t2);
+            } else if(tmp == 0) {
+                extremities.push(-b / (2 * a));
             }
+            var result = [];
+            for (var i = 0; i < extremities.length; i++) {
+                var t = extremities[i];
+                if (Math.abs(2 * a * t + b) > 0.0001 && t < 1 && t > 0) {
+                    var ct = 1 - t;
+                    var val = ct * ct * ct * p0 
+                            + 3 * ct * ct * t * p1
+                            + 3 * ct * t * t * p2
+                            + t * t *t * p3;
+
+                    result.push(val);
+                }
+            }
+
+            return result;
         },
 
         // http://pomax.github.io/bezierinfo/#extremities
@@ -11457,9 +11506,9 @@ define('2d/util',['require','core/vector2','glmatrix'],function(require) {
                             .add(center);
                     }
                 }
-                var tmp = extremities.slice(0, number)
-                tmp.push(start, end);
-                util.computeBoundingBox(tmp, min, max);
+                var points = extremities.slice(0, number)
+                points.push(start, end);
+                util.computeBoundingBox(points, min, max);
             }
         })()
     }
@@ -11549,10 +11598,9 @@ define('2d/shape/path',['require','../node','../util','core/vector2'],function(r
     var minTmp = new Vector2();
     var maxTmp = new Vector2();
 
-    var Path = Node.derive( function() {
+    var Path = Node.derive(function() {
         return {
             segments : [],
-            globalStyle : true,
             closePath : false
         }
     }, {
@@ -11586,20 +11634,13 @@ define('2d/shape/path',['require','../node','../util','core/vector2'],function(r
             }
         },
         draw : function(ctx) {
-            if (this.globalStyle) {
-                this.drawWithSameStyle(ctx);
-            } else {
-                this.drawWithDifferentStyle(ctx);
-            }
-        },
-        drawWithSameStyle : function(ctx) {
             
             var l = this.segments.length;
             var segs = this.segments;
             
             ctx.beginPath();
             ctx.moveTo(segs[0].point.x, segs[0].point.y);
-            for (var i =1; i < l; i++) {
+            for (var i = 1; i < l; i++) {
                 if (segs[i-1].handleOut || segs[i].handleIn) {
                     var prevHandleOut = segs[i-1].handleOut || segs[i-1].point;
                     var handleIn = segs[i].handleIn || segs[i].point;
@@ -11610,44 +11651,20 @@ define('2d/shape/path',['require','../node','../util','core/vector2'],function(r
                 }
             }
             if (this.closePath) {
-                ctx.closePath();
+                if (segs[l-1].handleOut || segs[0].handleIn) {
+                    var prevHandleOut = segs[l-1].handleOut || segs[l-1].point;
+                    var handleIn = segs[0].handleIn || segs[0].point;
+                    ctx.bezierCurveTo(prevHandleOut.x, prevHandleOut.y,
+                            handleIn.x, handleIn.y, segs[0].point.x, segs[0].point.y);
+                } else {
+                    ctx.lineTo(segs[0].point.x, segs[0].point.y);
+                }
             }
             if (this.fill) {
                 ctx.fill();
             }
             if (this.stroke) {
                 ctx.stroke();
-            }   
-        },
-        drawWithDifferentStyle : function(ctx) {
-            
-            var l = this.segments.length;
-            var segs = this.segments;
-
-            for (var i =0; i < l-1; i++) {
-
-                ctx.save();
-                segs[i].style && segs[i].style.bind(ctx);
-
-                ctx.beginPath();
-                ctx.moveTo(segs[i].point.x, segs[i].point.y);
-
-                if (segs[i].handleOut || segs[i+1].handleIn) {
-                    var handleOut = segs[i].handleOut || segs[i].point;
-                    var nextHandleIn = segs[i+1].handleIn || segs[i+1].point;
-                    ctx.bezierCurveTo(handleOut.x, handleOut.y,
-                            nextHandleIn.x, nextHandleIn.y, segs[i+1].point.x, segs[i+1].point.y);
-                } else {
-                    ctx.lineTo(segs[i+1].point.x, segs[i+1].point.y);
-                }
-
-                if (this.stroke) {
-                    ctx.stroke();
-                }
-                if (this.fill) {
-                    ctx.fill();
-                }
-                ctx.restore();
             }
         },
         smooth : function(degree) {
@@ -11687,8 +11704,8 @@ define('2d/shape/path',['require','../node','../util','core/vector2'],function(r
                 segs[i].handleIn = middleMiddlePoint.clone().add(v2).add(dv);
                 segs[i].handleOut = middleMiddlePoint.clone().add(v1).add(dv);
             }
-            segs[0].handleOut = segs[0].handleIn = null;
-            segs[len-1].handleIn = segs[len-1].handleOut = null;
+            // segs[0].handleOut = segs[0].handleIn = null;
+            // segs[len-1].handleIn = segs[len-1].handleOut = null;
             
         },
         pushPoints : function(points) {
@@ -13750,7 +13767,6 @@ define('3d/camera/perspective',['require','../camera'],function(require) {
 
     var Camera = require('../camera');
 
-
     var Perspective = Camera.derive(function() {
         return {
 
@@ -13772,7 +13788,7 @@ define('3d/camera/perspective',['require','../camera'],function(require) {
 
     return Perspective;
 } );
-define('3d/compositor/graph/graph',['require','core/base','_'], function( require ) {
+define('3d/compositor/graph',['require','core/base','_'], function( require ) {
 
     var Base = require("core/base");
     var _ = require("_");
@@ -13782,7 +13798,6 @@ define('3d/compositor/graph/graph',['require','core/base','_'], function( requir
             nodes : []
         }
     }, {
-
         
         add : function(node) {
 
@@ -13850,12 +13865,14 @@ define('3d/compositor/graph/graph',['require','core/base','_'], function( requir
     
     return Graph;
 });
-define('3d/compositor',['require','./compositor/graph/graph'],function(require){
+define('3d/compositor',['require','./compositor/graph'],function(require){
 
-    var Graph = require("./compositor/graph/graph");
+    var Graph = require("./compositor/graph");
 
     var Compositor = Graph.derive(function() {
         return {
+            // Output node
+            _outputs : []
         }
     }, {
         render : function(renderer) {
@@ -13863,16 +13880,29 @@ define('3d/compositor',['require','./compositor/graph/graph'],function(require){
                 this.update();
                 this.fresh("graph");
             }
-            var finaNode;
             for (var i = 0; i < this.nodes.length; i++) {
                 var node = this.nodes[i];
                 // Find output node
-                if( ! node.outputs){
-                    node.render(renderer);
+                if ( ! this._outputs.length) {
+                    if( ! node.outputs){
+                        node.render(renderer);
+                    }
                 }
                 // Update the reference number of each output texture
                 node.updateReference();
             }
+
+            for (var i = 0; i < this._outputs.length; i++) {
+                this._outputs[i].render(renderer);
+            }
+        },
+
+        setOutput : function(node) {
+            this._outputs.push(node);
+        },
+
+        unsetOutput : function(node) {
+            this._outputs.splice(this._outputs.indexOf(node), 1);
         }
     })
 
@@ -14094,7 +14124,8 @@ define('3d/geometry',['require','core/base','util/util','glmatrix','_'],function
             var dirtyAttributes = this._getDirtyAttributes();
 
             var isFacesDirty = this.cache.get("dirty_faces") || this.cache.miss("dirty_faces");
-
+            isFacesDirty = isFacesDirty && this.faces.length && this.useFaces;
+            
             if (dirtyAttributes) {
                 this._updateAttributesAndIndicesArrays(dirtyAttributes, isFacesDirty);
                 this._updateBuffer(_gl, dirtyAttributes, isFacesDirty);
@@ -14298,7 +14329,7 @@ define('3d/geometry',['require','core/base','util/util','glmatrix','_'],function
             } else {
                 var chunk = newChunk(0);
                 // Use faces
-                if (this.useFaces) {
+                if (isFacesDirty) {
                     var indicesArray = chunk.indicesArray;
                     if (! indicesArray) {
                         indicesArray = chunk.indicesArray = new Uint16Array(this.faces.length*3);
@@ -14390,7 +14421,7 @@ define('3d/geometry',['require','core/base','util/util','glmatrix','_'],function
                         semantic : semantic,
                     }
                 } 
-                if (isFacesDirty && this.useFaces) {
+                if (isFacesDirty) {
                     if (! indicesBuffer) {
                         indicesBuffer = chunk.indicesBuffer = {
                             buffer : _gl.createBuffer(),
@@ -15511,7 +15542,7 @@ define('3d/texture',['require','core/base','_'],function(require) {
             wrapT : 'CLAMP_TO_EDGE',
             // Texture min and mag filter
             // http://www.khronos.org/registry/gles/specs/2.0/es_full_spec_2.0.25.pdf
-            // NEARST
+            // NEAREST
             // LINEAR
             // NEAREST_MIPMAP_NEAREST
             // NEAREST_MIPMAP_LINEAR
@@ -16074,6 +16105,10 @@ define('3d/mesh',['require','./node','_'],function(require) {
             geometry : null,
 
             // Draw mode
+            // POINTS
+            // LINES
+            // TRIANGLES
+            // ...
             mode : "TRIANGLES",
             
             receiveShadow : true,
@@ -16144,7 +16179,7 @@ define('3d/mesh',['require','./node','_'],function(require) {
                     _gl.bindBuffer(_gl.ELEMENT_ARRAY_BUFFER, indicesBuffer.buffer);
                     _gl.drawElements(glDrawMode, indicesBuffer.count, _gl.UNSIGNED_SHORT, 0);
                 } else {
-                    _gl.drawArrays(glDrawMode, 0, geometry.vertexCount);
+                    _gl.drawArrays(glDrawMode, 0, geometry.getVerticesNumber());
                 }
             }
 
@@ -16156,15 +16191,7 @@ define('3d/mesh',['require','./node','_'],function(require) {
             this.trigger('afterrender', _gl, drawInfo);
 
             return drawInfo;
-        },
-
-        bindGeometry : function(_gl) {
-
-            var shader = this.material.shader;
-            var geometry = this.geometry;
-
         }
-
     });
 
     // Called when material is changed
@@ -16285,7 +16312,9 @@ define('3d/compositor/pass',['require','core/base','../scene','../camera/orthogr
                 ext.drawBuffersEXT(bufs);
             }
 
+            this.trigger("beforerender", renderer);
             renderer.render(scene, camera, true);
+            this.trigger("afterrender", renderer);
 
             if (frameBuffer) {
                 this.unbind(renderer, frameBuffer);
@@ -16465,9 +16494,9 @@ define('3d/framebuffer',['require','core/base','./texture/texture2d','./texture/
 /**
  * @export{class} TexturePool
  */
-define('3d/compositor/graph/texturepool',['require','../../texture/texture2d','_'],function(require) {
+define('3d/compositor/texturepool',['require','../texture/texture2d','_'],function(require) {
     
-    var Texture2D = require("../../texture/texture2d");
+    var Texture2D = require("../texture/texture2d");
     var _ = require("_");
 
     var pool = {};
@@ -16606,12 +16635,12 @@ define('3d/compositor/graph/texturepool',['require','../../texture/texture2d','_
  *
  * TODO blending 
  */
-define('3d/compositor/graph/node',['require','core/base','../pass','../../framebuffer','../../shader','./texturepool'],function(require) {
+define('3d/compositor/node',['require','core/base','./pass','../framebuffer','../shader','./texturepool'],function(require) {
 
     var Base = require("core/base");
-    var Pass = require("../pass");
-    var FrameBuffer = require("../../framebuffer");
-    var Shader = require("../../shader");
+    var Pass = require("./pass");
+    var FrameBuffer = require("../framebuffer");
+    var Shader = require("../shader");
     var texturePool = require("./texturepool");
 
     var Node = Base.derive(function() {
@@ -16637,14 +16666,16 @@ define('3d/compositor/graph/node',['require','core/base','../pass','../../frameb
             // }]
             outputLinks : {},
 
-            _textures : {},
 
             pass : null,
 
+            _outputTextures : {},
             //{
             //  name : 2
             //}
-            _outputReferences : {}
+            _outputReferences : {},
+
+            _rendering : false
         }
     }, function() {
         if (this.shader) {
@@ -16661,7 +16692,11 @@ define('3d/compositor/graph/node',['require','core/base','../pass','../../frameb
     }, {
 
         render : function(renderer) {
+            
+            this._rendering = true;
+
             var _gl = renderer.gl;
+
             for (var inputName in this.inputLinks) {
                 var link = this.inputLinks[inputName];
                 var inputTexture = link.node.getOutput(renderer, link.pin);
@@ -16679,22 +16714,25 @@ define('3d/compositor/graph/node',['require','core/base','../pass','../../frameb
                     var outputInfo = this.outputs[name];
 
                     var texture = texturePool.get(outputInfo.parameters || {});
-                    this._textures[name] = texture;
+                    this._outputTextures[name] = texture;
 
                     var attachment = outputInfo.attachment || _gl.COLOR_ATTACHMENT0;
                     if (typeof(attachment) == "string") {
                         attachment = _gl[attachment];
                     }
-                    this.pass.outputs[ attachment ] = texture;
+                    this.pass.outputs[attachment] = texture;
                 }
 
                 this.pass.render(renderer, this.frameBuffer);
+
             }
             
             for (var inputName in this.inputLinks) {
                 var link = this.inputLinks[inputName];
                 link.node.removeReference(link.pin);
             }
+
+            this._rendering = false;
         },
 
         setParameter : function(name, value) {
@@ -16712,14 +16750,19 @@ define('3d/compositor/graph/node',['require','core/base','../pass','../../frameb
             if (! outputInfo) {
                 return ;
             }
-            if (this._textures[name]) {
+            if (this._outputTextures[name]) {
                 // Already been rendered in this frame
-                return this._textures[name];
+                return this._outputTextures[name];
+            } else if(this._rendering) {
+                // Solve circular reference
+                var texture = texturePool.get(outputInfo.parameters || {});
+                this._outputTextures[name] = texture;
+                return texture;
             }
 
             this.render(renderer);
             
-            return this._textures[name];
+            return this._outputTextures[name];
         },
 
         removeReference : function(name) {
@@ -16727,8 +16770,8 @@ define('3d/compositor/graph/node',['require','core/base','../pass','../../frameb
             if (this._outputReferences[name] === 0) {
                 // Output of this node have alreay been used by all other nodes
                 // Put the texture back to the pool.
-                texturePool.put(this._textures[name]);
-                this._textures[name] = null;
+                texturePool.put(this._outputTextures[name]);
+                this._outputTextures[name] = null;
             }
         },
 
@@ -16765,7 +16808,7 @@ define('3d/compositor/graph/node',['require','core/base','../pass','../../frameb
 /**
  * Node Group
  */
-define('3d/compositor/graph/group',['require','./node','./graph'],function(require) {
+define('3d/compositor/group',['require','./node','./graph'],function(require) {
 
     var Node = require("./node");
     var Graph = require("./graph");
@@ -16774,7 +16817,7 @@ define('3d/compositor/graph/group',['require','./node','./graph'],function(requi
         return {
             nodes : [],
 
-            _textures : {}
+            _outputTextures : {}
         }
     }, {
         add : function(node) {
@@ -16827,7 +16870,7 @@ define('3d/compositor/graph/group',['require','./node','./graph'],function(requi
                 }
             }
             for (var name in this.groupOutputs) {
-                if ( ! this._textures[name]) {
+                if ( ! this._outputTextures[name]) {
                     console.error('Group output pin "' + name + '" is not attached');
                 }
             }
@@ -16852,7 +16895,7 @@ define('3d/compositor/graph/group',['require','./node','./graph'],function(requi
             for (var name in node.groupOutputs) {
                 var groupOutputPinName = node.groupOutputs[name];
                 var texture = node.getOutput(renderer, name);
-                this._textures[groupOutputPinName] = texture;
+                this._outputTextures[groupOutputPinName] = texture;
             }
         }
     });
@@ -16862,13 +16905,13 @@ define('3d/compositor/graph/group',['require','./node','./graph'],function(requi
 /**
  * @export{class} SceneNode
  */
-define('3d/compositor/graph/scenenode',['require','./node','../pass','../../framebuffer','./texturepool','../../webglinfo'],function(require) {
+define('3d/compositor/scenenode',['require','./node','./pass','../framebuffer','./texturepool','../webglinfo'],function(require) {
 
     var Node = require("./node");
-    var Pass = require("../pass");
-    var FrameBuffer = require("../../framebuffer");
+    var Pass = require("./pass");
+    var FrameBuffer = require("../framebuffer");
     var texturePool = require("./texturepool");
-    var WebGLInfo = require('../../webglinfo');
+    var WebGLInfo = require('../webglinfo');
 
     var SceneNode = Node.derive(function() {
         return {
@@ -16883,6 +16926,8 @@ define('3d/compositor/graph/scenenode',['require','./node','../pass','../../fram
     }, {
         render : function(renderer) {
             
+            this._rendering = true;
+
             var _gl = renderer.gl;
 
             if (! this.outputs) {
@@ -16894,7 +16939,7 @@ define('3d/compositor/graph/scenenode',['require','./node','../pass','../../fram
                 for (var name in this.outputs) {
                     var outputInfo = this.outputs[name];
                     var texture = texturePool.get(outputInfo.parameters || {});
-                    this._textures[name] = texture;
+                    this._outputTextures[name] = texture;
 
                     var attachment = outputInfo.attachment || _gl.COLOR_ATTACHMENT0;
                     if (typeof(attachment) == "string") {
@@ -16921,11 +16966,15 @@ define('3d/compositor/graph/scenenode',['require','./node','../pass','../../fram
                 if (this.material) {
                     this.scene.material = this.material;
                 }
+
                 renderer.render(this.scene, this.camera);
+                
                 this.scene.material = null;
 
                 frameBuffer.unbind(renderer);
             }
+
+            this._rendering = false;
         }
     })
 
@@ -16934,12 +16983,12 @@ define('3d/compositor/graph/scenenode',['require','./node','../pass','../../fram
 /**
  * @export{class} TextureNode
  */
-define('3d/compositor/graph/texturenode',['require','./node','../../framebuffer','./texturepool','../../shader'],function(require) {
+define('3d/compositor/texturenode',['require','./node','../framebuffer','./texturepool','../shader'],function(require) {
 
     var Node = require("./node");
-    var FrameBuffer = require("../../framebuffer");
+    var FrameBuffer = require("../framebuffer");
     var texturePool = require("./texturepool");
-    var Shader = require("../../shader");
+    var Shader = require("../shader");
 
     var TextureNode = Node.derive(function() {
         return {
@@ -16950,6 +16999,9 @@ define('3d/compositor/graph/texturenode',['require','./node','../../framebuffer'
         }
     }, {
         render : function(renderer) {
+
+            this._rendering = true;
+
             var _gl = renderer.gl;
             this.pass.setUniform("texture", this.texture);
             
@@ -16965,7 +17017,7 @@ define('3d/compositor/graph/texturenode',['require','./node','../../framebuffer'
                     var outputInfo = this.outputs[name];
 
                     var texture = texturePool.get(outputInfo.parameters || {});
-                    this._textures[name] = texture;
+                    this._outputTextures[name] = texture;
 
                     var attachment = outputInfo.attachment || _gl.COLOR_ATTACHMENT0;
                     if (typeof(attachment) == "string") {
@@ -16977,6 +17029,8 @@ define('3d/compositor/graph/texturenode',['require','./node','../../framebuffer'
 
                 this.pass.render(renderer, this.frameBuffer);
             }
+
+            this._rendering = false;
         }
     })
 
@@ -17814,7 +17868,7 @@ define('3d/shader/source/lambert.essl',[],function () { return '/**\n * http://e
 
 define('3d/shader/source/phong.essl',[],function () { return '\n// http://en.wikipedia.org/wiki/Blinn%E2%80%93Phong_shading_model\n\n@export buildin.phong.vertex\n\nuniform mat4 worldViewProjection : WORLDVIEWPROJECTION;\nuniform mat4 worldInverseTranspose : WORLDINVERSETRANSPOSE;\nuniform mat4 world : WORLD;\n\nuniform vec2 uvRepeat : [1.0, 1.0];\n\nattribute vec3 position : POSITION;\nattribute vec2 texcoord : TEXCOORD_0;\nattribute vec3 normal : NORMAL;\nattribute vec4 tangent : TANGENT;\n\nattribute vec3 barycentric;\n\n#ifdef SKINNING\nattribute vec3 boneWeight;\nattribute vec4 boneIndex;\n\nuniform mat4 boneMatrices[ BONE_MATRICES_NUMBER ];\n#endif\n\nvarying vec2 v_Texcoord;\nvarying vec3 v_Normal;\nvarying vec3 v_WorldPosition;\nvarying vec3 v_Barycentric;\n\nvarying vec3 v_Tangent;\nvarying vec3 v_Bitangent;\n\nvoid main(){\n    \n    vec3 skinnedPosition = position;\n    vec3 skinnedNormal = normal;\n    vec3 skinnedTangent = tangent.xyz;\n    #ifdef SKINNING\n        mat4 skinMatrix;\n        if(boneIndex.x >= 0.0){\n            skinMatrix = boneMatrices[int(boneIndex.x)] * boneWeight.x;\n        }\n        if(boneIndex.y >= 0.0){\n            skinMatrix += boneMatrices[int(boneIndex.y)] * boneWeight.y;\n        }\n        if(boneIndex.z >= 0.0){\n            skinMatrix += boneMatrices[int(boneIndex.z)] * boneWeight.z;\n        }\n        if(boneIndex.w >= 0.0){\n            skinMatrix += boneMatrices[int(boneIndex.w)] * (1.0-boneWeight.x-boneWeight.y-boneWeight.z);\n        }\n        skinnedPosition = (skinMatrix * vec4(position, 1.0)).xyz;\n        // Normal matrix ???\n        skinnedNormal = (skinMatrix * vec4(normal, 0.0)).xyz;\n        skinnedTangent = (skinMatrix * vec4(tangent.xyz, 0.0)).xyz;\n\n    #endif\n\n    gl_Position = worldViewProjection * vec4( skinnedPosition, 1.0 );\n\n    v_Texcoord = texcoord * uvRepeat;\n    v_WorldPosition = ( world * vec4( skinnedPosition, 1.0) ).xyz;\n    v_Barycentric = barycentric;\n\n    v_Normal = normalize( ( worldInverseTranspose * vec4(skinnedNormal, 0.0) ).xyz );\n    v_Tangent = normalize( (worldInverseTranspose * vec4(skinnedTangent, 0.0) ).xyz );\n    v_Bitangent = normalize( cross(v_Normal, v_Tangent) * tangent.w );\n\n}\n\n@end\n\n\n@export buildin.phong.fragment\n\nuniform mat4 viewInverse : VIEWINVERSE;\n\nvarying vec2 v_Texcoord;\nvarying vec3 v_Normal;\nvarying vec3 v_WorldPosition;\nvarying vec3 v_Tangent;\nvarying vec3 v_Bitangent;\n\nuniform sampler2D diffuseMap;\nuniform sampler2D alphaMap;\nuniform sampler2D normalMap;\nuniform sampler2D specularMap;\nuniform sampler2D environmentMap;\n\nuniform vec3 color : [1.0, 1.0, 1.0];\nuniform float alpha : 1.0;\n\nuniform float shininess : 30;\n\nuniform vec3 specular : [1.0, 1.0, 1.0];\n\n// Uniforms for wireframe\nuniform float lineWidth : 0.0;\nuniform vec3 lineColor : [0.0, 0.0, 0.0];\nvarying vec3 v_Barycentric;\n\n#ifdef AMBIENT_LIGHT_NUMBER\n@import buildin.header.ambient_light\n#endif\n#ifdef POINT_LIGHT_NUMBER\n@import buildin.header.point_light\n#endif\n#ifdef DIRECTIONAL_LIGHT_NUMBER\n@import buildin.header.directional_light\n#endif\n#ifdef SPOT_LIGHT_NUMBER\n@import buildin.header.spot_light\n#endif\n\n#extension GL_OES_standard_derivatives : enable\n// Import util functions and uniforms needed\n@import buildin.util.calculate_attenuation\n\n@import buildin.util.edge_factor\n\n@import buildin.plugin.compute_shadow_map\n\nvoid main(){\n    \n    vec4 finalColor = vec4(color, alpha);\n\n    #ifdef DIFFUSEMAP_ENABLED\n        vec4 tex = texture2D( diffuseMap, v_Texcoord );\n        finalColor.rgb *= tex.rgb;\n    #endif\n\n    vec3 normal = v_Normal;\n    #ifdef NORMALMAP_ENABLED\n        normal = texture2D( normalMap, v_Texcoord ).xyz * 2.0 - 1.0;\n        mat3 tbn = mat3( v_Tangent, v_Bitangent, v_Normal );\n        normal = normalize( tbn * normal );\n    #endif\n\n    // Diffuse part of all lights\n    vec3 diffuseColor = vec3(0.0, 0.0, 0.0);\n    // Specular part of all lights\n    vec3 specularColor = vec3(0.0, 0.0, 0.0);\n    \n    vec3 eyePos = viewInverse[3].xyz;\n    vec3 viewDirection = normalize(eyePos - v_WorldPosition);\n\n    #ifdef AMBIENT_LIGHT_NUMBER\n        for(int i = 0; i < AMBIENT_LIGHT_NUMBER; i++){\n            diffuseColor += ambientLightColor[i];\n        }\n    #endif\n    #ifdef POINT_LIGHT_NUMBER\n        #if defined(POINT_LIGHT_SHADOWMAP_NUMBER)\n            float shadowFallOffs[POINT_LIGHT_NUMBER];\n            if( shadowEnabled ){\n                computeShadowFallOfPointLights( v_WorldPosition, shadowFallOffs );\n            }\n        #endif\n        for(int i = 0; i < POINT_LIGHT_NUMBER; i++){\n\n            vec3 lightPosition = pointLightPosition[i];\n            vec3 lightColor = pointLightColor[i];\n            float range = pointLightRange[i];\n\n            vec3 lightDirection = lightPosition - v_WorldPosition;\n\n            // Calculate point light attenuation\n            float dist = length(lightDirection);\n            float attenuation = calculateAttenuation(dist, range); \n\n            // Normalize vectors\n            lightDirection /= dist;\n            vec3 halfVector = normalize( lightDirection + viewDirection );\n\n            float ndh = dot( normal, halfVector );\n            ndh = clamp(ndh, 0.0, 1.0);\n\n            float ndl = dot( normal,  lightDirection );\n            ndl = clamp(ndl, 0.0, 1.0);\n\n            float shadowFallOff = 1.0;\n            #if defined(POINT_LIGHT_SHADOWMAP_NUMBER)\n                if( shadowEnabled ){\n                    shadowFallOff = shadowFallOffs[i];\n                }\n            #endif\n\n            diffuseColor += lightColor * ndl * attenuation * shadowFallOff;\n\n            specularColor += specular * pow( ndh, shininess ) * attenuation * shadowFallOff;\n\n        }\n    #endif\n\n    #ifdef DIRECTIONAL_LIGHT_NUMBER\n        #if defined(DIRECTIONAL_LIGHT_SHADOWMAP_NUMBER)\n            float shadowFallOffs[DIRECTIONAL_LIGHT_NUMBER];\n            if( shadowEnabled ){\n                computeShadowFallOfDirectionalLights( v_WorldPosition, shadowFallOffs );\n            }\n        #endif\n        for(int i = 0; i < DIRECTIONAL_LIGHT_NUMBER; i++){\n\n            vec3 lightDirection = -normalize( directionalLightDirection[i] );\n            vec3 lightColor = directionalLightColor[i];\n\n            vec3 halfVector = normalize( lightDirection + viewDirection );\n\n            float ndh = dot( normal, halfVector );\n            ndh = clamp(ndh, 0.0, 1.0);\n\n            float ndl = dot( normal, lightDirection );\n            ndl = clamp(ndl, 0.0, 1.0);\n\n            float shadowFallOff = 1.0;\n            #if defined(DIRECTIONAL_LIGHT_SHADOWMAP_NUMBER)\n                if( shadowEnabled ){\n                    shadowFallOff = shadowFallOffs[i];\n                }\n            #endif\n\n            diffuseColor += lightColor * ndl * shadowFallOff;\n\n            specularColor += specular * pow( ndh, shininess ) * shadowFallOff;\n        }\n    #endif\n\n    #ifdef SPOT_LIGHT_NUMBER\n        #if defined(SPOT_LIGHT_SHADOWMAP_NUMBER)\n            float shadowFallOffs[SPOT_LIGHT_NUMBER];\n            if( shadowEnabled ){\n                computeShadowFallOfSpotLights( v_WorldPosition, shadowFallOffs );\n            }\n        #endif\n        for(int i = 0; i < SPOT_LIGHT_NUMBER; i++){\n            vec3 lightPosition = spotLightPosition[i];\n            vec3 spotLightDirection = -normalize( spotLightDirection[i] );\n            vec3 lightColor = spotLightColor[i];\n            float range = spotLightRange[i];\n            float umbraAngleCosine = spotLightUmbraAngleCosine[i];\n            float penumbraAngleCosine = spotLightPenumbraAngleCosine[i];\n            float falloffFactor = spotLightFalloffFactor[i];\n\n            vec3 lightDirection = lightPosition - v_WorldPosition;\n            // Calculate attenuation\n            float dist = length(lightDirection);\n            float attenuation = calculateAttenuation(dist, range); \n\n            // Normalize light direction\n            lightDirection /= dist;\n            // Calculate spot light fall off\n            float lightDirectCosine = dot(spotLightDirection, lightDirection);\n\n            float falloff;\n            // Fomular from real-time-rendering\n            if( lightDirectCosine < penumbraAngleCosine ){\n                falloff = 1.0;\n            }else if( lightDirectCosine > umbraAngleCosine ){\n                falloff = 0.0;\n            }else{\n                falloff = (lightDirectCosine-umbraAngleCosine)/(penumbraAngleCosine-umbraAngleCosine);\n                falloff = pow(falloff, falloffFactor);\n            }\n\n            vec3 halfVector = normalize( lightDirection + viewDirection );\n\n            float ndh = dot( normal, halfVector );\n            ndh = clamp(ndh, 0.0, 1.0);\n\n            float ndl = dot( normal, lightDirection );\n            ndl = clamp(ndl, 0.0, 1.0);\n\n            float shadowFallOff = 1.0;\n            #if defined(SPOT_LIGHT_SHADOWMAP_NUMBER)\n                if( shadowEnabled ){\n                    shadowFallOff = shadowFallOffs[i];\n                }\n            #endif\n\n            diffuseColor += lightColor * ndl * attenuation * (1.0-falloff) * shadowFallOff;\n\n            specularColor += specular * pow( ndh, shininess ) * attenuation * (1.0-falloff) * shadowFallOff;\n\n        }\n    #endif\n\n    finalColor.rgb *= diffuseColor;\n    finalColor.rgb += specularColor;\n\n    if( lineWidth > 0.01){\n        finalColor.rgb = finalColor.rgb * mix(lineColor, vec3(1.0), edgeFactor(lineWidth));\n    }\n\n    gl_FragColor = finalColor;\n}\n\n@end';});
 
-define('3d/shader/source/wireframe.essl',[],function () { return '@export buildin.wireframe.vertex\n\nuniform mat4 worldViewProjection : WORLDVIEWPROJECTION;\nuniform mat4 world : WORLD;\n\nattribute vec3 position : POSITION;\nattribute vec3 barycentric;\n\nvarying vec3 v_Barycentric;\n\nvoid main(){\n\n    gl_Position = worldViewProjection * vec4( position, 1.0 );\n\n    v_Barycentric = barycentric;\n}\n\n@end\n\n\n@export buildin.wireframe.fragment\n\nuniform vec3 color : [0.0, 0.0, 0.0];\n\nuniform float alpha : 1.0;\nuniform float lineWidth : 1.5;\n\nvarying vec3 v_Barycentric;\n\n#extension GL_OES_standard_derivatives : enable\n\n@import buildin.util.edge_factor\n\nvoid main(){\n\n    gl_FragColor.rgb = color;\n    gl_FragColor.a = ( 1.0-edgeFactor(lineWidth) ) * alpha;\n}\n\n@end';});
+define('3d/shader/source/wireframe.essl',[],function () { return '@export buildin.wireframe.vertex\n\nuniform mat4 worldViewProjection : WORLDVIEWPROJECTION;\nuniform mat4 world : WORLD;\n\nattribute vec3 position : POSITION;\nattribute vec3 barycentric;\n\nvarying vec3 v_Barycentric;\n\nvoid main(){\n\n    gl_Position = worldViewProjection * vec4( position, 1.0 );\n\n    v_Barycentric = barycentric;\n}\n\n@end\n\n\n@export buildin.wireframe.fragment\n\nuniform vec3 color : [0.0, 0.0, 0.0];\n\nuniform float alpha : 1.0;\nuniform float lineWidth : 1.0;\n\nvarying vec3 v_Barycentric;\n\n#extension GL_OES_standard_derivatives : enable\n\n@import buildin.util.edge_factor\n\nvoid main(){\n\n    gl_FragColor.rgb = color;\n    gl_FragColor.a = ( 1.0-edgeFactor(lineWidth) ) * alpha;\n}\n\n@end';});
 
 define('3d/shader/source/util.essl',[],function () { return '// Use light attenuation formula in\n// http://blog.slindev.com/2011/01/10/natural-light-attenuation/\n@export buildin.util.calculate_attenuation\n\nuniform float attenuationFactor : 5.0;\n\nfloat calculateAttenuation(float dist, float range){\n    float attenuation = 1.0;\n    if( range > 0.0){\n        attenuation = dist*dist/(range*range);\n        float att_s = attenuationFactor;\n        attenuation = 1.0/(attenuation*att_s+1.0);\n        att_s = 1.0/(att_s+1.0);\n        attenuation = attenuation - att_s;\n        attenuation /= 1.0 - att_s;\n    }\n    return attenuation;\n}\n\n@end\n\n//http://codeflow.org/entries/2012/aug/02/easy-wireframe-display-with-barycentric-coordinates/\n@export buildin.util.edge_factor\n\nfloat edgeFactor(float width){\n    vec3 d = fwidth(v_Barycentric);\n    vec3 a3 = smoothstep(vec3(0.0), d * width, v_Barycentric);\n    return min(min(a3.x, a3.y), a3.z);\n}\n\n@end\n\n// Pack depth\n// Float value can only be 0.0 - 1.0 ?\n@export buildin.util.pack_depth\nvec4 packDepth( const in float depth ){\n\n    const vec4 bitShifts = vec4( 256.0 * 256.0 * 256.0, 256.0 * 256.0, 256.0, 1.0 );\n\n    const vec4 bit_mask  = vec4( 0.0, 1.0 / 256.0, 1.0 / 256.0, 1.0 / 256.0 );\n    vec4 res = fract( depth * bitShifts );\n    res -= res.xxyz * bit_mask;\n\n    return res;\n}\n@end\n\n@export buildin.util.unpack_depth\nfloat unpackDepth( const in vec4 colour ){\n    const vec4 bitShifts = vec4( 1.0 / ( 256.0 * 256.0 * 256.0 ), 1.0 / ( 256.0 * 256.0 ), 1.0 / 256.0, 1.0 );\n    return dot(colour, bitShifts);\n}\n@end\n\n@export buildin.util.pack_depth_half\nvec2 packDepthHalf( const in float depth ){\n    const vec2 bitShifts = vec2(256.0, 1.0);\n    const vec4 bitMask = vec4(0.0, 1.0/256.0);\n\n    vec2 rg = fract(depth*bitShifts);\n    rg -= rg.xx * bitMask;\n\n    return rg;\n}\n@end\n\n@export buildin.util.unpack_depth_half\nfloat unpackDepthHalf( const in vec2 rg ){\n    const vec4 bitShifts = vec2(1.0/256.0, 1.0);\n    return dot(rg, bitShifts);\n}\n@end';});
 
@@ -18254,7 +18308,7 @@ define('3d/renderer',['require','core/base','_','glmatrix','util/util','./light'
             // http://www.khronos.org/webgl/wiki/HandlingHighDPI
             devicePixelRatio : window.devicePixelRatio || 1.0,
 
-            color : [1.0, 1.0, 1.0, 0.0],
+            color : [0.0, 0.0, 0.0, 0.0],
             
             // _gl.COLOR_BUFFER_BIT | _gl.DEPTH_BUFFER_BIT
             clear : 16640,  
@@ -18417,7 +18471,7 @@ define('3d/renderer',['require','core/base','_','glmatrix','util/util','./light'
                 this.trigger("beforerender:transparent", transparentQueue);
             }
 
-            _gl.disable(_gl.DEPTH_TEST);
+            // _gl.disable(_gl.DEPTH_TEST);
             _gl.enable(_gl.BLEND);
             // Default blend function
             _gl.blendEquation(_gl.FUNC_ADD);
@@ -18488,6 +18542,9 @@ define('3d/renderer',['require','core/base','_','glmatrix','util/util','./light'
             var _gl = this.gl;
             var scene = this._scene;
             
+            var depthTest = true;
+            var depthWrite = true;
+
             for (var i =0; i < queue.length; i++) {
                 var object = queue[i];
                 var material = globalMaterial || object.material;
@@ -18519,6 +18576,16 @@ define('3d/renderer',['require','core/base','_','glmatrix','util/util','./light'
                     prevShaderID = shader.__GUID__;
                 }
                 if (prevMaterialID !== material.__GUID__) {
+                    if (material.depthTest !== depthTest) {
+                        material.depthTest ? 
+                            _gl.enable(_gl.DEPTH_TEST) : 
+                            _gl.disable(_gl.DEPTH_TEST);
+                    }
+                    if (material.depthWrite !== depthWrite) {
+                        material.depthWrite ? 
+                            _gl.enable(_gl.DEPTH_WRITE) : 
+                            _gl.disable(_gl.DEPTH_WRITE);
+                    }
 
                     material.bind(_gl);
                     prevMaterialID = material.__GUID__;
@@ -19274,6 +19341,8 @@ define('animation/animation',['require','./controller','_'],function(require) {
 
         this._controllerCount = 0;
 
+        this._delay = 0;
+
         this._doneList = [];
 
         this._onframeList = [];
@@ -19284,17 +19353,17 @@ define('animation/animation',['require','./controller','_'],function(require) {
     Deferred.prototype = {
         when : function(time /* ms */, props, easing) {
             for (var propName in props) {
-                if (! this._tracks[ propName ]) {
-                    this._tracks[ propName ] = [];
+                if (! this._tracks[propName]) {
+                    this._tracks[propName] = [];
                     // Initialize value
-                    this._tracks[ propName ].push({
+                    this._tracks[propName].push({
                         time : 0,
                         value : this._getter(this._target, propName)
                     });
                 }
-                this._tracks[ propName ].push({
+                this._tracks[propName].push({
                     time : time,
-                    value : props[ propName ],
+                    value : props[propName],
                     easing : easing
                 });
             }
@@ -19310,6 +19379,7 @@ define('animation/animation',['require','./controller','_'],function(require) {
             var track;
             var trackMaxTime;
             var value;
+            var setter = this._setter;
 
             function createOnframe(now, next, propName) {
                 var prevValue = now.value;
@@ -19328,16 +19398,16 @@ define('animation/animation',['require','./controller','_'],function(require) {
                 if (self._controllerCount === 0) {
                     var len = self._doneList.length;
                     for (var i = 0; i < len; i++) {
-                        self._doneList[i]();
+                        self._doneList[i].call(self);
                     }
                 }
             }
 
             for (var propName in this._tracks) {
-                delay = 0;
-                track = this._tracks[ propName ];
+                delay = this._delay;
+                track = this._tracks[propName];
                 if (track.length) {
-                    trackMaxTime = track[ track.length-1].time;
+                    trackMaxTime = track[track.length-1].time;
                 }else{
                     continue;
                 }
@@ -19358,7 +19428,7 @@ define('animation/animation',['require','./controller','_'],function(require) {
                     this._controllerList.push(controller);
 
                     this._controllerCount++;
-                    delay = next.time;
+                    delay = next.time + this._delay;
 
                     self.animation.add(controller);
                 }
@@ -19370,6 +19440,10 @@ define('animation/animation',['require','./controller','_'],function(require) {
                 var controller = this._controllerList[i];
                 this.animation.remove(controller);
             }
+        },
+        delay : function(time){
+            this._delay = time;
+            return this;
         },
         done : function(func) {
             this._doneList.push(func);
@@ -19821,11 +19895,14 @@ define('loader/svg',['require','core/base','core/request','2d/node','2d/shape/ci
 
     var Loader = Base.derive(function() {
         return {
-            _defs : []
+            defs : {},
+            root : null
         };
     }, {
         load : function(url) {
+
             var self = this;
+            this.defs = {};
 
             request.get({
                 url : url,
@@ -19837,7 +19914,9 @@ define('loader/svg',['require','core/base','core/request','2d/node','2d/shape/ci
                 },
                 responseType : "text",
                 onload : function(xmlString) {
-                    self.parse(xmlString);
+                    self.parse(xmlString, function(root){
+                        self.trigger('load', root);
+                    });
                 }
             })
         },
@@ -19853,7 +19932,7 @@ define('loader/svg',['require','core/base','core/request','2d/node','2d/shape/ci
                 var svg = xml;
             }
             var root = new Node();
-            
+            this.root = root;
             // parse view port
             var viewBox = svg.getAttribute("viewBox") || '';
             var viewBoxArr = viewBox.split(/\s+/);
@@ -19881,16 +19960,40 @@ define('loader/svg',['require','core/base','core/request','2d/node','2d/shape/ci
 
         _parseNode : function(xmlNode, parent) {
             var nodeName = xmlNode.nodeName.toLowerCase();
-            var nodeParser = nodeParsers[nodeName];
-            if (nodeParser) {
-                var node = nodeParser(xmlNode, parent);
-                parent.add(node);
 
-                var child = xmlNode.firstChild;
-                while (child) {
-                    this._parseNode(child, node);
-                    child = child.nextSibling;
+            if (nodeName === 'defs') {
+                // define flag
+                this._isDefine = true;
+            }
+
+            if (this._isDefine) {
+                var parser = defineParsers[nodeName];
+                if (parser) {
+                    var def = parser.call(this, xmlNode);
+                    var id = xmlNode.getAttribute("id");
+                    if (id) {
+                        this.defs[id] = def;
+                    }
                 }
+            } else {
+                var parser = nodeParsers[nodeName];
+                if (parser) {
+                    var node = parser.call(this, xmlNode, parent);
+                    parent.add(node);
+                }
+            }
+
+            var child = xmlNode.firstChild;
+            while (child) {
+                if (child.nodeType === 1){
+                    this._parseNode(child, node);
+                }
+                child = child.nextSibling;
+            }
+
+            // Quit define
+            if (nodeName === 'defs') {
+                this._isDefine = false;
             }
         }
     });
@@ -19898,14 +20001,18 @@ define('loader/svg',['require','core/base','core/request','2d/node','2d/shape/ci
     var nodeParsers = {
         "g" : function(xmlNode, parentNode) {
             var node = new Node();
-            _inheritStyle(parentNode, node);
-            _parseAttributes(xmlNode, node);
+            if (parentNode) {
+                _inheritStyle(parentNode, node);
+            }
+            _parseAttributes(xmlNode, node, this.defs);
             return node;
         },
         "rect" : function(xmlNode, parentNode) {
             var rect = new Rectangle();
-            _inheritStyle(parentNode, rect);
-            _parseAttributes(xmlNode, rect);
+            if (parentNode) {
+                _inheritStyle(parentNode, rect);
+            }
+            _parseAttributes(xmlNode, rect, this.defs);
 
             var x = parseFloat(xmlNode.getAttribute("x") || 0);
             var y = parseFloat(xmlNode.getAttribute("y") || 0);
@@ -19918,8 +20025,10 @@ define('loader/svg',['require','core/base','core/request','2d/node','2d/shape/ci
         },
         "circle" : function(xmlNode, parentNode) {
             var circle = new Circle();
-            _inheritStyle(parentNode, circle);
-            _parseAttributes(xmlNode, circle);
+            if (parentNode) {
+                _inheritStyle(parentNode, circle);
+            }
+            _parseAttributes(xmlNode, circle, this.defs);
 
             var cx = parseFloat(xmlNode.getAttribute("cx") || 0);
             var cy = parseFloat(xmlNode.getAttribute("cy") || 0);
@@ -19931,8 +20040,10 @@ define('loader/svg',['require','core/base','core/request','2d/node','2d/shape/ci
         },
         'line' : function(xmlNode, parentNode){
             var line = new Line();
-            _inheritStyle(parentNode, line);
-            _parseAttributes(xmlNode, line);
+            if (parentNode) {
+                _inheritStyle(parentNode, line);
+            }
+            _parseAttributes(xmlNode, line, this.defs);
 
             var x1 = parseFloat(xmlNode.getAttribute("x1") || 0);
             var y1 = parseFloat(xmlNode.getAttribute("y1") || 0);
@@ -19945,8 +20056,10 @@ define('loader/svg',['require','core/base','core/request','2d/node','2d/shape/ci
         },
         "ellipse" : function(xmlNode, parentNode) {
             var ellipse = new Ellipse();
-            _inheritStyle(parentNode, ellipse);
-            _parseAttributes(xmlNode, ellipse);
+            if (parentNode) {
+                _inheritStyle(parentNode, ellipse);
+            }
+            _parseAttributes(xmlNode, ellipse, this.defs);
 
             var cx = parseFloat(xmlNode.getAttribute("cx") || 0);
             var cy = parseFloat(xmlNode.getAttribute("cy") || 0);
@@ -19965,15 +20078,19 @@ define('loader/svg',['require','core/base','core/request','2d/node','2d/shape/ci
             var polygon = new Polygon({
                 points : points
             });
-            _inheritStyle(parentNode, polygon);
-            _parseAttributes(xmlNode, polygon);
+            if (parentNode) {
+                _inheritStyle(parentNode, polygon);
+            }
+            _parseAttributes(xmlNode, polygon, this.defs);
 
             return polygon;
         },
         'polyline' : function(xmlNode, parentNode) {
             var path = new Path();
-            _inheritStyle(parentNode, path);
-            _parseAttributes(xmlNode, path);
+            if (parentNode) {
+                _inheritStyle(parentNode, path);
+            }
+            _parseAttributes(xmlNode, path, this.defs);
 
             var points = xmlNode.getAttribute("points");
             if (points) {
@@ -19987,12 +20104,14 @@ define('loader/svg',['require','core/base','core/request','2d/node','2d/shape/ci
 
         },
         'text' : function(xmlNode, parentNode) {
-
+            
         },
         "path" : function(xmlNode, parentNode) {
             var path = new SVGPath();
-            _inheritStyle(parentNode, path);
-            _parseAttributes(xmlNode, path);
+            if (parentNode) {
+                _inheritStyle(parentNode, path);
+            }
+            _parseAttributes(xmlNode, path, this.defs);
 
             // TODO svg fill rule
             // https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/fill-rule
@@ -20002,23 +20121,51 @@ define('loader/svg',['require','core/base','core/request','2d/node','2d/shape/ci
             path.description = d;
 
             return path;
-        },
+        }
+    }
 
-        'linearGradient' : function(xmlNode) {
+    var defineParsers = {
+
+        'lineargradient' : function(xmlNode) {
             var x1 = parseInt(xmlNode.getAttribute("x1") || 0);
             var y1 = parseInt(xmlNode.getAttribute("y1") || 0);
-            var x2 = parseInt(xmlNode.getAttribute("x2") || 100);
+            var x2 = parseInt(xmlNode.getAttribute("x2") || 10);
             var y2 = parseInt(xmlNode.getAttribute("y2") || 0);
 
-            var stop = xmlNode.firstChild;
+            var gradient = new LinearGradient();
+            gradient.start.set(x1, y1);
+            gradient.end.set(x2, y2);
 
-            while (stop) {
+            _parseGradientColorStops(xmlNode, gradient);
 
-            }
+            return gradient;
         },
 
-        'radialGradient' : function(xmlNode) {
+        'radialgradient' : function(xmlNode) {
 
+        }
+    }
+
+    function _parseGradientColorStops(xmlNode, gradient){
+
+        var stop = xmlNode.firstChild;
+
+        while (stop) {
+            if (stop.nodeType === 1) {
+                var offset = stop.getAttribute("offset");
+                if (offset.indexOf("%") > 0) {  // percentage
+                    offset = parseInt(offset) / 100;
+                } else if(offset) {    // number from 0 to 1
+                    offset = parseFloat(offset);
+                } else {
+                    offset = 0;
+                }
+
+                var stopColor = stop.getAttribute("stop-color") || '#000000';
+
+                gradient.addColorStop(offset, stopColor);
+            }
+            stop = stop.nextSibling;
         }
     }
 
@@ -20039,7 +20186,7 @@ define('loader/svg',['require','core/base','core/request','2d/node','2d/shape/ci
         return points;
     }
 
-    function _parseAttributes(xmlNode, node) {
+    function _parseAttributes(xmlNode, node, defs) {
         _parseTransformAttribute(xmlNode, node);
 
         var styleList = {
@@ -20057,8 +20204,8 @@ define('loader/svg',['require','core/base','core/request','2d/node','2d/shape/ci
         _.extend(styleList, _parseStyleAttribute(xmlNode));
 
         node.style = new Style({
-            fill : _getPaint(styleList.fill),
-            stroke : _getPaint(styleList.stroke),
+            fill : _getPaint(styleList.fill, defs),
+            stroke : _getPaint(styleList.stroke, defs),
             lineWidth : parseFloat(styleList.lineWidth),
             opacity : parseFloat(styleList.opacity),
             lineDashOffset : styleList.lineDashOffset,
@@ -20077,7 +20224,14 @@ define('loader/svg',['require','core/base','core/request','2d/node','2d/shape/ci
     }
 
 
-    function _getPaint(str) {
+    var urlRegex = /url\(\s*#(.*?)\)/;
+    function _getPaint(str, defs) {
+        var urlMatch = urlRegex.exec(str);
+        if (urlMatch) {
+            var url = urlMatch[1].trim();
+            var def = defs[url];
+            return def;
+        }
         return str;
     }
 
@@ -20768,7 +20922,7 @@ define('util/color',['require'], function(require){
 
 	
 } );
-define('qtek',['require','2d/camera','2d/gradient','2d/layer','2d/lineargradient','2d/node','2d/pattern','2d/radialgradient','2d/shape/arc','2d/shape/circle','2d/shape/ellipse','2d/shape/html','2d/shape/image','2d/shape/line','2d/shape/path','2d/shape/polygon','2d/shape/rectangle','2d/shape/roundedrectangle','2d/shape/sector','2d/shape/svgpath','2d/shape/text','2d/shape/textbox','2d/stage','2d/style','2d/util','3d/bone','3d/camera','3d/camera/orthographic','3d/camera/perspective','3d/compositor','3d/compositor/graph/graph','3d/compositor/graph/group','3d/compositor/graph/node','3d/compositor/graph/scenenode','3d/compositor/graph/texturenode','3d/compositor/graph/texturepool','3d/compositor/pass','3d/debug/pointlight','3d/debug/renderinfo','3d/framebuffer','3d/geometry','3d/geometry/cube','3d/geometry/plane','3d/geometry/sphere','3d/light','3d/light/ambient','3d/light/directional','3d/light/point','3d/light/spot','3d/material','3d/mesh','3d/node','3d/plugin/firstpersoncontrol','3d/plugin/orbitcontrol','3d/prepass/shadowmap','3d/renderer','3d/scene','3d/shader','3d/shader/library','3d/skeleton','3d/texture','3d/texture/compressed2d','3d/texture/compressedcube','3d/texture/texture2d','3d/texture/texturecube','3d/util/mesh','3d/webglinfo','animation/animation','animation/controller','animation/easing','core/base','core/cache','core/event','core/matrix2','core/matrix2d','core/matrix3','core/matrix4','core/mixin/derive','core/mixin/dirty','core/mixin/notifier','core/quaternion','core/request','core/vector2','core/vector3','core/vector4','loader/svg','loader/three/model','loader/three/scene','util/color','util/util','glmatrix'], function(require){
+define('qtek',['require','2d/camera','2d/gradient','2d/layer','2d/lineargradient','2d/node','2d/pattern','2d/radialgradient','2d/shape/arc','2d/shape/circle','2d/shape/ellipse','2d/shape/html','2d/shape/image','2d/shape/line','2d/shape/path','2d/shape/polygon','2d/shape/rectangle','2d/shape/roundedrectangle','2d/shape/sector','2d/shape/svgpath','2d/shape/text','2d/shape/textbox','2d/stage','2d/style','2d/util','3d/bone','3d/camera','3d/camera/orthographic','3d/camera/perspective','3d/compositor','3d/compositor/graph','3d/compositor/group','3d/compositor/node','3d/compositor/pass','3d/compositor/scenenode','3d/compositor/texturenode','3d/compositor/texturepool','3d/debug/pointlight','3d/debug/renderinfo','3d/framebuffer','3d/geometry','3d/geometry/cube','3d/geometry/plane','3d/geometry/sphere','3d/light','3d/light/ambient','3d/light/directional','3d/light/point','3d/light/spot','3d/material','3d/mesh','3d/node','3d/plugin/firstpersoncontrol','3d/plugin/orbitcontrol','3d/prepass/shadowmap','3d/renderer','3d/scene','3d/shader','3d/shader/library','3d/skeleton','3d/texture','3d/texture/compressed2d','3d/texture/compressedcube','3d/texture/texture2d','3d/texture/texturecube','3d/util/mesh','3d/webglinfo','animation/animation','animation/controller','animation/easing','core/base','core/cache','core/event','core/matrix2','core/matrix2d','core/matrix3','core/matrix4','core/mixin/derive','core/mixin/dirty','core/mixin/notifier','core/quaternion','core/request','core/vector2','core/vector3','core/vector4','loader/svg','loader/three/model','loader/three/scene','util/color','util/util','glmatrix'], function(require){
 	
 	var exportsObject =  {
 	"2d": {
@@ -20808,15 +20962,13 @@ define('qtek',['require','2d/camera','2d/gradient','2d/layer','2d/lineargradient
 		},
 		"Compositor": require('3d/compositor'),
 		"compositor": {
-			"graph": {
-				"Graph": require('3d/compositor/graph/graph'),
-				"Group": require('3d/compositor/graph/group'),
-				"Node": require('3d/compositor/graph/node'),
-				"SceneNode": require('3d/compositor/graph/scenenode'),
-				"TextureNode": require('3d/compositor/graph/texturenode'),
-				"TexturePool": require('3d/compositor/graph/texturepool')
-			},
-			"Pass": require('3d/compositor/pass')
+			"Graph": require('3d/compositor/graph'),
+			"Group": require('3d/compositor/group'),
+			"Node": require('3d/compositor/node'),
+			"Pass": require('3d/compositor/pass'),
+			"SceneNode": require('3d/compositor/scenenode'),
+			"TextureNode": require('3d/compositor/texturenode'),
+			"TexturePool": require('3d/compositor/texturepool')
 		},
 		"debug": {
 			"Pointlight": require('3d/debug/pointlight'),
