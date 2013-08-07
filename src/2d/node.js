@@ -31,7 +31,6 @@ define(function(require) {
             rotation : 0,
             scale : new Vector2(1, 1),
 
-            autoUpdate : true,
             transform : new Matrix2d(),
             // inverse matrix of transform matrix
             transformInverse : new Matrix2d(),
@@ -55,9 +54,8 @@ define(function(require) {
             fill : true,
             // flag of stroke when drawing the element
             stroke : false,
-            // fix aa problem
-            // https://developer.mozilla.org/en-US/docs/HTML/Canvas/Tutorial/Applying_styles_and_colors?redirectlocale=en-US&redirectslug=Canvas_tutorial%2FApplying_styles_and_colors#section_8
-            fixAA : true
+            // Enable picking
+            enablePicking : true
         }
     }, {
         updateTransform : function() {
@@ -65,9 +63,6 @@ define(function(require) {
             if (! this.scale._dirty &&
                 ! this.position._dirty &&
                 this.rotation === this._prevRotation) {
-                return;
-            }
-            if (! this.autoUpdate) {
                 return;
             }
             transform.identity();
@@ -97,21 +92,21 @@ define(function(require) {
             }
         },
 
-        draw : function(context) {},
+        draw : null,
 
         render : function(context) {
             
             this.trigger("beforerender", context);
 
-            var renderQueue = this._getSortedRenderQueue();
+            var renderQueue = this.getSortedRenderQueue();
             // TODO : some style should not be inherited ?
             context.save();
             if (this.style) {
-                if (!this.style instanceof Style) {
-                    for (var name in this.style) {
-                        this.style[name].bind(context);
+                if (!this.style instanceof Array) {
+                    for (var i = 0; i < this.style.length; i++) {
+                        this.style[i].bind(context);
                     }
-                } else {
+                } else if(this.style.bind) {
                     this.style.bind(context);
                 }
             }
@@ -119,9 +114,11 @@ define(function(require) {
             var m = this.transform._array;
             context.transform(m[0], m[1], m[2], m[3], m[4], m[5]);
 
-            this.trigger("beforedraw", context);
-            this.draw(context);
-            this.trigger("afterdraw", context);
+            if (this.draw) {
+                this.trigger("beforedraw", context);
+                this.draw(context);
+                this.trigger("afterdraw", context);
+            }
 
             //clip from current path;
             this.clip && context.clip();
@@ -158,14 +155,14 @@ define(function(require) {
         },
 
         getWidth : function() {
-
+            
         },
 
         getHeight : function() {
-
+            
         },
 
-        _getSortedRenderQueue : function() {
+        getSortedRenderQueue : function() {
             var renderQueue = this.children.slice();
             renderQueue.sort(function(x, y) {
                 if (x.z === y.z)

@@ -41,13 +41,13 @@
             });
 
             var canvas = layer.canvas;
-            if(window.devicePixelRatio == 2) {
-                canvas.width *= 2;
-                canvas.height *= 2;
-                canvas.style.width = canvas.width/2;
-                canvas.style.height = canvas.height/2;
-                layer.scale.set(2, 2);
-            }
+            // if(window.devicePixelRatio == 2) {
+            //     canvas.width *= 2;
+            //     canvas.height *= 2;
+            //     canvas.style.width = canvas.width/2;
+            //     canvas.style.height = canvas.height/2;
+            //     layer.scale.set(2, 2);
+            // }
             
             // Bounding box
             var bbHelpers = [];
@@ -64,7 +64,8 @@
                             stroke : 'black',
                             lineWidth : 0.5
                         }),
-                        size : bb.max.clone().sub(bb.min)
+                        size : bb.max.clone().sub(bb.min),
+                        enablePicking : false
                     });
                     bbHelpers.push(rect);
 
@@ -74,8 +75,23 @@
             console.profileEnd("compute bounding box");
 
             console.profile("render");
-            layer.render()
+            stage.render();
             console.profileEnd("render");
+
+            layer.on("mouseover", function(e){
+                e.target.style.shadow = '0 0 10 black';
+                e.target.z = 1;
+                stage.render();
+            });
+            layer.on("mouseout", function(e){
+                e.target.style.shadow = null;
+                e.target.z = 0;
+                stage.render();
+            });
+
+            layer.picker.setPrecision(0.5);
+
+            document.body.appendChild(layer.picker._canvas);
         });
     </script>
 </body>

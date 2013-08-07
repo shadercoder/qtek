@@ -22,7 +22,7 @@ define(function(require) {
     var Base = require('core/base');
     var _ = require('_');
 
-    var shadowSyntaxRegex = /([0-9\-]+)\s+([0-9\-]+)\s+([0-9]+)\s+([a-zA-Z0-9\(\)\s,#]+)/;
+    var shadowSyntaxRegex = /([0-9\-]+)\s+([0-9\-]+)\s+([0-9]+)\s+(.+)/;
     
     var Style = Base.derive({}, {
 
@@ -98,7 +98,7 @@ define(function(require) {
                         ctx.lineDashOffset = this.lineDashOffset;
                     }
                 } else {
-                    console.warn("Browser not support setLineDash method");
+                    console.warn("Browser does not support setLineDash method");
                 }
             }
         }

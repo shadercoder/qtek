@@ -21,8 +21,8 @@ define(function(require) {
                 }   
             }
         },
-        draw : function(ctx) {
-            if (this.image) {
+        draw : function(ctx, isPicker) {
+            if (this.image && ! isPicker) {
                 this.size ? 
                     ctx.drawImage(this.image, this.start.x, this.start.y, this.size.x, this.size.y) :
                     ctx.drawImage(this.image, this.start.x, this.start.y);

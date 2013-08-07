@@ -18,7 +18,7 @@ define(function(require){
         },
         draw : function(ctx) {
 
-            var start = this.fixAA ? util.fixPos(this.start) : this.start;
+            var start = this.start;
 
             ctx.beginPath();
             ctx.rect(start.x, start.y, this.size.x, this.size.y);

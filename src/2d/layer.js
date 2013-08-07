@@ -1,6 +1,7 @@
 define(function(require) {
 
     var Node = require('./node');
+    var Picker = require('./picker');
 
     var Layer = Node.derive(function() {
         return {
@@ -12,7 +13,11 @@ define(function(require) {
             
             height : 0,
             
-            clearColor : ''
+            clearColor : '',
+
+            enablePicking : true,
+
+            picker : null
         }
     }, function() {
         if (!this.canvas) {
@@ -35,6 +40,12 @@ define(function(require) {
         this.ctx = this.canvas.getContext('2d');
 
         this.ctx.__GUID__ = this.__GUID__;
+
+        if (this.enablePicking) {
+            this.picker = new Picker({
+                layer : this
+            });
+        }
     }, {
         resize : function(width, height) {
             this.canvas.width = width;
@@ -42,6 +53,8 @@ define(function(require) {
 
             this.width = width;
             this.height = height;
+
+            this.trigger("resize", width, height);
         },
 
         render : function() {
@@ -53,6 +66,8 @@ define(function(require) {
             }
 
             Node.prototype.render.call(this, this.ctx);
+
+            this.picker.update();
         },
 
         setZ : function(z) {

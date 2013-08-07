@@ -30,8 +30,8 @@ define(function(require) {
         },
         draw : function(ctx) {
             
-            var start = this.fixAA ? util.fixPos(this.start) : this.start,
-                end = this.fixAA ? util.fixPos(this.end) : this.end;
+            var start = this.start,
+                end = this.end;
 
             ctx.beginPath();
             ctx.moveTo(start.x, start.y);

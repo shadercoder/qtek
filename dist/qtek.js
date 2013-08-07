@@ -10650,7 +10650,7 @@ define('2d/style',['require','core/base','_'],function(require) {
     var Base = require('core/base');
     var _ = require('_');
 
-    var shadowSyntaxRegex = /([0-9\-]+)\s+([0-9\-]+)\s+([0-9]+)\s+([a-zA-Z0-9\(\)\s,#]+)/;
+    var shadowSyntaxRegex = /([0-9\-]+)\s+([0-9\-]+)\s+([0-9]+)\s+(.+)/;
     
     var Style = Base.derive({}, {
 
@@ -10726,7 +10726,7 @@ define('2d/style',['require','core/base','_'],function(require) {
                         ctx.lineDashOffset = this.lineDashOffset;
                     }
                 } else {
-                    console.warn("Browser not support setLineDash method");
+                    console.warn("Browser does not support setLineDash method");
                 }
             }
         }
@@ -10783,7 +10783,6 @@ define('2d/node',['require','core/base','core/vector2','core/matrix2d','./style'
             rotation : 0,
             scale : new Vector2(1, 1),
 
-            autoUpdate : true,
             transform : new Matrix2d(),
             // inverse matrix of transform matrix
             transformInverse : new Matrix2d(),
@@ -10819,9 +10818,6 @@ define('2d/node',['require','core/base','core/vector2','core/matrix2d','./style'
                 this.rotation === this._prevRotation) {
                 return;
             }
-            if (! this.autoUpdate) {
-                return;
-            }
             transform.identity();
             transform.scale(this.scale);
             transform.rotate(this.rotation);
@@ -10849,7 +10845,7 @@ define('2d/node',['require','core/base','core/vector2','core/matrix2d','./style'
             }
         },
 
-        draw : function(context) {},
+        draw : null,
 
         render : function(context) {
             
@@ -10859,11 +10855,11 @@ define('2d/node',['require','core/base','core/vector2','core/matrix2d','./style'
             // TODO : some style should not be inherited ?
             context.save();
             if (this.style) {
-                if (!this.style instanceof Style) {
-                    for (var name in this.style) {
-                        this.style[name].bind(context);
+                if (!this.style instanceof Array) {
+                    for (var i = 0; i < this.style.length; i++) {
+                        this.style[i].bind(context);
                     }
-                } else {
+                } else if(this.style.bind) {
                     this.style.bind(context);
                 }
             }
@@ -10871,9 +10867,11 @@ define('2d/node',['require','core/base','core/vector2','core/matrix2d','./style'
             var m = this.transform._array;
             context.transform(m[0], m[1], m[2], m[3], m[4], m[5]);
 
-            this.trigger("beforedraw", context);
-            this.draw(context);
-            this.trigger("afterdraw", context);
+            if (this.draw) {
+                this.trigger("beforedraw", context);
+                this.draw(context);
+                this.trigger("afterdraw", context);
+            }
 
             //clip from current path;
             this.clip && context.clip();
@@ -10910,11 +10908,11 @@ define('2d/node',['require','core/base','core/vector2','core/matrix2d','./style'
         },
 
         getWidth : function() {
-
+            
         },
 
         getHeight : function() {
-
+            
         },
 
         _getSortedRenderQueue : function() {
@@ -10930,9 +10928,121 @@ define('2d/node',['require','core/base','core/vector2','core/matrix2d','./style'
 
     return Node;
 });
-define('2d/layer',['require','./node'],function(require) {
+define('2d/picker',['require','core/base','./node'],function(require) {
+
+    var Base = require('core/base');
+    var Node = require("./node");
+
+    var Picker = Base.derive(function() {
+
+        return {
+            layer : null,
+
+            downSampleRatio : 1,
+
+            offset : 1,
+
+            _canvas : null,
+            _context : null,
+            _imageData : null,
+
+            _lookupTable : [],
+
+        }
+
+    }, function(){
+        this.init();
+    }, {
+        init : function() {
+            if ( ! this.layer) {
+                return;
+            }
+            var canvas = document.createElement("canvas");
+            canvas.width = this.layer.canvas.width * this.downSampleRatio;
+            canvas.height = this.layer.canvas.height * this.downSampleRatio;
+
+            this.layer.on("resize", function(){
+                canvas.width = this.layer.canvas.width * this.downSampleRatio;
+                canvas.height = this.layer.canvas.height * this.downSampleRatio;
+            });
+
+            this._canvas = canvas;
+            this._context = canvas.getContext("2d");
+        },
+        update : function() {
+            var ctx = this._context;
+            ctx.clearRect(0, 0, this._canvas.width, this._canvas.height);
+            ctx.save();
+            ctx.scale(this.downSampleRatio, this.downSampleRatio);
+            this._lookupTable.length = 0;
+            this._renderNode(this.layer, ctx);
+            ctx.restore();
+            // Cache the image data
+            // Get image data is slow
+            // http://jsperf.com/getimagedata-multi-vs-once
+            var imageData = ctx.getImageData(0, 0, this._canvas.width, this._canvas.height);
+            this._imageData = imageData.data;
+        },
+        _renderNode : function(node, ctx) {
+            ctx.save();
+            node.updateTransform();
+            var m = node.transform._array;
+            ctx.transform(m[0], m[1], m[2], m[3], m[4], m[5]);
+            node.clip && ctx.clip();
+
+            if (node.draw) {
+                var lut = this._lookupTable;
+                var rgb = packID(lut.length + this.offset);
+                var color = 'rgb(' + rgb.join(',') + ')';
+                this._lookupTable.push(node);
+                
+                ctx.fillStyle = color;
+                ctx.strokeStyle = color;
+                node.draw(ctx);
+            }
+            for (var i = 0; i < node.children.length; i++) {
+                var child = node.children[i];
+                this._renderNode(child, ctx);
+            }
+            ctx.restore();
+        },
+        pick : function(x, y) {
+            var ratio = 1 / this.downSampleRatio;
+            var data = this._imageData;
+            x = Math.ceil(ratio * x);
+            y = Math.ceil(ratio * y);
+            var offset = ((y-1) * this._canvas.width + (x-1))*4;
+            var r = data[offset],
+                g = data[offset+1],
+                b = data[offset+2],
+                a = data[offset+3];
+            var id = unpackID(r, g, b) - this.offset;
+
+            if (id && (a === 255 || a === 0)) {
+                var el = this._lookupTable[id];
+                return el;
+            }
+        }
+    });
+
+
+    function packID(id){
+        var r = id >> 16;
+        var g = (id - (r << 8)) >> 8;
+        var b = id - (r << 16) - (g<<8);
+        return [r, g, b];
+    }
+
+    function unpackID(r, g, b){
+        return (r << 16) + (g<<8) + b;
+    }
+
+    return Picker;
+});
+define('2d/layer',['require','./node','./picker'],function(require) {
 
     var Node = require('./node');
+    var Picker = require('./picker');
 
     var Layer = Node.derive(function() {
         return {
@@ -10944,7 +11054,11 @@ define('2d/layer',['require','./node'],function(require) {
             
             height : 0,
             
-            clearColor : ''
+            clearColor : '',
+
+            enablePicking : true,
+
+            picker : null
         }
     }, function() {
         if (!this.canvas) {
@@ -10967,6 +11081,12 @@ define('2d/layer',['require','./node'],function(require) {
         this.ctx = this.canvas.getContext('2d');
 
         this.ctx.__GUID__ = this.__GUID__;
+
+        if (this.enablePicking) {
+            this.picker = new Picker({
+                layer : this
+            });
+        }
     }, {
         resize : function(width, height) {
             this.canvas.width = width;
@@ -10974,6 +11094,8 @@ define('2d/layer',['require','./node'],function(require) {
 
             this.width = width;
             this.height = height;
+
+            this.trigger("resize", width, height);
         },
 
         render : function() {
@@ -10985,6 +11107,8 @@ define('2d/layer',['require','./node'],function(require) {
             }
 
             Node.prototype.render.call(this, this.ctx);
+
+            this.picker.update();
         },
 
         setZ : function(z) {
@@ -12504,10 +12628,41 @@ define('2d/shape/textbox',['require','../node','core/vector2','./text','_'],func
 
     return TextBox;
 });
-define('2d/stage',['require','core/base','./layer'],function(require) {
+define('core/event',['require','./base'], function(require) {
+
+    var Base = require('./base');
+
+    var Event = Base.derive({
+        cancelBubble : false
+    }, {
+        stopPropagation : function() {
+            this.cancelBubble = true;
+        }
+    })
+
+    Event.throw = function(eventType, target, props) {
+        
+        var e = new Event(props);
+
+        e.type = eventType;
+        e.target = target;
+
+        // enable bubbling
+        while (target && !e.cancelBubble ) {
+            e.currentTarget = target;
+            target.trigger(eventType, e);
+
+            target = target.parent;
+        }
+    }
+
+    return Event;
+} );
+define('2d/stage',['require','core/base','./layer','core/event'],function(require) {
 
     var Base = require('core/base');
     var Layer = require('./layer');
+    var Event = require('core/event');
 
     var Stage = Base.derive(function() {
         return {
@@ -12516,7 +12671,11 @@ define('2d/stage',['require','core/base','./layer'],function(require) {
             width : 100,
             height : 100,
 
-            _layers : []
+            _layers : [],
+
+            _layersSorted : [],
+
+            _mouseOverEl : null
         }
     }, function() {
         
@@ -12539,6 +12698,12 @@ define('2d/stage',['require','core/base','./layer'],function(require) {
             this.height = this.container.clientHeight;
         }
 
+        this.container.addEventListener("click", this._eventProxy.bind(this, 'click'));
+        this.container.addEventListener("dblclick", this._eventProxy.bind(this, 'dblclick'));
+        this.container.addEventListener("mousemove", this._mouseMoveHandler.bind(this));
+        this.container.addEventListener("mousedown", this._eventProxy.bind(this, 'mousedown'));
+        this.container.addEventListener("mouseup", this._eventProxy.bind(this, 'mouseup'));
+        this.container.addEventListener("mouseout", this._mouseOutHandler.bind(this));
     }, {
 
         createLayer : function(options) {
@@ -12563,6 +12728,11 @@ define('2d/stage',['require','core/base','./layer'],function(require) {
             this.container.appendChild(layer.canvas);
 
             this._layers.push(layer);
+            this._layersSorted = this._layers.slice().sort(function(a, b){
+                if (a.z === b.z)
+                    return a.__GUID__ > b.__GUID__ ? 1 : -1;
+                return a.z > b.z ? 1 : -1 ;
+            });
         },
 
         removeLayer : function(layer) {
@@ -12578,14 +12748,69 @@ define('2d/stage',['require','core/base','./layer'],function(require) {
             for (var i = 0; i < this._layers.length; i++) {
                 this._layers[i].resize(width, height);
             }
+
+            this.trigger("resize", width, height);
         },
 
         render : function() {
             for (var i = 0; i < this._layers.length; i++) {
                 this._layers[i].render();
             }
+        },
+
+        _eventProxy : function(e, type) {
+            var el = this._findTrigger(e);
+            if (el) {
+                Event.throw(type, el, this._assembleE(e));
+            }
+        },
+
+        _mouseMoveHandler : function(e) {
+            var el = this._findTrigger(e);
+            if (el) {
+                Event.throw('mousemove', el, this._assembleE(e));
+            }
+
+            if (this._mouseOverEl !== el) {
+                if (this._mouseOverEl) {
+                    Event.throw('mouseout', this._mouseOverEl, this._assembleE(e));
+                }
+                if (el) {
+                    Event.throw('mouseover', el, this._assembleE(e));
+                }
+                this._mouseOverEl = el;
+            }
+        },
+
+        _mouseOutHandler : function(e) {
+            if (this._mouseOverEl) {
+                Event.throw('mouseout', this._mouseOverEl, this._assembleE(e));
+            }
+        },
+
+        _findTrigger : function(e) {
+            var container = this.container;
+            var clientRect = container.getBoundingClientRect();
+            var x = e.pageX - clientRect.left,
+                y = e.pageY - clientRect.top;
+
+            for (var i = this._layersSorted.length - 1; i >= 0 ; i--) {
+                var layer = this._layersSorted[i];
+                var el = layer.picker.pick(x, y);
+                if (el) {
+                    return el;
+                }
+            }
+        },
+
+        _assembleE : function(e){
+            return {
+                pageX : e.pageX,
+                pageY : e.pageY
+            }
         }
-    })
+
+    });
 
     return Stage;
 });
@@ -15127,7 +15352,7 @@ define('3d/shader',['require','core/base','glmatrix','util/util','_'],function(r
          * Example Usage:
          * enableAttributes(_gl, "position", "texcoords")
          * OR
-         * enableAttributes(_gl, ["position", "texcoors"])
+         * enableAttributes(_gl, ["position", "texcoords"])
          */
         enableAttributes : function(_gl, attribList) {
             
@@ -15143,8 +15368,17 @@ define('3d/shader',['require','core/base','glmatrix','util/util','_'],function(r
             if (! enabledAttributeListInContext) {
                 enabledAttributeListInContext = enabledAttributeList[_gl.__GUID__] = [];
             }
-
-            for (var symbol in this.attributeTemplates) {
+            for (var i = 0; i < enabledAttributeListInContext.length; i++) {
+                if (enabledAttributeListInContext[i]) {
+                    _gl.disableVertexAttribArray(i);
+                    enabledAttributeListInContext[i] = false;
+                }
+            }
+            for (var i = 0; i < attribList.length; i++) {
+                var symbol = attribList[i];
+                if (!this.attributeTemplates[symbol]) {
+                    continue;
+                }
                 var location = locationsMap[symbol];                        
                 if (typeof(location) === "undefined") {
                     location = _gl.getAttribLocation(program, symbol);
@@ -15154,18 +15388,8 @@ define('3d/shader',['require','core/base','glmatrix','util/util','_'],function(r
                     }
                     locationsMap[symbol] = location;
                 }
-
-                if (attribList.indexOf(symbol) >= 0) {
-                    if (! enabledAttributeListInContext[location]) {
-                        _gl.enableVertexAttribArray(location);
-                        enabledAttributeListInContext[location] = true;
-                    }
-                }else{
-                    if (enabledAttributeListInContext[location]) {
-                        _gl.disableVertexAttribArray(location);
-                        enabledAttributeListInContext[location] = false;
-                    }
-                }
+                _gl.enableVertexAttribArray(location);
+                enabledAttributeListInContext[location] = true;
             }
         },
 
@@ -15756,14 +15980,14 @@ define('3d/texture/texture2d',['require','../texture','../webglinfo'],function(r
             
             this.beforeUpdate( _gl);
 
-            var glFormat = _gl[ this.format.toUpperCase() ],
-                glType = _gl[ this.type.toUpperCase() ];
+            var glFormat = _gl[this.format.toUpperCase()],
+                glType = _gl[this.type.toUpperCase()];
 
-            _gl.texParameteri(_gl.TEXTURE_2D, _gl.TEXTURE_WRAP_S, _gl[ this.wrapS.toUpperCase() ]);
-            _gl.texParameteri(_gl.TEXTURE_2D, _gl.TEXTURE_WRAP_T, _gl[ this.wrapT.toUpperCase() ]);
+            _gl.texParameteri(_gl.TEXTURE_2D, _gl.TEXTURE_WRAP_S, _gl[this.wrapS.toUpperCase()]);
+            _gl.texParameteri(_gl.TEXTURE_2D, _gl.TEXTURE_WRAP_T, _gl[this.wrapT.toUpperCase()]);
 
-            _gl.texParameteri(_gl.TEXTURE_2D, _gl.TEXTURE_MAG_FILTER, _gl[ this.magFilter.toUpperCase() ]);
-            _gl.texParameteri(_gl.TEXTURE_2D, _gl.TEXTURE_MIN_FILTER, _gl[ this.minFilter.toUpperCase() ]);
+            _gl.texParameteri(_gl.TEXTURE_2D, _gl.TEXTURE_MAG_FILTER, _gl[this.magFilter.toUpperCase()]);
+            _gl.texParameteri(_gl.TEXTURE_2D, _gl.TEXTURE_MIN_FILTER, _gl[this.minFilter.toUpperCase()]);
             
             var anisotropicExt = WebGLInfo.getExtension(_gl, "EXT_texture_filter_anisotropic");
             if (anisotropicExt && this.anisotropic > 1) {
@@ -18310,8 +18534,8 @@ define('3d/renderer',['require','core/base','_','glmatrix','util/util','./light'
 
             color : [0.0, 0.0, 0.0, 0.0],
             
-            // _gl.COLOR_BUFFER_BIT | _gl.DEPTH_BUFFER_BIT
-            clear : 16640,  
+            // _gl.COLOR_BUFFER_BIT | _gl.DEPTH_BUFFER_BIT | _gl.STENCIL_BUFFER_BIT
+            clear : 17664,  
 
             // Settings when getting context
             // http://www.khronos.org/registry/webgl/specs/latest/#2.4
@@ -18462,7 +18686,7 @@ define('3d/renderer',['require','core/base','_','glmatrix','util/util','./light'
                 this.trigger("beforerender:opaque", opaqueQueue);
             }
 
-            _gl.enable(_gl.DEPTH_TEST);
+            // _gl.enable(_gl.DEPTH_TEST);
             _gl.disable(_gl.BLEND);
             this.renderQueue(opaqueQueue, camera, sceneMaterial, silent);
 
@@ -18474,8 +18698,8 @@ define('3d/renderer',['require','core/base','_','glmatrix','util/util','./light'
             // _gl.disable(_gl.DEPTH_TEST);
             _gl.enable(_gl.BLEND);
             // Default blend function
-            _gl.blendEquation(_gl.FUNC_ADD);
-            _gl.blendFunc(_gl.SRC_ALPHA, _gl.ONE_MINUS_SRC_ALPHA);
+            _gl.blendEquationSeparate(_gl.FUNC_ADD, _gl.FUNC_ADD);
+            _gl.blendFuncSeparate(_gl.SRC_ALPHA, _gl.ONE_MINUS_SRC_ALPHA, _gl.ONE, _gl.ONE_MINUS_SRC_ALPHA);
 
             this.renderQueue(transparentQueue, camera, sceneMaterial, silent);
 
@@ -18542,8 +18766,8 @@ define('3d/renderer',['require','core/base','_','glmatrix','util/util','./light'
             var _gl = this.gl;
             var scene = this._scene;
             
-            var depthTest = true;
-            var depthWrite = true;
+            var depthTest;
+            var depthWrite;
 
             for (var i =0; i < queue.length; i++) {
                 var object = queue[i];
@@ -18580,11 +18804,11 @@ define('3d/renderer',['require','core/base','_','glmatrix','util/util','./light'
                         material.depthTest ? 
                             _gl.enable(_gl.DEPTH_TEST) : 
                             _gl.disable(_gl.DEPTH_TEST);
+                        depthTest = material.depthTest;
                     }
                     if (material.depthWrite !== depthWrite) {
-                        material.depthWrite ? 
-                            _gl.enable(_gl.DEPTH_WRITE) : 
-                            _gl.disable(_gl.DEPTH_WRITE);
+                        _gl.depthMask(material.depthWrite);
+                        depthWrite = material.depthWrite;
                     }
 
                     material.bind(_gl);
@@ -18654,8 +18878,8 @@ define('3d/renderer',['require','core/base','_','glmatrix','util/util','./light'
                 }
                 // Restore the default blend function
                 if (customBlend) {
-                    _gl.blendEquation(_gl.FUNC_ADD);
-                    _gl.blendFunc(_gl.SRC_ALPHA, _gl.ONE_MINUS_SRC_ALPHA);    
+                    _gl.blendEquationSeparate(_gl.FUNC_ADD, _gl.FUNC_ADD);
+                    _gl.blendFuncSeparate(_gl.SRC_ALPHA, _gl.ONE_MINUS_SRC_ALPHA, _gl.ONE, _gl.ONE_MINUS_SRC_ALPHA);   
                 }
 
             }
@@ -19454,36 +19678,6 @@ define('animation/animation',['require','./controller','_'],function(require) {
     return Animation;
 });
 
-define('core/event',['require','./base'], function(require) {
-
-    var Base = require('./base');
-
-    var Event = Base.derive({
-        cancelBubble : false
-    }, {
-        stopPropagation : function() {
-            this.cancelBubble = true;
-        }
-    })
-
-    Event.throw = function(eventType, target, props) {
-        
-        var e = new Event(props);
-
-        e.type = eventType;
-        e.target = target;
-
-        // enable bubbling
-        while (target && !e.cancelBubble ) {
-            e.currentTarget = target;
-            target.trigger(eventType, e);
-
-            target = target.parent;
-        }
-    }
-
-    return Event;
-} );
 define('core/matrix2',['require','glmatrix'],function(require) {
 
     var glMatrix = require("glmatrix");
@@ -19865,6 +20059,9 @@ define('core/vector4',['require','glmatrix'], function(require) {
 
     return Vector4;
 } );
+;
+define("loader/gltf", function(){});
+
 /**
  * @export{class} SVG
  * shapes : circle, line, polygon, rect, polyline, ellipse, path
@@ -20857,72 +21054,11 @@ define('loader/three/model',['require','core/base','core/request','3d/shader','3
 
     return Loader
 } );
-define('loader/three/scene',['require','core/base','core/request','3d/scene','./model','3d/light/ambient','3d/light/directional','3d/light/spot','3d/light/point','3d/node','3d/texture/texture2d','3d/texture/texturecube','3d/mesh','3d/material','3d/geometry'],function(require) {
-
-    var Base = require("core/base");
-    var request = require("core/request");
-    var Scene = require("3d/scene");
-    var Model = require("./model");
-    var AmbientLight = require("3d/light/ambient");
-    var DirectionalLight = require("3d/light/directional");
-    var SpotLight = require("3d/light/spot");
-    var PointLight = require("3d/light/point");
-    var Node = require("3d/node");
-    var Texture2D = require("3d/texture/texture2d");
-    var TextureCube = require("3d/texture/texturecube");
-    var Mesh = require("3d/mesh");
-    var Material = require("3d/material");
-    var Geometry = require("3d/geometry");
-
-    var SceneLoader = Base.derive(function() {
-        return {
-            textureRootPath : "",
-            textureNumber : 0
-        }
-    }, {
-
-        load : function(url) {
-            var self = this;
-
-            this.textureNumber = 0;
-
-            request.get({
-                url : url,
-                onprogress : function(percent, loaded, total) {
-                    self.trigger("progress", percent, loaded, total);
-                },
-                onerror : function(e) {
-                    self.trigger("error", e);
-                },
-                responseType : "text",
-                onload : function(data) {
-                    self.parse( JSON.parse(data) );
-                }
-            })
-        },
-        parse : function(data) {
-            var scene = new Scene();
-            this.parseHierarchy(root, scene);
-        },
-
-        parseHierarchy : function(parentObjData, parentNode) {
-            
-            for (var name in parentObjData) {
-                var childData = parentObjData[name];
-                if (childData.geometry && childData.material) {
-                    var child = new Mesh();
-                } else {
-                    var child = new Node();
-                }
-            }
-        }
-    })
-});
 define('util/color',['require'], function(require){
 
 	
 } );
-define('qtek',['require','2d/camera','2d/gradient','2d/layer','2d/lineargradient','2d/node','2d/pattern','2d/radialgradient','2d/shape/arc','2d/shape/circle','2d/shape/ellipse','2d/shape/html','2d/shape/image','2d/shape/line','2d/shape/path','2d/shape/polygon','2d/shape/rectangle','2d/shape/roundedrectangle','2d/shape/sector','2d/shape/svgpath','2d/shape/text','2d/shape/textbox','2d/stage','2d/style','2d/util','3d/bone','3d/camera','3d/camera/orthographic','3d/camera/perspective','3d/compositor','3d/compositor/graph','3d/compositor/group','3d/compositor/node','3d/compositor/pass','3d/compositor/scenenode','3d/compositor/texturenode','3d/compositor/texturepool','3d/debug/pointlight','3d/debug/renderinfo','3d/framebuffer','3d/geometry','3d/geometry/cube','3d/geometry/plane','3d/geometry/sphere','3d/light','3d/light/ambient','3d/light/directional','3d/light/point','3d/light/spot','3d/material','3d/mesh','3d/node','3d/plugin/firstpersoncontrol','3d/plugin/orbitcontrol','3d/prepass/shadowmap','3d/renderer','3d/scene','3d/shader','3d/shader/library','3d/skeleton','3d/texture','3d/texture/compressed2d','3d/texture/compressedcube','3d/texture/texture2d','3d/texture/texturecube','3d/util/mesh','3d/webglinfo','animation/animation','animation/controller','animation/easing','core/base','core/cache','core/event','core/matrix2','core/matrix2d','core/matrix3','core/matrix4','core/mixin/derive','core/mixin/dirty','core/mixin/notifier','core/quaternion','core/request','core/vector2','core/vector3','core/vector4','loader/svg','loader/three/model','loader/three/scene','util/color','util/util','glmatrix'], function(require){
+define('qtek',['require','2d/camera','2d/gradient','2d/layer','2d/lineargradient','2d/node','2d/pattern','2d/picker','2d/radialgradient','2d/shape/arc','2d/shape/circle','2d/shape/ellipse','2d/shape/html','2d/shape/image','2d/shape/line','2d/shape/path','2d/shape/polygon','2d/shape/rectangle','2d/shape/roundedrectangle','2d/shape/sector','2d/shape/svgpath','2d/shape/text','2d/shape/textbox','2d/stage','2d/style','2d/util','3d/bone','3d/camera','3d/camera/orthographic','3d/camera/perspective','3d/compositor','3d/compositor/graph','3d/compositor/group','3d/compositor/node','3d/compositor/pass','3d/compositor/scenenode','3d/compositor/texturenode','3d/compositor/texturepool','3d/debug/pointlight','3d/debug/renderinfo','3d/framebuffer','3d/geometry','3d/geometry/cube','3d/geometry/plane','3d/geometry/sphere','3d/light','3d/light/ambient','3d/light/directional','3d/light/point','3d/light/spot','3d/material','3d/mesh','3d/node','3d/plugin/firstpersoncontrol','3d/plugin/orbitcontrol','3d/prepass/shadowmap','3d/renderer','3d/scene','3d/shader','3d/shader/library','3d/skeleton','3d/texture','3d/texture/compressed2d','3d/texture/compressedcube','3d/texture/texture2d','3d/texture/texturecube','3d/util/mesh','3d/webglinfo','animation/animation','animation/controller','animation/easing','core/base','core/cache','core/event','core/matrix2','core/matrix2d','core/matrix3','core/matrix4','core/mixin/derive','core/mixin/dirty','core/mixin/notifier','core/quaternion','core/request','core/vector2','core/vector3','core/vector4','loader/gltf','loader/svg','loader/three/model','util/color','util/util','glmatrix'], function(require){
 	
 	var exportsObject =  {
 	"2d": {
@@ -20932,6 +21068,7 @@ define('qtek',['require','2d/camera','2d/gradient','2d/layer','2d/lineargradient
 		"LinearGradient": require('2d/lineargradient'),
 		"Node": require('2d/node'),
 		"Pattern": require('2d/pattern'),
+		"Picker": require('2d/picker'),
 		"RadialGradient": require('2d/radialgradient'),
 		"shape": {
 			"Arc": require('2d/shape/arc'),
@@ -21042,10 +21179,10 @@ define('qtek',['require','2d/camera','2d/gradient','2d/layer','2d/lineargradient
 		"Vector4": require('core/vector4')
 	},
 	"loader": {
+		"Gltf": require('loader/gltf'),
 		"SVG": require('loader/svg'),
 		"three": {
-			"Model": require('loader/three/model'),
-			"Scene": require('loader/three/scene')
+			"Model": require('loader/three/model')
 		}
 	},
 	"util": {

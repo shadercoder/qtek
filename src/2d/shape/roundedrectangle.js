@@ -31,7 +31,7 @@ define(function(require) {
                 var radius = this.radius;
             }
 
-            var start = this.fixAA ? util.fixPos(this.start) : this.start;
+            var start = this.fixAA ? util.fixPos(this.start.clone()) : this.start;
             var size = this.size;
             var v1 = new Vector2().copy(start).add(new Vector2(radius[0], 0));   //left top
             var v2 = new Vector2().copy(start).add(new Vector2(size.x, 0));     //right top
