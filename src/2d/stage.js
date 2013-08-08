@@ -131,12 +131,12 @@ define(function(require) {
         _findTrigger : function(e) {
             var container = this.container;
             var clientRect = container.getBoundingClientRect();
-            var x = e.pageX - clientRect.left + document.body.scrollLeft,
-                y = e.pageY - clientRect.top + document.body.scrollTop;
+            var x = e.pageX - clientRect.left - document.body.scrollLeft,
+                y = e.pageY - clientRect.top - document.body.scrollTop;
 
             for (var i = this._layersSorted.length - 1; i >= 0 ; i--) {
                 var layer = this._layersSorted[i];
-                var el = layer.picker.pick(x, y);
+                var el = layer.picking.pick(x, y);
                 if (el) {
                     return el;
                 }

@@ -1,7 +1,7 @@
 define(function(require) {
 
     var Node = require('./node');
-    var Picker = require('./picker');
+    var PixelPicking = require('./picking/pixel');
 
     var Layer = Node.derive(function() {
         return {
@@ -17,7 +17,7 @@ define(function(require) {
 
             enablePicking : true,
 
-            picker : null
+            picking : null
         }
     }, function() {
         if (!this.canvas) {
@@ -42,7 +42,7 @@ define(function(require) {
         this.ctx.__GUID__ = this.__GUID__;
 
         if (this.enablePicking) {
-            this.picker = new Picker({
+            this.picking = new PixelPicking({
                 layer : this
             });
         }
@@ -67,7 +67,7 @@ define(function(require) {
 
             Node.prototype.render.call(this, this.ctx);
 
-            this.picker.update();
+            this.picking.update();
         },
 
         setZ : function(z) {

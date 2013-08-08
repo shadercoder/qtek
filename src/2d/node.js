@@ -31,6 +31,7 @@ define(function(require) {
             rotation : 0,
             scale : new Vector2(1, 1),
 
+            autoUpdate : true,
             transform : new Matrix2d(),
             // inverse matrix of transform matrix
             transformInverse : new Matrix2d(),
@@ -63,6 +64,9 @@ define(function(require) {
             if (! this.scale._dirty &&
                 ! this.position._dirty &&
                 this.rotation === this._prevRotation) {
+                return;
+            }
+            if (! this.autoUpdate) {
                 return;
             }
             transform.identity();

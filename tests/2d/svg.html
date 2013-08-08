@@ -21,7 +21,7 @@
         })
 
         require(['qtek',
-                'text!../tests/2d/assets/map.svg'], function(qtek, svgData){
+                'text!../tests/2d/assets/tiger.svg'], function(qtek, svgData){
             var qtek2d = qtek['2d'];
 
             var svgLoader = new qtek.loader.SVG();
@@ -69,7 +69,7 @@
                     });
                     bbHelpers.push(rect);
 
-                    current.add(rect);
+                    // current.add(rect);
                 }
             });
             console.profileEnd("compute bounding box");
@@ -89,9 +89,9 @@
                 stage.render();
             });
 
-            layer.picker.setPrecision(0.5);
+            layer.picking.setPrecision(0.5);
 
-            document.body.appendChild(layer.picker._canvas);
+            document.body.appendChild(layer.picking._canvas);
         });
     </script>
 </body>

@@ -1,9 +1,8 @@
 define(function(require) {
 
     var Base = require('core/base');
-    var Node = require("./node");
 
-    var Picker = Base.derive(function() {
+    var PixelPicking = Base.derive(function() {
 
         return {
             layer : null,
@@ -84,21 +83,53 @@ define(function(require) {
         },
         pick : function(x, y) {
             var ratio = this.downSampleRatio;
-            var data = this._imageData;
+            var width = this._canvas.width;
+            var height = this._canvas.height;
             x = Math.ceil(ratio * x);
             y = Math.ceil(ratio * y);
-            var offset = ((y-1) * this._canvas.width + (x-1))*4;
-            var r = data[offset],
-                g = data[offset+1],
-                b = data[offset+2],
-                a = data[offset+3];
 
-            var id = unpackID(r, g, b) - this.offset;
+            // Box sampler, to avoid the problem of anti aliasing
+            var ids = [
+                        this._sample(x, y),
+                        this._sample(x-1, y),
+                        this._sample(x+1, y),
+                        this._sample(x, y-1),
+                        this._sample(x, y+1),
+                    ];
+            var count = {};
+            var max = 0;
+            var maxId;
+            for (var i = 0; i < ids.length; i++) {
+                var id = ids[i];
+                if (!count[id]) {
+                    count[id]  = 1;
+                } else {
+                    count[id] ++;
+                }
+                if (count[id] > max) {
+                    max = count[id];
+                    maxId = id;
+                }
+            }
 
-            if (id && (a === 255)) {
+            var id = maxId - this.offset;
+
+            if (id && max >=2) {
                 var el = this._lookupTable[id];
                 return el;
             }
+        },
+
+        _sample : function(x, y) {
+            x = Math.max(Math.min(x, this._canvas.width), 1);
+            y = Math.max(Math.min(y, this._canvas.height), 1);
+            var offset = ((y-1) * this._canvas.width + (x-1))*4;
+            var data = this._imageData;
+            var r = data[offset],
+                g = data[offset+1],
+                b = data[offset+2];
+
+            return unpackID(r, g, b);
         }
     });
 
@@ -114,5 +145,5 @@ define(function(require) {
         return (r << 16) + (g<<8) + b;
     }
 
-    return Picker;
+    return PixelPicking;
 })
