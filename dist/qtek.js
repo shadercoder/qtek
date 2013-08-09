@@ -10783,6 +10783,7 @@ define('2d/node',['require','core/base','core/vector2','core/matrix2d','./style'
             rotation : 0,
             scale : new Vector2(1, 1),
 
+            autoUpdate : true,
             transform : new Matrix2d(),
             // inverse matrix of transform matrix
             transformInverse : new Matrix2d(),
@@ -10806,9 +10807,8 @@ define('2d/node',['require','core/base','core/vector2','core/matrix2d','./style'
             fill : true,
             // flag of stroke when drawing the element
             stroke : false,
-            // fix aa problem
-            // https://developer.mozilla.org/en-US/docs/HTML/Canvas/Tutorial/Applying_styles_and_colors?redirectlocale=en-US&redirectslug=Canvas_tutorial%2FApplying_styles_and_colors#section_8
-            fixAA : true
+            // Enable picking
+            enablePicking : true
         }
     }, {
         updateTransform : function() {
@@ -10816,6 +10816,9 @@ define('2d/node',['require','core/base','core/vector2','core/matrix2d','./style'
             if (! this.scale._dirty &&
                 ! this.position._dirty &&
                 this.rotation === this._prevRotation) {
+                return;
+            }
+            if (! this.autoUpdate) {
                 return;
             }
             transform.identity();
@@ -10851,7 +10854,7 @@ define('2d/node',['require','core/base','core/vector2','core/matrix2d','./style'
             
             this.trigger("beforerender", context);
 
-            var renderQueue = this._getSortedRenderQueue();
+            var renderQueue = this.getSortedRenderQueue();
             // TODO : some style should not be inherited ?
             context.save();
             if (this.style) {
@@ -10915,7 +10918,7 @@ define('2d/node',['require','core/base','core/vector2','core/matrix2d','./style'
             
         },
 
-        _getSortedRenderQueue : function() {
+        getSortedRenderQueue : function() {
             var renderQueue = this.children.slice();
             renderQueue.sort(function(x, y) {
                 if (x.z === y.z)
@@ -10928,12 +10931,11 @@ define('2d/node',['require','core/base','core/vector2','core/matrix2d','./style'
 
     return Node;
 });
-define('2d/picker',['require','core/base','./node'],function(require) {
+define('2d/picking/pixel',['require','core/base'],function(require) {
 
     var Base = require('core/base');
-    var Node = require("./node");
 
-    var Picker = Base.derive(function() {
+    var PixelPicking = Base.derive(function() {
 
         return {
             layer : null,
@@ -10964,10 +10966,15 @@ define('2d/picker',['require','core/base','./node'],function(require) {
             this.layer.on("resize", function(){
                 canvas.width = this.layer.canvas.width * this.downSampleRatio;
                 canvas.height = this.layer.canvas.height * this.downSampleRatio;
-            });
+            }, this);
 
             this._canvas = canvas;
             this._context = canvas.getContext("2d");
+        },
+        setPrecision : function(ratio) {
+            this._canvas.width = this.layer.canvas.width * ratio;
+            this._canvas.height = this.layer.canvas.height * ratio;
+            this.downSampleRatio = ratio;
         },
         update : function() {
             var ctx = this._context;
@@ -10990,7 +10997,7 @@ define('2d/picker',['require','core/base','./node'],function(require) {
             ctx.transform(m[0], m[1], m[2], m[3], m[4], m[5]);
             node.clip && ctx.clip();
 
-            if (node.draw) {
+            if (node.draw && node.enablePicking === true) {
                 var lut = this._lookupTable;
                 var rgb = packID(lut.length + this.offset);
                 var color = 'rgb(' + rgb.join(',') + ')';
@@ -10998,30 +11005,64 @@ define('2d/picker',['require','core/base','./node'],function(require) {
                 
                 ctx.fillStyle = color;
                 ctx.strokeStyle = color;
-                node.draw(ctx);
+                node.draw(ctx, true);
             }
-            for (var i = 0; i < node.children.length; i++) {
-                var child = node.children[i];
+            var renderQueue = node.getSortedRenderQueue();
+            for (var i = 0; i < renderQueue.length; i++) {
+                var child = renderQueue[i];
                 this._renderNode(child, ctx);
             }
             ctx.restore();
         },
         pick : function(x, y) {
-            var ratio = 1 / this.downSampleRatio;
-            var data = this._imageData;
+            var ratio = this.downSampleRatio;
+            var width = this._canvas.width;
+            var height = this._canvas.height;
             x = Math.ceil(ratio * x);
             y = Math.ceil(ratio * y);
-            var offset = ((y-1) * this._canvas.width + (x-1))*4;
-            var r = data[offset],
-                g = data[offset+1],
-                b = data[offset+2],
-                a = data[offset+3];
-            var id = unpackID(r, g, b) - this.offset;
 
-            if (id && (a === 255 || a === 0)) {
+            // Box sampler, to avoid the problem of anti aliasing
+            var ids = [
+                        this._sample(x, y),
+                        this._sample(x-1, y),
+                        this._sample(x+1, y),
+                        this._sample(x, y-1),
+                        this._sample(x, y+1),
+                    ];
+            var count = {};
+            var max = 0;
+            var maxId;
+            for (var i = 0; i < ids.length; i++) {
+                var id = ids[i];
+                if (!count[id]) {
+                    count[id]  = 1;
+                } else {
+                    count[id] ++;
+                }
+                if (count[id] > max) {
+                    max = count[id];
+                    maxId = id;
+                }
+            }
+
+            var id = maxId - this.offset;
+
+            if (id && max >=2) {
                 var el = this._lookupTable[id];
                 return el;
             }
+        },
+
+        _sample : function(x, y) {
+            x = Math.max(Math.min(x, this._canvas.width), 1);
+            y = Math.max(Math.min(y, this._canvas.height), 1);
+            var offset = ((y-1) * this._canvas.width + (x-1))*4;
+            var data = this._imageData;
+            var r = data[offset],
+                g = data[offset+1],
+                b = data[offset+2];
+
+            return unpackID(r, g, b);
         }
     });
 
@@ -11037,12 +11078,12 @@ define('2d/picker',['require','core/base','./node'],function(require) {
         return (r << 16) + (g<<8) + b;
     }
 
-    return Picker;
+    return PixelPicking;
 });
-define('2d/layer',['require','./node','./picker'],function(require) {
+define('2d/layer',['require','./node','./picking/pixel'],function(require) {
 
     var Node = require('./node');
-    var Picker = require('./picker');
+    var PixelPicking = require('./picking/pixel');
 
     var Layer = Node.derive(function() {
         return {
@@ -11058,7 +11099,7 @@ define('2d/layer',['require','./node','./picker'],function(require) {
 
             enablePicking : true,
 
-            picker : null
+            picking : null
         }
     }, function() {
         if (!this.canvas) {
@@ -11083,7 +11124,7 @@ define('2d/layer',['require','./node','./picker'],function(require) {
         this.ctx.__GUID__ = this.__GUID__;
 
         if (this.enablePicking) {
-            this.picker = new Picker({
+            this.picking = new PixelPicking({
                 layer : this
             });
         }
@@ -11108,7 +11149,9 @@ define('2d/layer',['require','./node','./picker'],function(require) {
 
             Node.prototype.render.call(this, this.ctx);
 
-            this.picker.update();
+            if (this.enablePicking) {
+                this.picking.update();
+            }
         },
 
         setZ : function(z) {
@@ -11178,6 +11221,9 @@ define('2d/pattern',['require','core/base','core/vector2'],function(require) {
 
     return Pattern;
 });
+;
+define("2d/picking/box", function(){});
+
 /**
  * Adapter to CanvasRadialGradient
  *
@@ -11402,8 +11448,8 @@ define('2d/shape/image',['require','../node','core/vector2','_'],function(requir
                 }   
             }
         },
-        draw : function(ctx) {
-            if (this.image) {
+        draw : function(ctx, isPicker) {
+            if (this.image && ! isPicker) {
                 this.size ? 
                     ctx.drawImage(this.image, this.start.x, this.start.y, this.size.x, this.size.y) :
                     ctx.drawImage(this.image, this.start.x, this.start.y);
@@ -11671,8 +11717,8 @@ define('2d/shape/line',['require','../node','../util','core/vector2'],function(r
         },
         draw : function(ctx) {
             
-            var start = this.fixAA ? util.fixPos(this.start) : this.start,
-                end = this.fixAA ? util.fixPos(this.end) : this.end;
+            var start = this.start,
+                end = this.end;
 
             ctx.beginPath();
             ctx.moveTo(start.x, start.y);
@@ -11925,7 +11971,7 @@ define('2d/shape/rectangle',['require','../node','../util','core/vector2'],funct
         },
         draw : function(ctx) {
 
-            var start = this.fixAA ? util.fixPos(this.start) : this.start;
+            var start = this.start;
 
             ctx.beginPath();
             ctx.rect(start.x, start.y, this.size.x, this.size.y);
@@ -11976,7 +12022,7 @@ define('2d/shape/roundedrectangle',['require','../node','../util','core/vector2'
                 var radius = this.radius;
             }
 
-            var start = this.fixAA ? util.fixPos(this.start) : this.start;
+            var start = this.fixAA ? util.fixPos(this.start.clone()) : this.start;
             var size = this.size;
             var v1 = new Vector2().copy(start).add(new Vector2(radius[0], 0));   //left top
             var v2 = new Vector2().copy(start).add(new Vector2(size.x, 0));     //right top
@@ -12632,7 +12678,7 @@ define('core/event',['require','./base'], function(require) {
 
     var Base = require('./base');
 
-    var Event = Base.derive({
+    var QEvent = Base.derive({
         cancelBubble : false
     }, {
         stopPropagation : function() {
@@ -12640,9 +12686,9 @@ define('core/event',['require','./base'], function(require) {
         }
     })
 
-    Event.throw = function(eventType, target, props) {
+    QEvent.throw = function(eventType, target, props) {
         
-        var e = new Event(props);
+        var e = new QEvent(props);
 
         e.type = eventType;
         e.target = target;
@@ -12656,13 +12702,13 @@ define('core/event',['require','./base'], function(require) {
         }
     }
 
-    return Event;
+    return QEvent;
 } );
 define('2d/stage',['require','core/base','./layer','core/event'],function(require) {
 
     var Base = require('core/base');
     var Layer = require('./layer');
-    var Event = require('core/event');
+    var QEvent = require('core/event');
 
     var Stage = Base.derive(function() {
         return {
@@ -12758,25 +12804,25 @@ define('2d/stage',['require','core/base','./layer','core/event'],function(requir
             }
         },
 
-        _eventProxy : function(e, type) {
+        _eventProxy : function(type, e) {
             var el = this._findTrigger(e);
             if (el) {
-                Event.throw(type, el, this._assembleE(e));
+                QEvent.throw(type, el, this._assembleE(e));
             }
         },
 
         _mouseMoveHandler : function(e) {
             var el = this._findTrigger(e);
             if (el) {
-                Event.throw('mousemove', el, this._assembleE(e));
+                QEvent.throw('mousemove', el, this._assembleE(e));
             }
 
             if (this._mouseOverEl !== el) {
                 if (this._mouseOverEl) {
-                    Event.throw('mouseout', this._mouseOverEl, this._assembleE(e));
+                    QEvent.throw('mouseout', this._mouseOverEl, this._assembleE(e));
                 }
                 if (el) {
-                    Event.throw('mouseover', el, this._assembleE(e));
+                    QEvent.throw('mouseover', el, this._assembleE(e));
                 }
                 this._mouseOverEl = el;
             }
@@ -12784,19 +12830,19 @@ define('2d/stage',['require','core/base','./layer','core/event'],function(requir
 
         _mouseOutHandler : function(e) {
             if (this._mouseOverEl) {
-                Event.throw('mouseout', this._mouseOverEl, this._assembleE(e));
+                QEvent.throw('mouseout', this._mouseOverEl, this._assembleE(e));
             }
         },
 
         _findTrigger : function(e) {
             var container = this.container;
             var clientRect = container.getBoundingClientRect();
-            var x = e.pageX - clientRect.left,
-                y = e.pageY - clientRect.top;
+            var x = e.pageX - clientRect.left - document.body.scrollLeft,
+                y = e.pageY - clientRect.top - document.body.scrollTop;
 
             for (var i = this._layersSorted.length - 1; i >= 0 ; i--) {
                 var layer = this._layersSorted[i];
-                var el = layer.picker.pick(x, y);
+                var el = layer.picking.pick(x, y);
                 if (el) {
                     return el;
                 }
@@ -13897,7 +13943,7 @@ define('3d/bone',['require','./node','core/quaternion','core/vector3','core/matr
             //  time : 
             //  position : 
             //  rotation :
-            //  scale
+            //  scale :
             //}
             poses : []
         }
@@ -13905,13 +13951,13 @@ define('3d/bone',['require','./node','core/quaternion','core/vector3','core/matr
 
         setPose : function(time) {
 
-            this._lerpField(time, 'position');
-            this._lerpField(time, 'rotation');
-            this._lerpField(time, 'scale');
+            this._interpolateField(time, 'position');
+            this._interpolateField(time, 'rotation');
+            this._interpolateField(time, 'scale');
 
         },
 
-        _lerpField : function(time, fieldName) {
+        _interpolateField : function(time, fieldName) {
             var poses = this.poses,
                 len = poses.length,
                 start,
@@ -13919,12 +13965,7 @@ define('3d/bone',['require','./node','core/quaternion','core/vector3','core/matr
             for (var i = 0; i < len; i++) {
                 if (poses[i].time <= time && poses[i][fieldName]) {
                     start = poses[i];
-                    break;
-                }
-            }
-            i++;
-            for (; i < len; i++) {
-                if (poses[i].time >= time && poses[i][fieldName]) {
+                } else if(poses[i][fieldName]) {
                     end = poses[i];
                     break;
                 }
@@ -13932,7 +13973,7 @@ define('3d/bone',['require','./node','core/quaternion','core/vector3','core/matr
             if (start && end) {
                 var percent = (time-start.time) / (end.time-start.time);
                 percent = Math.max(Math.min(percent, 1), 0);
-                if ( fieldName === "rotation") {
+                if (fieldName === "rotation") {
                     this[fieldName].slerp(start[fieldName], end[fieldName], percent);
                 } else {
                     this[fieldName].lerp(start[fieldName], end[fieldName], percent);
@@ -15917,19 +15958,16 @@ define('3d/webglinfo',[],function() {
                             "EXT_texture_filter_anisotropic",
                             "EXT_draw_buffers"];
 
-    var initialized = {};
-
     var extensions = {};
 
     var WebGLInfo = {
 
         initialize : function(_gl) {
 
-            if (initialized[_gl.__GUID__]) {
+            if (extensions[_gl.__GUID__]) {
                 return;
             }
-            // Basic info
-
+            extensions[_gl.__GUID__] = {};
             // Get webgl extension
             for (var i = 0; i < EXTENSION_LIST.length; i++) {
                 var extName = EXTENSION_LIST[i];
@@ -15943,10 +15981,8 @@ define('3d/webglinfo',[],function() {
                     ext = _gl.getExtension("WEBKIT_" + extName);
                 }
 
-                extensions[extName] = ext;
+                extensions[_gl.__GUID__][extName] = ext;
             }
-
-            initialized[_gl.__GUID__] = true;
         },
 
         getExtension : function(_gl, name) {
@@ -18088,7 +18124,7 @@ define('3d/plugin/orbitcontrol',['require','core/base','core/vector3','core/matr
 } );
 define('3d/shader/source/basic.essl',[],function () { return '@export buildin.basic.vertex\n\nuniform mat4 worldViewProjection : WORLDVIEWPROJECTION;\n\nuniform vec2 uvRepeat : [1.0, 1.0];\n\nattribute vec3 position : POSITION;\nattribute vec2 texcoord : TEXCOORD_0;\nattribute vec3 normal : NORMAL;\n\nattribute vec3 barycentric;\n\nvarying vec2 v_Texcoord;\nvarying vec3 v_Barycentric;\n\nvoid main(){\n\n    gl_Position = worldViewProjection * vec4( position, 1.0 );\n\n    v_Texcoord = texcoord * uvRepeat;\n    v_Barycentric = barycentric;\n}\n\n@end\n\n\n\n\n@export buildin.basic.fragment\n\nvarying vec2 v_Texcoord;\nuniform sampler2D diffuseMap;\nuniform vec3 color : [1.0, 1.0, 1.0];\nuniform float alpha : 1.0;\n\n// Uniforms for wireframe\nuniform float lineWidth : 0.0;\nuniform vec3 lineColor : [0.0, 0.0, 0.0];\nvarying vec3 v_Barycentric;\n\n#extension GL_OES_standard_derivatives : enable\n@import buildin.util.edge_factor\n\nvoid main(){\n\n    gl_FragColor = vec4(color, alpha);\n    \n    #ifdef DIFFUSEMAP_ENABLED\n        vec4 tex = texture2D( diffuseMap, v_Texcoord );\n        gl_FragColor.rgb *= tex.rgb;\n    #endif\n    \n    if( lineWidth > 0.01){\n        gl_FragColor.xyz = gl_FragColor.xyz * mix(lineColor, vec3(1.0), edgeFactor(lineWidth));\n    }\n}\n\n@end';});
 
-define('3d/shader/source/lambert.essl',[],function () { return '/**\n * http://en.wikipedia.org/wiki/Lambertian_reflectance\n */\n\n@export buildin.lambert.vertex\n\nuniform mat4 worldViewProjection : WORLDVIEWPROJECTION;\nuniform mat4 worldInverseTranspose : WORLDINVERSETRANSPOSE;\nuniform mat4 world : WORLD;\n\nuniform vec2 uvRepeat : [1.0, 1.0];\n\nattribute vec3 position : POSITION;\nattribute vec2 texcoord : TEXCOORD_0;\nattribute vec3 normal : NORMAL;\n\nattribute vec3 barycentric;\n\n#ifdef SKINNING\nattribute vec3 boneWeight;\nattribute vec4 boneIndex;\n\nuniform mat4 boneMatrices[ BONE_MATRICES_NUMBER ];\n#endif\n\nvarying vec2 v_Texcoord;\nvarying vec3 v_Normal;\nvarying vec3 v_WorldPosition;\nvarying vec3 v_Barycentric;\n\nvoid main(){\n\n    vec3 skinnedPosition = position;\n    #ifdef SKINNING\n        mat4 skinMatrix;\n        if(boneIndex.x >= 0.0){\n            skinMatrix = boneMatrices[int(boneIndex.x)] * boneWeight.x;\n        }\n        if(boneIndex.y >= 0.0){\n            skinMatrix += boneMatrices[int(boneIndex.y)] * boneWeight.y;\n        }\n        if(boneIndex.z >= 0.0){\n            skinMatrix += boneMatrices[int(boneIndex.z)] * boneWeight.z;\n        }\n        if(boneIndex.w >= 0.0){\n            skinMatrix += boneMatrices[int(boneIndex.w)] * (1.0-boneWeight.x-boneWeight.y-boneWeight.z);\n        }\n        skinnedPosition = (skinMatrix * vec4(position, 1.0)).xyz;\n\n        skinnedNormal = (skinMatrix * vec4(normal, 0.0)).xyz;\n        skinnedTangent = (skinMatrix * vec4(tangent.xyz, 0.0)).xyz;\n    #endif\n\n    gl_Position = worldViewProjection * vec4( skinnedPosition, 1.0 );\n\n    v_Texcoord = texcoord * uvRepeat;\n    v_Normal = normalize( ( worldInverseTranspose * vec4(normal, 0.0) ).xyz );\n    v_WorldPosition = ( world * vec4( skinnedPosition, 1.0) ).xyz;\n\n    v_Barycentric = barycentric;\n}\n\n@end\n\n\n\n\n@export buildin.lambert.fragment\n\nvarying vec2 v_Texcoord;\nvarying vec3 v_Normal;\nvarying vec3 v_WorldPosition;\n\nuniform sampler2D diffuseMap;\nuniform sampler2D alphaMap;\n\nuniform vec3 color : [1.0, 1.0, 1.0];\nuniform float alpha : 1.0;\n\n// Uniforms for wireframe\nuniform float lineWidth : 0.0;\nuniform vec3 lineColor : [0.0, 0.0, 0.0];\nvarying vec3 v_Barycentric;\n\n#ifdef AMBIENT_LIGHT_NUMBER\n@import buildin.header.ambient_light\n#endif\n#ifdef POINT_LIGHT_NUMBER\n@import buildin.header.point_light\n#endif\n#ifdef DIRECTIONAL_LIGHT_NUMBER\n@import buildin.header.directional_light\n#endif\n#ifdef SPOT_LIGHT_NUMBER\n@import buildin.header.spot_light\n#endif\n\n#extension GL_OES_standard_derivatives : enable\n// Import util functions and uniforms needed\n@import buildin.util.calculate_attenuation\n\n@import buildin.util.edge_factor\n\n@import buildin.plugin.compute_shadow_map\n\nvoid main(){\n    \n    gl_FragColor = vec4(color, alpha);\n\n    #ifdef DIFFUSEMAP_ENABLED\n        vec4 tex = texture2D( diffuseMap, v_Texcoord );\n        // http://freesdk.crydev.net/display/SDKDOC3/Specular+Maps\n        gl_FragColor.rgb *= tex.rgb;\n    #endif\n\n    vec3 diffuseColor = vec3(0.0, 0.0, 0.0);\n    \n    #ifdef AMBIENT_LIGHT_NUMBER\n        for(int i = 0; i < AMBIENT_LIGHT_NUMBER; i++){\n            diffuseColor += ambientLightColor[i];\n        }\n    #endif\n    // Compute point light color\n    #ifdef POINT_LIGHT_NUMBER\n        #if defined(POINT_LIGHT_SHADOWMAP_NUMBER)\n            float shadowFallOffs[POINT_LIGHT_NUMBER];\n            if( shadowEnabled ){\n                computeShadowFallOfPointLights( v_WorldPosition, shadowFallOffs );\n            }\n        #endif\n        for(int i = 0; i < POINT_LIGHT_NUMBER; i++){\n\n            vec3 lightPosition = pointLightPosition[i];\n            vec3 lightColor = pointLightColor[i];\n            float range = pointLightRange[i];\n\n            vec3 lightDirection = lightPosition - v_WorldPosition;\n\n            // Calculate point light attenuation\n            float dist = length(lightDirection);\n            float attenuation = calculateAttenuation(dist, range);\n\n            // Normalize vectors\n            lightDirection /= dist;\n\n            float ndl = dot( v_Normal, lightDirection );\n\n            float shadowFallOff = 1.0;\n            #if defined(POINT_LIGHT_SHADOWMAP_NUMBER)\n                if( shadowEnabled ){\n                    shadowFallOff = shadowFallOffs[i];\n                }\n            #endif\n\n            diffuseColor += lightColor * clamp(ndl, 0.0, 1.0) * attenuation * shadowFallOff;\n        }\n    #endif\n    #ifdef DIRECTIONAL_LIGHT_NUMBER\n        #if defined(DIRECTIONAL_LIGHT_SHADOWMAP_NUMBER)\n            float shadowFallOffs[DIRECTIONAL_LIGHT_NUMBER];\n            if( shadowEnabled ){\n                computeShadowFallOfDirectionalLights( v_WorldPosition, shadowFallOffs );\n            }\n        #endif\n        for(int i = 0; i < DIRECTIONAL_LIGHT_NUMBER; i++){\n            vec3 lightDirection = -directionalLightDirection[i];\n            vec3 lightColor = directionalLightColor[i];\n            \n            float ndl = dot( v_Normal, normalize( lightDirection ) );\n\n            float shadowFallOff = 1.0;\n            #if defined(DIRECTIONAL_LIGHT_SHADOWMAP_NUMBER)\n                if( shadowEnabled ){\n                    shadowFallOff = shadowFallOffs[i];\n                }\n            #endif\n\n            diffuseColor += lightColor * clamp(ndl, 0.0, 1.0) * shadowFallOff;\n        }\n    #endif\n    \n    #ifdef SPOT_LIGHT_NUMBER\n        #if defined(SPOT_LIGHT_SHADOWMAP_NUMBER)\n            float shadowFallOffs[SPOT_LIGHT_NUMBER];\n            if( shadowEnabled ){\n                computeShadowFallOfSpotLights( v_WorldPosition, shadowFallOffs );\n            }\n        #endif\n        for(int i = 0; i < SPOT_LIGHT_NUMBER; i++){\n            vec3 lightPosition = -spotLightPosition[i];\n            vec3 spotLightDirection = -normalize( spotLightDirection[i] );\n            vec3 lightColor = spotLightColor[i];\n            float range = spotLightRange[i];\n            float umbraAngleCosine = spotLightUmbraAngleCosine[i];\n            float penumbraAngleCosine = spotLightPenumbraAngleCosine[i];\n            float falloffFactor = spotLightFalloffFactor[i];\n\n            vec3 lightDirection = lightPosition - v_WorldPosition;\n            // Calculate attenuation\n            float dist = length(lightDirection);\n            float attenuation = calculateAttenuation(dist, range); \n\n            // Normalize light direction\n            lightDirection /= dist;\n            // Calculate spot light fall off\n            float lightDirectCosine = dot(spotLightDirection, lightDirection);\n\n            float falloff;\n            if( lightDirectCosine < penumbraAngleCosine ){\n                falloff = 1.0;\n            }else if( lightDirectCosine > umbraAngleCosine ){\n                falloff = 0.0;\n            }else{\n                falloff = (lightDirectCosine-umbraAngleCosine)/(penumbraAngleCosine-umbraAngleCosine);\n                falloff = pow(falloff, falloffFactor);\n            }\n\n            float ndl = dot( v_Normal, lightDirection );\n            ndl = clamp(ndl, 0.0, 1.0);\n\n            float shadowFallOff = 1.0;\n            #if defined(SPOT_LIGHT_SHADOWMAP_NUMBER)\n                if( shadowEnabled ){\n                    shadowFallOff = shadowFallOffs[i];\n                }\n            #endif\n\n            diffuseColor += lightColor * ndl * attenuation * (1.0-falloff) * shadowFallOff;\n\n        }\n    #endif\n\n    gl_FragColor.xyz *= diffuseColor;\n    if( lineWidth > 0.01){\n        gl_FragColor.xyz = gl_FragColor.xyz * mix(lineColor, vec3(1.0), edgeFactor(lineWidth));\n    }\n\n}\n\n@end';});
+define('3d/shader/source/lambert.essl',[],function () { return '/**\n * http://en.wikipedia.org/wiki/Lambertian_reflectance\n */\n\n@export buildin.lambert.vertex\n\nuniform mat4 worldViewProjection : WORLDVIEWPROJECTION;\nuniform mat4 worldInverseTranspose : WORLDINVERSETRANSPOSE;\nuniform mat4 world : WORLD;\n\nuniform vec2 uvRepeat : [1.0, 1.0];\n\nattribute vec3 position : POSITION;\nattribute vec2 texcoord : TEXCOORD_0;\nattribute vec3 normal : NORMAL;\n\nattribute vec3 barycentric;\n\n#ifdef SKINNING\nattribute vec3 boneWeight;\nattribute vec4 boneIndex;\n\nuniform mat4 boneMatrices[ BONE_MATRICES_NUMBER ];\n#endif\n\nvarying vec2 v_Texcoord;\nvarying vec3 v_Normal;\nvarying vec3 v_WorldPosition;\nvarying vec3 v_Barycentric;\n\nvoid main(){\n\n    vec3 skinnedPosition = position;\n    vec3 skinnedNormal = normal;\n    #ifdef SKINNING\n        mat4 skinMatrix;\n        if(boneIndex.x >= 0.0){\n            skinMatrix = boneMatrices[int(boneIndex.x)] * boneWeight.x;\n        }\n        if(boneIndex.y >= 0.0){\n            skinMatrix += boneMatrices[int(boneIndex.y)] * boneWeight.y;\n        }\n        if(boneIndex.z >= 0.0){\n            skinMatrix += boneMatrices[int(boneIndex.z)] * boneWeight.z;\n        }\n        if(boneIndex.w >= 0.0){\n            skinMatrix += boneMatrices[int(boneIndex.w)] * (1.0-boneWeight.x-boneWeight.y-boneWeight.z);\n        }\n        skinnedPosition = (skinMatrix * vec4(position, 1.0)).xyz;\n\n        skinnedNormal = (skinMatrix * vec4(normal, 0.0)).xyz;\n    #endif\n\n    gl_Position = worldViewProjection * vec4( skinnedPosition, 1.0 );\n\n    v_Texcoord = texcoord * uvRepeat;\n    v_Normal = normalize( ( worldInverseTranspose * vec4(skinnedNormal, 0.0) ).xyz );\n    v_WorldPosition = ( world * vec4( skinnedPosition, 1.0) ).xyz;\n\n    v_Barycentric = barycentric;\n}\n\n@end\n\n\n\n\n@export buildin.lambert.fragment\n\nvarying vec2 v_Texcoord;\nvarying vec3 v_Normal;\nvarying vec3 v_WorldPosition;\n\nuniform sampler2D diffuseMap;\nuniform sampler2D alphaMap;\n\nuniform vec3 color : [1.0, 1.0, 1.0];\nuniform float alpha : 1.0;\n\n// Uniforms for wireframe\nuniform float lineWidth : 0.0;\nuniform vec3 lineColor : [0.0, 0.0, 0.0];\nvarying vec3 v_Barycentric;\n\n#ifdef AMBIENT_LIGHT_NUMBER\n@import buildin.header.ambient_light\n#endif\n#ifdef POINT_LIGHT_NUMBER\n@import buildin.header.point_light\n#endif\n#ifdef DIRECTIONAL_LIGHT_NUMBER\n@import buildin.header.directional_light\n#endif\n#ifdef SPOT_LIGHT_NUMBER\n@import buildin.header.spot_light\n#endif\n\n#extension GL_OES_standard_derivatives : enable\n// Import util functions and uniforms needed\n@import buildin.util.calculate_attenuation\n\n@import buildin.util.edge_factor\n\n@import buildin.plugin.compute_shadow_map\n\nvoid main(){\n    \n    gl_FragColor = vec4(color, alpha);\n\n    #ifdef DIFFUSEMAP_ENABLED\n        vec4 tex = texture2D( diffuseMap, v_Texcoord );\n        // http://freesdk.crydev.net/display/SDKDOC3/Specular+Maps\n        gl_FragColor.rgb *= tex.rgb;\n    #endif\n\n    vec3 diffuseColor = vec3(0.0, 0.0, 0.0);\n    \n    #ifdef AMBIENT_LIGHT_NUMBER\n        for(int i = 0; i < AMBIENT_LIGHT_NUMBER; i++){\n            diffuseColor += ambientLightColor[i];\n        }\n    #endif\n    // Compute point light color\n    #ifdef POINT_LIGHT_NUMBER\n        #if defined(POINT_LIGHT_SHADOWMAP_NUMBER)\n            float shadowFallOffs[POINT_LIGHT_NUMBER];\n            if( shadowEnabled ){\n                computeShadowFallOfPointLights( v_WorldPosition, shadowFallOffs );\n            }\n        #endif\n        for(int i = 0; i < POINT_LIGHT_NUMBER; i++){\n\n            vec3 lightPosition = pointLightPosition[i];\n            vec3 lightColor = pointLightColor[i];\n            float range = pointLightRange[i];\n\n            vec3 lightDirection = lightPosition - v_WorldPosition;\n\n            // Calculate point light attenuation\n            float dist = length(lightDirection);\n            float attenuation = calculateAttenuation(dist, range);\n\n            // Normalize vectors\n            lightDirection /= dist;\n\n            float ndl = dot( v_Normal, lightDirection );\n\n            float shadowFallOff = 1.0;\n            #if defined(POINT_LIGHT_SHADOWMAP_NUMBER)\n                if( shadowEnabled ){\n                    shadowFallOff = shadowFallOffs[i];\n                }\n            #endif\n\n            diffuseColor += lightColor * clamp(ndl, 0.0, 1.0) * attenuation * shadowFallOff;\n        }\n    #endif\n    #ifdef DIRECTIONAL_LIGHT_NUMBER\n        #if defined(DIRECTIONAL_LIGHT_SHADOWMAP_NUMBER)\n            float shadowFallOffs[DIRECTIONAL_LIGHT_NUMBER];\n            if( shadowEnabled ){\n                computeShadowFallOfDirectionalLights( v_WorldPosition, shadowFallOffs );\n            }\n        #endif\n        for(int i = 0; i < DIRECTIONAL_LIGHT_NUMBER; i++){\n            vec3 lightDirection = -directionalLightDirection[i];\n            vec3 lightColor = directionalLightColor[i];\n            \n            float ndl = dot( v_Normal, normalize( lightDirection ) );\n\n            float shadowFallOff = 1.0;\n            #if defined(DIRECTIONAL_LIGHT_SHADOWMAP_NUMBER)\n                if( shadowEnabled ){\n                    shadowFallOff = shadowFallOffs[i];\n                }\n            #endif\n\n            diffuseColor += lightColor * clamp(ndl, 0.0, 1.0) * shadowFallOff;\n        }\n    #endif\n    \n    #ifdef SPOT_LIGHT_NUMBER\n        #if defined(SPOT_LIGHT_SHADOWMAP_NUMBER)\n            float shadowFallOffs[SPOT_LIGHT_NUMBER];\n            if( shadowEnabled ){\n                computeShadowFallOfSpotLights( v_WorldPosition, shadowFallOffs );\n            }\n        #endif\n        for(int i = 0; i < SPOT_LIGHT_NUMBER; i++){\n            vec3 lightPosition = -spotLightPosition[i];\n            vec3 spotLightDirection = -normalize( spotLightDirection[i] );\n            vec3 lightColor = spotLightColor[i];\n            float range = spotLightRange[i];\n            float umbraAngleCosine = spotLightUmbraAngleCosine[i];\n            float penumbraAngleCosine = spotLightPenumbraAngleCosine[i];\n            float falloffFactor = spotLightFalloffFactor[i];\n\n            vec3 lightDirection = lightPosition - v_WorldPosition;\n            // Calculate attenuation\n            float dist = length(lightDirection);\n            float attenuation = calculateAttenuation(dist, range); \n\n            // Normalize light direction\n            lightDirection /= dist;\n            // Calculate spot light fall off\n            float lightDirectCosine = dot(spotLightDirection, lightDirection);\n\n            float falloff;\n            if( lightDirectCosine < penumbraAngleCosine ){\n                falloff = 1.0;\n            }else if( lightDirectCosine > umbraAngleCosine ){\n                falloff = 0.0;\n            }else{\n                falloff = (lightDirectCosine-umbraAngleCosine)/(penumbraAngleCosine-umbraAngleCosine);\n                falloff = pow(falloff, falloffFactor);\n            }\n\n            float ndl = dot( v_Normal, lightDirection );\n            ndl = clamp(ndl, 0.0, 1.0);\n\n            float shadowFallOff = 1.0;\n            #if defined(SPOT_LIGHT_SHADOWMAP_NUMBER)\n                if( shadowEnabled ){\n                    shadowFallOff = shadowFallOffs[i];\n                }\n            #endif\n\n            diffuseColor += lightColor * ndl * attenuation * (1.0-falloff) * shadowFallOff;\n\n        }\n    #endif\n\n    gl_FragColor.xyz *= diffuseColor;\n    if( lineWidth > 0.01){\n        gl_FragColor.xyz = gl_FragColor.xyz * mix(lineColor, vec3(1.0), edgeFactor(lineWidth));\n    }\n\n}\n\n@end';});
 
 define('3d/shader/source/phong.essl',[],function () { return '\n// http://en.wikipedia.org/wiki/Blinn%E2%80%93Phong_shading_model\n\n@export buildin.phong.vertex\n\nuniform mat4 worldViewProjection : WORLDVIEWPROJECTION;\nuniform mat4 worldInverseTranspose : WORLDINVERSETRANSPOSE;\nuniform mat4 world : WORLD;\n\nuniform vec2 uvRepeat : [1.0, 1.0];\n\nattribute vec3 position : POSITION;\nattribute vec2 texcoord : TEXCOORD_0;\nattribute vec3 normal : NORMAL;\nattribute vec4 tangent : TANGENT;\n\nattribute vec3 barycentric;\n\n#ifdef SKINNING\nattribute vec3 boneWeight;\nattribute vec4 boneIndex;\n\nuniform mat4 boneMatrices[ BONE_MATRICES_NUMBER ];\n#endif\n\nvarying vec2 v_Texcoord;\nvarying vec3 v_Normal;\nvarying vec3 v_WorldPosition;\nvarying vec3 v_Barycentric;\n\nvarying vec3 v_Tangent;\nvarying vec3 v_Bitangent;\n\nvoid main(){\n    \n    vec3 skinnedPosition = position;\n    vec3 skinnedNormal = normal;\n    vec3 skinnedTangent = tangent.xyz;\n    #ifdef SKINNING\n        mat4 skinMatrix;\n        if(boneIndex.x >= 0.0){\n            skinMatrix = boneMatrices[int(boneIndex.x)] * boneWeight.x;\n        }\n        if(boneIndex.y >= 0.0){\n            skinMatrix += boneMatrices[int(boneIndex.y)] * boneWeight.y;\n        }\n        if(boneIndex.z >= 0.0){\n            skinMatrix += boneMatrices[int(boneIndex.z)] * boneWeight.z;\n        }\n        if(boneIndex.w >= 0.0){\n            skinMatrix += boneMatrices[int(boneIndex.w)] * (1.0-boneWeight.x-boneWeight.y-boneWeight.z);\n        }\n        skinnedPosition = (skinMatrix * vec4(position, 1.0)).xyz;\n        // Normal matrix ???\n        skinnedNormal = (skinMatrix * vec4(normal, 0.0)).xyz;\n        skinnedTangent = (skinMatrix * vec4(tangent.xyz, 0.0)).xyz;\n\n    #endif\n\n    gl_Position = worldViewProjection * vec4( skinnedPosition, 1.0 );\n\n    v_Texcoord = texcoord * uvRepeat;\n    v_WorldPosition = ( world * vec4( skinnedPosition, 1.0) ).xyz;\n    v_Barycentric = barycentric;\n\n    v_Normal = normalize( ( worldInverseTranspose * vec4(skinnedNormal, 0.0) ).xyz );\n    v_Tangent = normalize( (worldInverseTranspose * vec4(skinnedTangent, 0.0) ).xyz );\n    v_Bitangent = normalize( cross(v_Normal, v_Tangent) * tangent.w );\n\n}\n\n@end\n\n\n@export buildin.phong.fragment\n\nuniform mat4 viewInverse : VIEWINVERSE;\n\nvarying vec2 v_Texcoord;\nvarying vec3 v_Normal;\nvarying vec3 v_WorldPosition;\nvarying vec3 v_Tangent;\nvarying vec3 v_Bitangent;\n\nuniform sampler2D diffuseMap;\nuniform sampler2D alphaMap;\nuniform sampler2D normalMap;\nuniform sampler2D specularMap;\nuniform sampler2D environmentMap;\n\nuniform vec3 color : [1.0, 1.0, 1.0];\nuniform float alpha : 1.0;\n\nuniform float shininess : 30;\n\nuniform vec3 specular : [1.0, 1.0, 1.0];\n\n// Uniforms for wireframe\nuniform float lineWidth : 0.0;\nuniform vec3 lineColor : [0.0, 0.0, 0.0];\nvarying vec3 v_Barycentric;\n\n#ifdef AMBIENT_LIGHT_NUMBER\n@import buildin.header.ambient_light\n#endif\n#ifdef POINT_LIGHT_NUMBER\n@import buildin.header.point_light\n#endif\n#ifdef DIRECTIONAL_LIGHT_NUMBER\n@import buildin.header.directional_light\n#endif\n#ifdef SPOT_LIGHT_NUMBER\n@import buildin.header.spot_light\n#endif\n\n#extension GL_OES_standard_derivatives : enable\n// Import util functions and uniforms needed\n@import buildin.util.calculate_attenuation\n\n@import buildin.util.edge_factor\n\n@import buildin.plugin.compute_shadow_map\n\nvoid main(){\n    \n    vec4 finalColor = vec4(color, alpha);\n\n    #ifdef DIFFUSEMAP_ENABLED\n        vec4 tex = texture2D( diffuseMap, v_Texcoord );\n        finalColor.rgb *= tex.rgb;\n    #endif\n\n    vec3 normal = v_Normal;\n    #ifdef NORMALMAP_ENABLED\n        normal = texture2D( normalMap, v_Texcoord ).xyz * 2.0 - 1.0;\n        mat3 tbn = mat3( v_Tangent, v_Bitangent, v_Normal );\n        normal = normalize( tbn * normal );\n    #endif\n\n    // Diffuse part of all lights\n    vec3 diffuseColor = vec3(0.0, 0.0, 0.0);\n    // Specular part of all lights\n    vec3 specularColor = vec3(0.0, 0.0, 0.0);\n    \n    vec3 eyePos = viewInverse[3].xyz;\n    vec3 viewDirection = normalize(eyePos - v_WorldPosition);\n\n    #ifdef AMBIENT_LIGHT_NUMBER\n        for(int i = 0; i < AMBIENT_LIGHT_NUMBER; i++){\n            diffuseColor += ambientLightColor[i];\n        }\n    #endif\n    #ifdef POINT_LIGHT_NUMBER\n        #if defined(POINT_LIGHT_SHADOWMAP_NUMBER)\n            float shadowFallOffs[POINT_LIGHT_NUMBER];\n            if( shadowEnabled ){\n                computeShadowFallOfPointLights( v_WorldPosition, shadowFallOffs );\n            }\n        #endif\n        for(int i = 0; i < POINT_LIGHT_NUMBER; i++){\n\n            vec3 lightPosition = pointLightPosition[i];\n            vec3 lightColor = pointLightColor[i];\n            float range = pointLightRange[i];\n\n            vec3 lightDirection = lightPosition - v_WorldPosition;\n\n            // Calculate point light attenuation\n            float dist = length(lightDirection);\n            float attenuation = calculateAttenuation(dist, range); \n\n            // Normalize vectors\n            lightDirection /= dist;\n            vec3 halfVector = normalize( lightDirection + viewDirection );\n\n            float ndh = dot( normal, halfVector );\n            ndh = clamp(ndh, 0.0, 1.0);\n\n            float ndl = dot( normal,  lightDirection );\n            ndl = clamp(ndl, 0.0, 1.0);\n\n            float shadowFallOff = 1.0;\n            #if defined(POINT_LIGHT_SHADOWMAP_NUMBER)\n                if( shadowEnabled ){\n                    shadowFallOff = shadowFallOffs[i];\n                }\n            #endif\n\n            diffuseColor += lightColor * ndl * attenuation * shadowFallOff;\n\n            specularColor += specular * pow( ndh, shininess ) * attenuation * shadowFallOff;\n\n        }\n    #endif\n\n    #ifdef DIRECTIONAL_LIGHT_NUMBER\n        #if defined(DIRECTIONAL_LIGHT_SHADOWMAP_NUMBER)\n            float shadowFallOffs[DIRECTIONAL_LIGHT_NUMBER];\n            if( shadowEnabled ){\n                computeShadowFallOfDirectionalLights( v_WorldPosition, shadowFallOffs );\n            }\n        #endif\n        for(int i = 0; i < DIRECTIONAL_LIGHT_NUMBER; i++){\n\n            vec3 lightDirection = -normalize( directionalLightDirection[i] );\n            vec3 lightColor = directionalLightColor[i];\n\n            vec3 halfVector = normalize( lightDirection + viewDirection );\n\n            float ndh = dot( normal, halfVector );\n            ndh = clamp(ndh, 0.0, 1.0);\n\n            float ndl = dot( normal, lightDirection );\n            ndl = clamp(ndl, 0.0, 1.0);\n\n            float shadowFallOff = 1.0;\n            #if defined(DIRECTIONAL_LIGHT_SHADOWMAP_NUMBER)\n                if( shadowEnabled ){\n                    shadowFallOff = shadowFallOffs[i];\n                }\n            #endif\n\n            diffuseColor += lightColor * ndl * shadowFallOff;\n\n            specularColor += specular * pow( ndh, shininess ) * shadowFallOff;\n        }\n    #endif\n\n    #ifdef SPOT_LIGHT_NUMBER\n        #if defined(SPOT_LIGHT_SHADOWMAP_NUMBER)\n            float shadowFallOffs[SPOT_LIGHT_NUMBER];\n            if( shadowEnabled ){\n                computeShadowFallOfSpotLights( v_WorldPosition, shadowFallOffs );\n            }\n        #endif\n        for(int i = 0; i < SPOT_LIGHT_NUMBER; i++){\n            vec3 lightPosition = spotLightPosition[i];\n            vec3 spotLightDirection = -normalize( spotLightDirection[i] );\n            vec3 lightColor = spotLightColor[i];\n            float range = spotLightRange[i];\n            float umbraAngleCosine = spotLightUmbraAngleCosine[i];\n            float penumbraAngleCosine = spotLightPenumbraAngleCosine[i];\n            float falloffFactor = spotLightFalloffFactor[i];\n\n            vec3 lightDirection = lightPosition - v_WorldPosition;\n            // Calculate attenuation\n            float dist = length(lightDirection);\n            float attenuation = calculateAttenuation(dist, range); \n\n            // Normalize light direction\n            lightDirection /= dist;\n            // Calculate spot light fall off\n            float lightDirectCosine = dot(spotLightDirection, lightDirection);\n\n            float falloff;\n            // Fomular from real-time-rendering\n            if( lightDirectCosine < penumbraAngleCosine ){\n                falloff = 1.0;\n            }else if( lightDirectCosine > umbraAngleCosine ){\n                falloff = 0.0;\n            }else{\n                falloff = (lightDirectCosine-umbraAngleCosine)/(penumbraAngleCosine-umbraAngleCosine);\n                falloff = pow(falloff, falloffFactor);\n            }\n\n            vec3 halfVector = normalize( lightDirection + viewDirection );\n\n            float ndh = dot( normal, halfVector );\n            ndh = clamp(ndh, 0.0, 1.0);\n\n            float ndl = dot( normal, lightDirection );\n            ndl = clamp(ndl, 0.0, 1.0);\n\n            float shadowFallOff = 1.0;\n            #if defined(SPOT_LIGHT_SHADOWMAP_NUMBER)\n                if( shadowEnabled ){\n                    shadowFallOff = shadowFallOffs[i];\n                }\n            #endif\n\n            diffuseColor += lightColor * ndl * attenuation * (1.0-falloff) * shadowFallOff;\n\n            specularColor += specular * pow( ndh, shininess ) * attenuation * (1.0-falloff) * shadowFallOff;\n\n        }\n    #endif\n\n    finalColor.rgb *= diffuseColor;\n    finalColor.rgb += specularColor;\n\n    if( lineWidth > 0.01){\n        finalColor.rgb = finalColor.rgb * mix(lineColor, vec3(1.0), edgeFactor(lineWidth));\n    }\n\n    gl_FragColor = finalColor;\n}\n\n@end';});
 
@@ -19006,6 +19042,13 @@ define('3d/skeleton',['require','core/base','core/matrix4'],function(require) {
                 this.bones[i].setPose(time);
             }
             this.update();
+        },
+
+        getClipTime : function() {
+            var poses = this.bones[0].poses;
+            if (poses.length) {
+                return poses[poses.length-1].time;
+            }
         }
     });
 
@@ -19343,11 +19386,11 @@ define('animation/easing',[],function() {
 });
 
 
-define('animation/controller',['require','./easing'],function(require) {
+define('animation/clip',['require','./easing'],function(require) {
 
     var Easing = require('./easing');
 
-    var Controller = function(options) {
+    var Clip = function(options) {
 
         this._targetPool = options.target || {};
         if (this._targetPool.constructor != Array) {
@@ -19384,7 +19427,7 @@ define('animation/controller',['require','./easing'],function(require) {
         this.onrestart = options.onrestart || null;
     };
 
-    Controller.prototype = {
+    Clip.prototype = {
         step : function(time) {
             var percent = (time - this._startTime) / this._life;
 
@@ -19411,7 +19454,7 @@ define('animation/controller',['require','./easing'],function(require) {
                     this._currentLoop--;
                     return 'restart';
                 }else{
-                    // Mark this controller to be deleted
+                    // Mark this clip to be deleted
                     // In the animation.update
                     this._needsRemove = true;
 
@@ -19432,13 +19475,13 @@ define('animation/controller',['require','./easing'],function(require) {
             }
         }
     };
-    Controller.prototype.constructor = Controller;
+    Clip.prototype.constructor = Clip;
 
-    return Controller;
+    return Clip;
 });
-define('animation/animation',['require','./controller','_'],function(require) {
+define('animation/animation',['require','./clip','_'],function(require) {
     
-    var Controller = require('./controller');
+    var Clip = require('./clip');
     var _ = require("_");
 
     var requrestAnimationFrame = window.requrestAnimationFrame
@@ -19454,46 +19497,46 @@ define('animation/animation',['require','./controller','_'],function(require) {
         this.onframe = options.onframe || function() {};
 
         // private properties
-        this._controllerPool = [];
+        this._clips = [];
 
         this._running = false;
     };
 
     Animation.prototype = {
-        add : function(controller) {
-            this._controllerPool.push(controller);
+        add : function(clip) {
+            this._clips.push(clip);
         },
-        remove : function(controller) {
-            var idx = this._controllerPool.indexOf(controller);
+        remove : function(clip) {
+            var idx = this._clips.indexOf(clip);
             if (idx >= 0) {
-                this._controllerPool.splice(idx, 1);
+                this._clips.splice(idx, 1);
             }
         },
         update : function() {
             var time = new Date().getTime();
-            var cp = this._controllerPool;
+            var cp = this._clips;
             var len = cp.length;
 
             var deferredEvents = [];
-            var deferredCtls = [];
+            var deferredClips = [];
             for (var i = 0; i < len; i++) {
-                var controller = cp[i];
-                var e = controller.step(time);
+                var clip = cp[i];
+                var e = clip.step(time);
                 // Throw out the events need to be called after
                 // stage.update, like destroy
-                if ( e ) {
+                if (e) {
                     deferredEvents.push(e);
-                    deferredCtls.push(controller);
+                    deferredClips.push(clip);
                 }
             }
             if (this.stage
                 && this.stage.render
-                && this._controllerPool.length
+                && this._clips.length
             ) {
                 this.stage.render();
             }
 
-            // Remove the finished controller
+            // Remove the finished clip
             var newArray = [];
             for (var i = 0; i < len; i++) {
                 if (!cp[i]._needsRemove) {
@@ -19501,11 +19544,11 @@ define('animation/animation',['require','./controller','_'],function(require) {
                     cp[i]._needsRemove = false;
                 }
             }
-            this._controllerPool = newArray;
+            this._clips = newArray;
 
             len = deferredEvents.length;
             for (var i = 0; i < len; i++) {
-                deferredCtls[i].fire( deferredEvents[i] );
+                deferredClips[i].fire( deferredEvents[i] );
             }
 
             this.onframe();
@@ -19529,7 +19572,7 @@ define('animation/animation',['require','./controller','_'],function(require) {
             this._running = false;
         },
         clear : function() {
-            this._controllerPool = [];
+            this._clips = [];
         },
         animate : function(options) {
             var deferred = new Deferred(options.target, 
@@ -19563,7 +19606,7 @@ define('animation/animation',['require','./controller','_'],function(require) {
         this._setter = setter || _defaultSetter;
         this._interpolate = interpolate || _defaultInterpolate;
 
-        this._controllerCount = 0;
+        this._clipCount = 0;
 
         this._delay = 0;
 
@@ -19571,7 +19614,7 @@ define('animation/animation',['require','./controller','_'],function(require) {
 
         this._onframeList = [];
 
-        this._controllerList = [];
+        this._clipList = [];
     }
 
     Deferred.prototype = {
@@ -19618,8 +19661,8 @@ define('animation/animation',['require','./controller','_'],function(require) {
             }
 
             function ondestroy() {
-                self._controllerCount--;
-                if (self._controllerCount === 0) {
+                self._clipCount--;
+                if (self._clipCount === 0) {
                     var len = self._doneList.length;
                     for (var i = 0; i < len; i++) {
                         self._doneList[i].call(self);
@@ -19639,7 +19682,7 @@ define('animation/animation',['require','./controller','_'],function(require) {
                     var now = track[i],
                         next = track[i+1];
 
-                    var controller = new Controller({
+                    var clip = new Clip({
                         target : self._target,
                         life : next.time - now.time,
                         delay : delay,
@@ -19649,20 +19692,20 @@ define('animation/animation',['require','./controller','_'],function(require) {
                         onframe : createOnframe(now, next, propName),
                         ondestroy : ondestroy
                     });
-                    this._controllerList.push(controller);
+                    this._clipList.push(clip);
 
-                    this._controllerCount++;
+                    this._clipCount++;
                     delay = next.time + this._delay;
 
-                    self.animation.add(controller);
+                    self.animation.add(clip);
                 }
             }
             return this;
         },
         stop : function() {
-            for (var i = 0; i < this._controllerList.length; i++) {
-                var controller = this._controllerList[i];
-                this.animation.remove(controller);
+            for (var i = 0; i < this._clipList.length; i++) {
+                var clip = this._clipList[i];
+                this.animation.remove(clip);
             }
         },
         delay : function(time){
@@ -20059,9 +20102,42 @@ define('core/vector4',['require','glmatrix'], function(require) {
 
     return Vector4;
 } );
-;
-define("loader/gltf", function(){});
+/**
+ * glTF Loader
+ * Specification : https://github.com/KhronosGroup/glTF/blob/master/specification/README.md
+ * @export{class} GLTF
+ */
+define('loader/gltf',['require','core/base','core/request','3d/shader','3d/material','3d/geometry','3d/mesh','3d/node','3d/texture/texture2d','3d/texture/texturecube','3d/shader/library','3d/skeleton','3d/bone','core/vector3','core/quaternion','_','glmatrix'],function(require) {
 
+    var Base = require('core/base');
+
+    var request = require("core/request");
+    var Shader = require("3d/shader");
+    var Material = require("3d/material");
+    var Geometry = require("3d/geometry");
+    var Mesh = require("3d/mesh");
+    var Node = require("3d/node");
+    var Texture2D = require("3d/texture/texture2d");
+    var TextureCube = require("3d/texture/texturecube");
+    var shaderLibrary = require("3d/shader/library");
+    var Skeleton = require("3d/skeleton");
+    var Bone = require("3d/bone");
+    var Vector3 = require("core/vector3");
+    var Quaternion = require("core/quaternion");
+    var _ = require("_");
+
+    var glMatrix = require("glmatrix");
+    var vec3 = glMatrix.vec3;
+    var vec2 = glMatrix.vec2;
+
+    var Loader = Base.derive(function() {
+        return {
+
+        };
+    }, {
+        
+    })
+});
 /**
  * @export{class} SVG
  * shapes : circle, line, polygon, rect, polyline, ellipse, path
@@ -20423,6 +20499,9 @@ define('loader/svg',['require','core/base','core/request','2d/node','2d/shape/ci
 
     var urlRegex = /url\(\s*#(.*?)\)/;
     function _getPaint(str, defs) {
+        // if (str === 'none') {
+        //     return;
+        // }
         var urlMatch = urlRegex.exec(str);
         if (urlMatch) {
             var url = urlMatch[1].trim();
@@ -20518,7 +20597,7 @@ define('loader/svg',['require','core/base','core/request','2d/node','2d/shape/ci
  * Format specification : https://github.com/mrdoob/three.js/wiki/JSON-Model-format-3.1
  * @export{class} Model
  */
-define('loader/three/model',['require','core/base','core/request','3d/shader','3d/material','3d/geometry','3d/mesh','3d/node','3d/texture/texture2d','3d/texture/texturecube','3d/shader/library','3d/skeleton','3d/bone','core/vector3','core/quaternion','_','glmatrix'], function(require) {
+define('loader/three/model',['require','core/base','core/request','3d/shader','3d/material','3d/geometry','3d/mesh','3d/node','3d/texture/texture2d','3d/texture/texturecube','3d/shader/library','3d/skeleton','3d/bone','core/vector3','core/quaternion','_','glmatrix'],function(require) {
 
     var Base = require('core/base');
 
@@ -21058,7 +21137,7 @@ define('util/color',['require'], function(require){
 
 	
 } );
-define('qtek',['require','2d/camera','2d/gradient','2d/layer','2d/lineargradient','2d/node','2d/pattern','2d/picker','2d/radialgradient','2d/shape/arc','2d/shape/circle','2d/shape/ellipse','2d/shape/html','2d/shape/image','2d/shape/line','2d/shape/path','2d/shape/polygon','2d/shape/rectangle','2d/shape/roundedrectangle','2d/shape/sector','2d/shape/svgpath','2d/shape/text','2d/shape/textbox','2d/stage','2d/style','2d/util','3d/bone','3d/camera','3d/camera/orthographic','3d/camera/perspective','3d/compositor','3d/compositor/graph','3d/compositor/group','3d/compositor/node','3d/compositor/pass','3d/compositor/scenenode','3d/compositor/texturenode','3d/compositor/texturepool','3d/debug/pointlight','3d/debug/renderinfo','3d/framebuffer','3d/geometry','3d/geometry/cube','3d/geometry/plane','3d/geometry/sphere','3d/light','3d/light/ambient','3d/light/directional','3d/light/point','3d/light/spot','3d/material','3d/mesh','3d/node','3d/plugin/firstpersoncontrol','3d/plugin/orbitcontrol','3d/prepass/shadowmap','3d/renderer','3d/scene','3d/shader','3d/shader/library','3d/skeleton','3d/texture','3d/texture/compressed2d','3d/texture/compressedcube','3d/texture/texture2d','3d/texture/texturecube','3d/util/mesh','3d/webglinfo','animation/animation','animation/controller','animation/easing','core/base','core/cache','core/event','core/matrix2','core/matrix2d','core/matrix3','core/matrix4','core/mixin/derive','core/mixin/dirty','core/mixin/notifier','core/quaternion','core/request','core/vector2','core/vector3','core/vector4','loader/gltf','loader/svg','loader/three/model','util/color','util/util','glmatrix'], function(require){
+define('qtek',['require','2d/camera','2d/gradient','2d/layer','2d/lineargradient','2d/node','2d/pattern','2d/picking/box','2d/picking/pixel','2d/radialgradient','2d/shape/arc','2d/shape/circle','2d/shape/ellipse','2d/shape/html','2d/shape/image','2d/shape/line','2d/shape/path','2d/shape/polygon','2d/shape/rectangle','2d/shape/roundedrectangle','2d/shape/sector','2d/shape/svgpath','2d/shape/text','2d/shape/textbox','2d/stage','2d/style','2d/util','3d/bone','3d/camera','3d/camera/orthographic','3d/camera/perspective','3d/compositor','3d/compositor/graph','3d/compositor/group','3d/compositor/node','3d/compositor/pass','3d/compositor/scenenode','3d/compositor/texturenode','3d/compositor/texturepool','3d/debug/pointlight','3d/debug/renderinfo','3d/framebuffer','3d/geometry','3d/geometry/cube','3d/geometry/plane','3d/geometry/sphere','3d/light','3d/light/ambient','3d/light/directional','3d/light/point','3d/light/spot','3d/material','3d/mesh','3d/node','3d/plugin/firstpersoncontrol','3d/plugin/orbitcontrol','3d/prepass/shadowmap','3d/renderer','3d/scene','3d/shader','3d/shader/library','3d/skeleton','3d/texture','3d/texture/compressed2d','3d/texture/compressedcube','3d/texture/texture2d','3d/texture/texturecube','3d/util/mesh','3d/webglinfo','animation/animation','animation/clip','animation/easing','core/base','core/cache','core/event','core/matrix2','core/matrix2d','core/matrix3','core/matrix4','core/mixin/derive','core/mixin/dirty','core/mixin/notifier','core/quaternion','core/request','core/vector2','core/vector3','core/vector4','loader/gltf','loader/svg','loader/three/model','util/color','util/util','glmatrix'], function(require){
 	
 	var exportsObject =  {
 	"2d": {
@@ -21068,7 +21147,10 @@ define('qtek',['require','2d/camera','2d/gradient','2d/layer','2d/lineargradient
 		"LinearGradient": require('2d/lineargradient'),
 		"Node": require('2d/node'),
 		"Pattern": require('2d/pattern'),
-		"Picker": require('2d/picker'),
+		"picking": {
+			"Box": require('2d/picking/box'),
+			"Pixel": require('2d/picking/pixel')
+		},
 		"RadialGradient": require('2d/radialgradient'),
 		"shape": {
 			"Arc": require('2d/shape/arc'),
@@ -21156,7 +21238,7 @@ define('qtek',['require','2d/camera','2d/gradient','2d/layer','2d/lineargradient
 	},
 	"animation": {
 		"Animation": require('animation/animation'),
-		"Controller": require('animation/controller'),
+		"Clip": require('animation/clip'),
 		"Easing": require('animation/easing')
 	},
 	"core": {
@@ -21179,7 +21261,7 @@ define('qtek',['require','2d/camera','2d/gradient','2d/layer','2d/lineargradient
 		"Vector4": require('core/vector4')
 	},
 	"loader": {
-		"Gltf": require('loader/gltf'),
+		"GLTF": require('loader/gltf'),
 		"SVG": require('loader/svg'),
 		"three": {
 			"Model": require('loader/three/model')

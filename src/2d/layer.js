@@ -67,7 +67,9 @@ define(function(require) {
 
             Node.prototype.render.call(this, this.ctx);
 
-            this.picking.update();
+            if (this.enablePicking) {
+                this.picking.update();
+            }
         },
 
         setZ : function(z) {

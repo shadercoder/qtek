@@ -27,7 +27,8 @@
 
             var canvas = document.getElementById("Main");
             var layer = new qtek2d.Layer({
-                canvas : canvas
+                canvas : canvas,
+                enablePicking : false
             });
             layer.resize(window.innerWidth, window.innerHeight);
 
