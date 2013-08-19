@@ -45,8 +45,8 @@ define(function(require) {
             _imageCache[src] = [callback];
             var img = new Image();
             img.onload = function() {
-                _.each( _imageCache[src], function(cb) {
-                    cb( img );
+                _.each(_imageCache[src], function(cb) {
+                    cb(img);
                 });
                 _imageCache[src] = img;
 
