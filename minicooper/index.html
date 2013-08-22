@@ -1,0 +1,199 @@
+<html>
+<head>
+    <title></title>
+    <meta charset="utf-8">
+    <script type="application/javascript" src="../lib/require.js"></script>
+</head>
+<body style="margin:0px">
+    <canvas id="Main"></canvas>
+
+    <script type="text/javascript">
+        // requirejs.config({
+        //     'baseUrl' : '../../src',
+        //     'paths' : {
+        //         '_' : '../thirdparty/lodash.compat',
+        //         'glmatrix' : '../thirdparty/gl-matrix'
+        //     },
+        //     'shim' : {
+        //         '_' : {
+        //             exports : '_'
+        //         }
+        //     }
+        // });
+        requirejs.config({
+            'paths' : {
+                'qtek' : "../lib/qtek.min",
+                '_' : '../lib/lodash.compat',
+                "knockout" : "../lib/knockout",
+                "ko.mapping" : "../lib/ko.mapping"
+            }
+        });
+
+        require(['qtek'], function(qtek) {
+            var qtek3d = qtek['3d'];
+
+            var renderer = new qtek3d.Renderer({
+                canvas : document.getElementById("Main")
+            });
+            renderer.resize(window.innerWidth, window.innerHeight);
+            var shadowMapPass = new qtek3d.prepass.ShadowMap({
+                // useVSM : true
+            });
+
+            var GLTFLoader = new qtek.loader.GLTF();
+
+            GLTFLoader.load("assets/minicooper_low.json");
+
+            var ENVMAP_OBJECTS;
+
+            GLTFLoader.on("load", function(scene, cameras) {
+                var camera = cameras[Object.keys(cameras)[0]];
+                if (!camera) {
+                    camera = new qtek3d.camera.Perspective({
+                        aspect : renderer.canvas.width/renderer.canvas.height,
+                        far : 500
+                    });
+
+                    camera.position.set(1, 1, 1);
+                    camera.lookAt(scene.position);
+                }
+                camera.aspect = renderer.canvas.width / renderer.canvas.height;
+
+                var control = new qtek3d.plugin.OrbitControl({
+                    camera : camera,
+                    canvas : renderer.canvas,
+                    sensitivity : 0.4
+                });
+                // z up
+                control.up.set(0, 0, 1);
+                control.enable();
+
+                var light = scene.getNode("Lamp_002-light");
+                light.shadowCamera = {
+                    left : -3,
+                    right : 3,
+                    top : 3, 
+                    bottom : -3,
+                    near : 0,
+                    far : 100
+                };
+                light.shadowResolution = 1024;
+                light.shadowBias = 0.002;   
+                light.position.set(-1, -1, 5);
+                light.lookAt(new qtek.core.Vector3(0, 0, 0), new qtek.core.Vector3(0, 0, -1));
+
+                // Env map
+                var texture = new qtek3d.texture.TextureCube({
+                    flipY : false
+                });
+                texture.load({
+                    px : 'assets/textures/skybox/px.jpg',
+                    nx : 'assets/textures/skybox/nx.jpg',
+                    py : 'assets/textures/skybox/py.jpg',
+                    ny : 'assets/textures/skybox/ny.jpg',
+                    pz : 'assets/textures/skybox/pz.jpg',
+                    nz : 'assets/textures/skybox/nz.jpg',
+                });
+
+                var envTex = new qtek3d.texture.Texture2D({
+                    flipY : false
+                });
+                envTex.load("assets/textures/Parking_Lot_Bg.jpg");
+                var skydome = new qtek3d.plugin.Skydome({
+                    camera : camera,
+                    renderer : renderer                    
+                });
+                skydome.rotation.rotateX(Math.PI/2);
+                skydome.material.set("diffuseMap", envTex);
+
+                var REFLECT_MATS = {
+                    'CAR_PAINT' : 0.1,
+                    'mini_windows_001' : 0.2,
+                    'mini_windows_002' : 0.2,
+                    'mini_headlight_gl_001' : 0.2,
+                    // 'mini_wheels_chrom_001' : 0.1,
+                    // 'mini_wheels_chrom_002' : 0.1,
+                    // 'mini_wheels_chrom_004' : 0.1,
+                    // 'mini_wheels_chrom_005' : 0.1,
+                    // 'mini_wheels_chrom_006' : 0.1,
+                    // 'mini_wheels_chrom_007' : 0.1,
+                    // 'mini_wheels_chrom_008' : 0.1
+                }
+
+                for (var matName in REFLECT_MATS) {
+                    var mat = qtek3d.Material.getMaterial(matName);
+                    mat.shader.enableTexture("environmentMap");
+                    mat.set({
+                        "environmentMap": texture,
+                        "reflectivity" : REFLECT_MATS[matName]
+                    });
+                }
+
+                var car = scene.getNode("CAR");
+
+                var movingForward =false;
+                var movingBackward = false;
+                var _keyDown = function(e) {
+                    switch(e.keyCode) {
+                        case 87: //w
+                        case 37: //up arrow
+                            movingForward = true;
+                            break;
+                        case 83: //s
+                        case 40: //down arrow
+                            movingBackward = true;
+                            break;
+                        case 65: //a
+                        case 37: //left arrow
+                            break;
+                        case 68: //d
+                        case 39: //right arrow
+                            break; 
+                    }
+                };
+
+                var _keyUp = function(e) {
+                    switch(e.keyCode) {
+                        case 87: //w
+                        case 37: //up arrow
+                            movingForward = false;
+                            break;
+                        case 83: //s
+                        case 40: //down arrow
+                            movingBackward = false;
+                            break;
+                        case 65: //a
+                        case 37: //left arrow
+                            this._moveLeft = false;
+                            break;
+                        case 68: //d
+                        case 39: //right arrow
+                            this._moveRight = false;
+                            break; 
+                    }
+                }
+
+                document.addEventListener("keydown", _keyDown, false);
+                document.addEventListener("keyup", _keyUp, false);
+
+                setInterval(function() {
+                    shadowMapPass.render(renderer, scene);
+                    renderer.render(scene, camera);
+                }, 50);
+
+                car.add(camera);
+
+                car.on("beforeupdate", function() {
+                    var forward = this.matrix.up;
+                    if (movingForward) {
+                        this.position.sub(forward.scale(0.02));
+                    }
+                    if (movingBackward) {
+                        this.position.add(forward.scale(0.02));
+                    }
+                })
+            });
+        });
+    </script>
+</body>
+</html>

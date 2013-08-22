@@ -5,3 +5,9 @@ tests/assets/models/sponza
 qtek.todo
 gh-pages
 .DS_Store
+*.dae
+*.DAE
+*.blend
+*.blend1
+*.blend2
+Thumbs.db
