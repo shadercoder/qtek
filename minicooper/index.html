@@ -87,30 +87,27 @@
                     flipY : false
                 });
                 texture.load({
-                    px : 'assets/textures/skybox/px.jpg',
-                    nx : 'assets/textures/skybox/nx.jpg',
-                    py : 'assets/textures/skybox/py.jpg',
-                    ny : 'assets/textures/skybox/ny.jpg',
-                    pz : 'assets/textures/skybox/pz.jpg',
-                    nz : 'assets/textures/skybox/nz.jpg',
+                    px : 'assets/textures/envmap/px.jpg',
+                    nx : 'assets/textures/envmap/nx.jpg',
+                    py : 'assets/textures/envmap/py.jpg',
+                    ny : 'assets/textures/envmap/ny.jpg',
+                    pz : 'assets/textures/envmap/pz.jpg',
+                    nz : 'assets/textures/envmap/nz.jpg',
                 });
 
-                var envTex = new qtek3d.texture.Texture2D({
-                    flipY : false
-                });
-                envTex.load("assets/textures/Parking_Lot_Bg.jpg");
-                var skydome = new qtek3d.plugin.Skydome({
+                var skybox = new qtek3d.plugin.Skybox({
                     camera : camera,
                     renderer : renderer                    
                 });
-                skydome.rotation.rotateX(Math.PI/2);
-                skydome.material.set("diffuseMap", envTex);
+                skybox.material.set("environmentMap", texture);
+
 
                 var REFLECT_MATS = {
                     'CAR_PAINT' : 0.1,
                     'mini_windows_001' : 0.2,
                     'mini_windows_002' : 0.2,
                     'mini_headlight_gl_001' : 0.2,
+                    'DISC' : 0.2,
                     // 'mini_wheels_chrom_001' : 0.1,
                     // 'mini_wheels_chrom_002' : 0.1,
                     // 'mini_wheels_chrom_004' : 0.1,
@@ -129,69 +126,12 @@
                     });
                 }
 
-                var car = scene.getNode("CAR");
-
-                var movingForward =false;
-                var movingBackward = false;
-                var _keyDown = function(e) {
-                    switch(e.keyCode) {
-                        case 87: //w
-                        case 37: //up arrow
-                            movingForward = true;
-                            break;
-                        case 83: //s
-                        case 40: //down arrow
-                            movingBackward = true;
-                            break;
-                        case 65: //a
-                        case 37: //left arrow
-                            break;
-                        case 68: //d
-                        case 39: //right arrow
-                            break; 
-                    }
-                };
-
-                var _keyUp = function(e) {
-                    switch(e.keyCode) {
-                        case 87: //w
-                        case 37: //up arrow
-                            movingForward = false;
-                            break;
-                        case 83: //s
-                        case 40: //down arrow
-                            movingBackward = false;
-                            break;
-                        case 65: //a
-                        case 37: //left arrow
-                            this._moveLeft = false;
-                            break;
-                        case 68: //d
-                        case 39: //right arrow
-                            this._moveRight = false;
-                            break; 
-                    }
-                }
-
-                document.addEventListener("keydown", _keyDown, false);
-                document.addEventListener("keyup", _keyUp, false);
+                scene.rotation.rotateX(-Math.PI / 2);
 
                 setInterval(function() {
                     shadowMapPass.render(renderer, scene);
                     renderer.render(scene, camera);
                 }, 50);
-
-                car.add(camera);
-
-                car.on("beforeupdate", function() {
-                    var forward = this.matrix.up;
-                    if (movingForward) {
-                        this.position.sub(forward.scale(0.02));
-                    }
-                    if (movingBackward) {
-                        this.position.add(forward.scale(0.02));
-                    }
-                })
             });
         });
     </script>
