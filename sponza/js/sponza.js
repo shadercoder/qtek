@@ -42,18 +42,25 @@ define(['qtek', 'knockout', 'ko.mapping'], function(qtek, ko, koMapping){
     loader.load("assets/sponza.json");
 
     loader.on("load", function(sponzaScene, sponzaCameras){
-        camera = sponzaCameras[Object.keys(sponzaCameras)[0]];
+        // camera = sponzaCameras[Object.keys(sponzaCameras)[0]];
+        camera = new qtek3d.camera.Perspective({
+            aspect : window.innerWidth / window.innerHeight
+        });
+        camera.position.set(10, 10, 0);
+        camera.lookAt(new qtek.core.Vector3(0, 10, 0))
         scene = sponzaScene;
         var firstPersonControl = new qtek3d.plugin.FirstPersonControl({
             camera : camera,
-            canvas : renderer.canvas,
-            up : new Vector3(0, 0, 1)
+            canvas : renderer.canvas
         });
         firstPersonControl.enable();
 
-        var light = scene.getNode("Lamp-light");
-        light.range = 30;
+        // var light = scene.getNode("Lamp").children[0];
         // light.castShadow = true;
+        var light = new qtek3d.light.Point();
+        light.range = 60;
+        light.position.y = 20;
+        scene.add(light);
 
         // shadowMapPass.render( renderer, scene );
         setInterval(function(){
