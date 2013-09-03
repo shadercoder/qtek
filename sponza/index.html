@@ -94,29 +94,29 @@
             <div data-bind="text:loading"></div>
         </div>
         <script type="application/javascript">
-            requirejs.config({
-                'baseUrl' : '../../src',
-                'paths' : {
-                    '_' : '../thirdparty/lodash.compat',
-                    'glmatrix' : '../thirdparty/gl-matrix',
-                    "knockout" : "../gh-pages/lib/knockout",
-                    "ko.mapping" : "../gh-pages/lib/ko.mapping"
-                },
-                'shim' : {
-                    '_' : {
-                        exports : '_'
-                    }
-                }
-            });
             // requirejs.config({
+            //     'baseUrl' : '../../src',
             //     'paths' : {
-            //         'qtek' : "../lib/qtek.min",
-            //         '_' : '../lib/lodash.compat',
-            //         "knockout" : "../lib/knockout",
-            //         "ko.mapping" : "../lib/ko.mapping"
+            //         '_' : '../thirdparty/lodash.compat',
+            //         'glmatrix' : '../thirdparty/gl-matrix',
+            //         "knockout" : "../gh-pages/lib/knockout",
+            //         "ko.mapping" : "../gh-pages/lib/ko.mapping"
+            //     },
+            //     'shim' : {
+            //         '_' : {
+            //             exports : '_'
+            //         }
             //     }
-            // })
-            // boot
+            // });
+            requirejs.config({
+                'paths' : {
+                    'qtek' : "../lib/qtek.min",
+                    '_' : '../lib/lodash.compat',
+                    "knockout" : "../lib/knockout",
+                    "ko.mapping" : "../lib/ko.mapping"
+                }
+            })
+            boot
             require(["js/sponza.js"], function(){
 
             })
