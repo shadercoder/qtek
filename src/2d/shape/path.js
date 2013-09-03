@@ -114,12 +114,17 @@ define(function(require) {
                 //use degree to scale the handle length
                 v2.scale(degree);
                 v1.scale(degree);
-                segs[i].handleIn = middleMiddlePoint.clone().add(v2).add(dv);
-                segs[i].handleOut = middleMiddlePoint.clone().add(v1).add(dv);
+                if (!segs[i].handleIn) {
+                    segs[i].handleIn = middleMiddlePoint.clone().add(v2).add(dv);
+                } else {
+                    segs[i].handleIn.copy(middleMiddlePoint).add(v2).add(dv);
+                }
+                if (!segs[i].handleOut) {
+                    segs[i].handleOut = middleMiddlePoint.clone().add(v1).add(dv);
+                } else {
+                    segs[i].handleOut.copy(middleMiddlePoint).add(v1).add(dv);
+                }
             }
-            // segs[0].handleOut = segs[0].handleIn = null;
-            // segs[len-1].handleIn = segs[len-1].handleOut = null;
-            
         },
         pushPoints : function(points) {
             for (var i = 0; i < points.length; i++) {
