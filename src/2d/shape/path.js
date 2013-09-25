@@ -83,46 +83,28 @@ define(function(require) {
         smooth : function(degree) {
 
             var len = this.segments.length;
-            var middlePoints = [];
             var segs = this.segments;
 
-            var m = new Vector2();
-            function computeVector(a, b, c) {
-                m.copy(b).add(c).scale(0.5);
-                return m.sub(a).negate();
-            }
-
+            var v = new Vector2();
             for (var i = 0; i < len; i++) {
                 var point = segs[i].point;
+                var prevPoint = (i == 0) ? segs[len-1].point : segs[i-1].point;
                 var nextPoint = (i == len-1) ? segs[0].point : segs[i+1].point;
-                middlePoints.push(new Vector2().copy(point).add(nextPoint).scale(0.5));
-            }
-
-            var middleMiddlePoint = new Vector2();
-            var v1 = new Vector2();
-            var v2 = new Vector2();
-            for (var i = 0; i < len; i++) {
-                var point = segs[i].point;
-                var middlePoint = middlePoints[i];
-                var prevMiddlePoint = (i == 0) ? middlePoints[len-1] : middlePoints[i-1];
                 var degree = segs[i].smoothLevel || degree || 1;
-                middleMiddlePoint.copy(middlePoint).add(prevMiddlePoint).scale(0.5);
-                v1.copy(middlePoint).sub(middleMiddlePoint);
-                v2.copy(prevMiddlePoint).sub(middleMiddlePoint);
 
-                var dv = computeVector(point, prevMiddlePoint, middlePoint);
+                v.copy(nextPoint).sub(prevPoint).scale(0.25);
+
                 //use degree to scale the handle length
-                v2.scale(degree);
-                v1.scale(degree);
+                v.scale(degree);
                 if (!segs[i].handleIn) {
-                    segs[i].handleIn = middleMiddlePoint.clone().add(v2).add(dv);
+                    segs[i].handleIn = point.clone().sub(v);
                 } else {
-                    segs[i].handleIn.copy(middleMiddlePoint).add(v2).add(dv);
+                    segs[i].handleIn.copy(point).sub(v);
                 }
                 if (!segs[i].handleOut) {
-                    segs[i].handleOut = middleMiddlePoint.clone().add(v1).add(dv);
+                    segs[i].handleOut = point.clone().add(v);
                 } else {
-                    segs[i].handleOut.copy(middleMiddlePoint).add(v1).add(dv);
+                    segs[i].handleOut.copy(point).add(v);
                 }
             }
         },
