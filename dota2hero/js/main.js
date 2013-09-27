@@ -203,7 +203,7 @@
             joints[skeleton.joints[i].name] = skeleton.joints[i];
         }
         var frameLen = 0;
-        $.get('doom/animations/run.smd', function(animationData) {
+        $.get('doom/animations/idle.smd', function(animationData) {
             var frames = window.readSMD(animationData, qtek);
             for (var name in frames) {
                 joints[name].poses = frames[name];
