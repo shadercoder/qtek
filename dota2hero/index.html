@@ -2,328 +2,56 @@
 <head>
     <title></title>
     <meta charset="utf-8">
-    <style type="text/css" src="../style/pace.css"></style>
-    <script type="application/javascript" src="../lib/pace.js"></script>
-    <script type="application/javascript" src="../lib/require.js"></script>
-    <script type="application/javascript" src="../lib/jquery.js"></script>
+    <link type="text/css" rel="stylesheet" href="../style/pace.css" />
+    <link type="text/css" rel="stylesheet" href="../lib/semantic/css/semantic.min.css" />
+    <link type="text/css" rel="stylesheet" href="../style/app.css" />
+    <script type="text/javascript" src="../lib/pace.js"></script>
+    <script type="text/javascript" src="../lib/jquery.js"></script>
+    <script type="text/javascript" src="../lib/qtek.js"></script>
+    <script type="text/javascript" src="../lib/knockout.js"></script>
+    <script type="text/javascript" src="../lib/semantic/javascript/semantic.min.js"></script>
 </head>
 <body style="margin:0px">
-    <canvas id="Main"></canvas>
-
-    <script type="text/javascript">
-        // requirejs.config({
-        //     'baseUrl' : '../../src',
-        //     'paths' : {
-        //         '_' : '../thirdparty/lodash.compat',
-        //         'glmatrix' : '../thirdparty/gl-matrix'
-        //     },
-        //     'shim' : {
-        //         '_' : {
-        //             exports : '_'
-        //         }
-        //     }
-        // });
-        requirejs.config({
-            'paths' : {
-                'qtek' : "../lib/qtek.min",
-                '_' : '../lib/lodash.compat',
-                "knockout" : "../lib/knockout",
-                "ko.mapping" : "../lib/ko.mapping"
-            }
-        });
-        
-        function readSMD(content, qtek) {
-            var lines = content.split('\n');
-
-            var frames = [];
-            var joints = [];
-            var rootIndex = -1;
-            var currentFrame = 0;
-
-            var handler = null;
-
-            for (var i = 0; i < lines.length; i++) {
-                var line = lines[i].trim();
-                switch(line) {
-                    case 'nodes':
-                        handler = handleJoint
-                        break;
-                    case 'skeleton':
-                        handler = handleAnimation
-                        break;
-                    case 'end':
-                        hanler = null;
-                        break;
-                    default:
-                        if (handler) {
-                            handler(line)
-                        }
-                }
-            }
-
-            function handleJoint(line) {
-                var items = line.split(/\s+/);
-                if (items.length == 3) {
-                    var idx = parseInt(items[0]);
-                    var name = items[1].replace(/"/g, '');
-                    var parentIdx = parseInt(items[2]);
-                    if (parentIdx == -1) {
-                        rootIndex = idx;
-                    }
-                    joints[idx] = name;
-                }
-            }
-
-            function handleAnimation(line) {
-                var items = line.split(/\s+/);
-                if (items[0] == 'time') {
-                    currentFrame = parseInt(items[1]);
-                } else if(items.length == 7) {
-                    var idx = parseInt(items[0]);
-                    if (! frames[idx]) {
-                        frames[idx] = []
-                    }
-                    var jointFrames = frames[idx];
-                    var frame = {
-                        time : currentFrame,
-                        position : new qtek.core.Vector3(
-                            parseFloat(items[1]),
-                            parseFloat(items[2]),
-                            parseFloat(items[3])
-                        ),
-                        scale : new qtek.core.Vector3(1, 1, 1)
-                    }
-                    var quat = new qtek.core.Quaternion();
-                    // Fuck, why z first ????
-                    quat.rotateZ(parseFloat(items[6]));
-                    quat.rotateY(parseFloat(items[5]));
-                    quat.rotateX(parseFloat(items[4]));
-                    // Z-up to Y-up
-                    // if (idx == rootIndex) {
-                    //     var mat4 = new qtek.core.Matrix4();
-                    //     mat4.fromRotationTranslation(quat, frame.position);
-                    //     mat4.multiplyLeft(new qtek.core.Matrix4().rotateX(-Math.PI/2));
-                    //     mat4.decomposeMatrix(frame.scale, quat, frame.position);
-                    // }
-
-                    frame.rotation = quat;
-                    jointFrames.push(frame);
-                }
-            }
-
-            var ret = {};
-            for (var i = 0; i < joints.length; i++) {
-                ret[joints[i]] = frames[i];
-            }
-
-            return ret;
-        }
-
-        function createDebugAxis(len, qtek) {
-            var qtek3d = qtek['3d'];
-            var shader = new qtek3d.Shader({
-                vertex : qtek3d.Shader.source("buildin.basic.vertex"),
-                fragment : qtek3d.Shader.source("buildin.basic.fragment")
-            });
-
-            function createLine(pos, color) {
-                var mat = new qtek3d.Material({
-                    shader : shader
-                });
-                mat.set("color", color);
-                var lineGeo = new qtek3d.Geometry();
-                var lineGeoVertices = lineGeo.attributes.position.value;
-                lineGeoVertices.push([0, 0, 0], pos);
-
-                return new qtek3d.Mesh({
-                    geometry : lineGeo,
-                    material : mat,
-                    mode : qtek3d.Mesh.LINES,
-                    lineWidth : 1
-                });
-            }
-
-            var node = new qtek3d.Node();
-            node.add(createLine([len, 0, 0], [1, 0, 0]));
-            node.add(createLine([0, len, 0], [0, 1, 0]));
-            node.add(createLine([0, 0, len], [0, 0, 1]));
-
-            return node
-        }
-
-        function createSkeletonDebugScene(skeleton, linkNode, qtek) {
-            var qtek3d = qtek['3d'];
-            var scene = new qtek3d.Scene();
-            var sphereGeo = new qtek3d.geometry.Sphere({
-                radius : 2
-            });
-            var sphereMat = new qtek3d.Material({
-                shader : new qtek3d.Shader({
-                    vertex : qtek3d.Shader.source("buildin.basic.vertex"),
-                    fragment : qtek3d.Shader.source("buildin.basic.fragment")
-                })
-            });
-            sphereMat.set("color", [0.7, 0.7, 0.7]);
-
-            var jointDebugSpheres = [];
-            skeleton.joints.forEach(function(joint) {
-                var parentJoint = skeleton.joints[joint.parentIndex];
-                var sphere = new qtek3d.Mesh({
-                    geometry : sphereGeo,
-                    material : sphereMat,
-                    autoUpdateLocalTransform : false
-                });
-                scene.add(sphere);
-
-                var lineGeo = new qtek3d.Geometry();
-                var lineGeoVertices = lineGeo.attributes.position.value;
-                lineGeoVertices.push([0, 0, 0], [0, 0, 0]);
-                var line = new qtek3d.Mesh({
-                    geometry : lineGeo,
-                    material : sphereMat,
-                    mode : qtek3d.Mesh.LINES,
-                    lineWidth : 2
-                });
-                scene.add(line);
-
-                joint.on("afterupdate", function() {
-                    var parentSphere = jointDebugSpheres[joint.parentIndex];
-                    sphere.localTransform.copy(linkNode.worldTransform).multiply(joint.worldTransform);
-                    if (parentJoint) {
-                        lineGeoVertices[0] = sphere.getWorldPosition()._array;
-                        lineGeoVertices[1] = parentSphere.getWorldPosition()._array;
-                    }
-                    lineGeo.dirty('position');
-                });
-                jointDebugSpheres.push(sphere);
-            });
-
-            return scene;
-        }
-
-        require(['qtek'], function(qtek, animationData) {
-            var qtek3d = qtek['3d'];
-
-            var renderer = new qtek3d.Renderer({
-                canvas : document.getElementById("Main")
-            });
-            renderer.resize(window.innerWidth, window.innerHeight);
-            var shadowMapPass = new qtek3d.prepass.ShadowMap();
-
-            var GLTFLoader = new qtek.loader.GLTF();
-
-            GLTFLoader.load("doom/doom.json");
-
-            GLTFLoader.on("load", function(scene, cameras, skeleton) {
-                var camera = cameras[Object.keys(cameras)[0]];
-                if (!camera) {
-                    camera = new qtek3d.camera.Perspective({
-                        aspect : renderer.canvas.width/renderer.canvas.height,
-                        far : 1000
-                    });
-
-                    camera.position.set(200, 200, 200);
-                    camera.lookAt(new qtek.core.Vector3(0, 200, 0));
-                }
-                camera.aspect = renderer.canvas.width / renderer.canvas.height;
-
-                var control = new qtek3d.plugin.OrbitControl({
-                    camera : camera,
-                    canvas : renderer.canvas,
-                    sensitivity : 0.4
-                });
-                // z up
-                control.enable();
-
-                var light = new qtek3d.light.Directional();
-                light.shadowCamera = {
-                    left : -10,
-                    right : 10,
-                    top : 10, 
-                    bottom : -10,
-                    near : 0,
-                    far : 100
-                };
-                light.shadowResolution = 1024;
-                light.shadowBias = 0.0002;   
-                light.position.set(100, 100, 100);
-                light.lookAt(new qtek.core.Vector3(0, 0, 0), new qtek.core.Vector3(0, 0, 1));
-                scene.add(light);
-                scene.add(new qtek3d.light.Ambient({
-                    intensity : 0.5
-                }));
-
-
-                // Animations
-                var joints = {};
-                for (var i = 0; i < skeleton.joints.length; i++) {
-                    joints[skeleton.joints[i].name] = skeleton.joints[i];
-                }
-
-                var frameLen = 0;
-                $.get('doom/animations/run.smd', function(animationData) {
-                    var frames = readSMD(animationData, qtek);
-                    for (var name in frames) {
-                        joints[name].poses = frames[name];
-                        frameLen = frames[name].length;
-                    }
-                    // skeleton.setPose(0);
-                });
-                var skeletonDebugScene = createSkeletonDebugScene(skeleton, scene.children[0], qtek);
-
-                var axisScene = new qtek3d.Scene();
-                for (var i = 0; i < scene.children.length; i++) {
-                    var node = scene.children[i];
-                    if (node.instanceof(qtek3d.light.Ambient)) {
-                        continue;
-                    }
-                    (function(node) {
-                        var axis = createDebugAxis(50, qtek);
-                        axis.autoUpdateLocalTransform = false;
-                        node.on("afterupdate", function() {
-                            axis.localTransform.copy(node.worldTransform);
-                        });
-                        axisScene.add(axis);
-                    })(node);
-                }
-                skeleton.joints.forEach(function(node) {
-                    var axis = createDebugAxis(10, qtek);
-                    axis.autoUpdateLocalTransform = false;
-                    axisScene.add(axis);
-                    node.on('afterupdate', function() {
-                        axis.localTransform.copy(scene.children[0].worldTransform).multiply(node.worldTransform);
-                    });
-                });
-
-                skeleton.update();
-
-                scene.traverse(function(node) {
-                    if (node.material) {
-                        // node.material.shader.disableTexture("diffuse")
-                        // node.material.shader.define("fragment", "RENDER_WEIGHT");
-                        // node.material.shader.define("fragment", "RENDER_NORMAL");
-                    }
-                });
-
-                scene.rotation.rotateX(-Math.PI/2);
-                scene.update();
-                
-                var time = 0;
-                var clearAll = renderer.clear;
-                setInterval(function() {
-                    // shadowMapPass.render(renderer, scene);
-                    skeleton.setPose(time % frameLen);
-                    time++;
-                    renderer.clear = clearAll;
-                    renderer.render(scene, camera);
-                    renderer.clear = renderer.gl.DEPTH_BUFFER_BIT;
-                    // renderer.render(axisScene, camera);
-                    // renderer.render(skeletonDebugScene, camera);
-
-                }, 1000/30);
-
-            });
-        });
-    </script>
+    <div id="App">
+        <div id="HeroViewer">
+            <canvas id="ViewPort"></canvas>
+        </div>
+        <div class="sidebar left">
+            <div class="ui attached top label green">Actions</div>
+            <div class="ui vertical buttons" id="Actions">
+                <div class="ui button blue active">Idle</div>
+                <div class="ui button blue" data-smd="attack1.smd">Attack1</div>
+                <div class="ui button blue" data-smd="attack2.smd">Attack2</div>
+                <div class="ui button blue" data-smd="attack1_injured.smd">Attack1 injured</div>
+                <div class="ui button blue" data-smd="attack2_injured.smd">Attack2 injured</div>
+                <div class="ui button blue" data-smd="run.smd">Run</div>
+                <div class="ui button blue" data-smd="run_chase.smd">Run chase</div>
+                <div class="ui button blue" data-smd="run_injured.smd">Run injured</div>
+            </div>
+        </div>
+        <div class="sidebar right">
+            <div class="ui attached top label green">Configs</div>
+            <div class="ui vertical buttons red" id="Shadings">
+                <div class="ui button active" data-shading="phong">Phong</div>
+                <div class="ui button" data-shading="wireframe">Wireframe</div>
+                <div class="ui button" data-shading="normal">Normal</div>
+                <div class="ui button" data-shading="weight">Bone Weight</div>
+            </div>
+            <div class="ui divider"></div>
+            <div class="ui toggle checkbox" id="ShowSkeleton">
+                <input type="checkbox">
+                <label></label>
+            </div>
+            <label>Skeleton</label>
+            <div class="ui divider"></div>
+            <div class="ui toggle checkbox" id="ShowAxis">
+                <input type="checkbox">
+                <label></label>
+            </div>
+            <label>Axis</label>
+        </div>
+    </div>
+    <script type="text/javascript" src="js/smd.js"></script>
+    <script type="text/javascript" src="js/main.js"></script>
 </body>
 </html>
