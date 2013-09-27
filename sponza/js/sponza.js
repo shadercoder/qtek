@@ -96,13 +96,13 @@ define(['qtek', 'knockout', 'ko.mapping'], function(qtek, ko, koMapping){
         if( value ){
             scene.traverse(function(node){
                 if(node.geometry){
-                    node.mode = "LINES"
+                    node.mode = qtek3d.Mesh.LINES
                 }
             });
         }else{
             scene.traverse(function(node){
                 if(node.geometry){
-                    node.mode = "TRIANGLES"
+                    node.mode = qtek3d.Mesh.TRIANGLES
                 }
             });
         }

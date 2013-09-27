@@ -1,8 +1,4 @@
 node_modules
-tests/sponza.html
-tests/js/sponza.js
-tests/assets/models/sponza
-qtek.todo
 gh-pages
 .DS_Store
 *.dae
@@ -11,3 +7,4 @@ gh-pages
 *.blend1
 *.blend2
 Thumbs.db
+sponza/assets/textures
