@@ -11,26 +11,26 @@
     <canvas id="Main"></canvas>
 
     <script type="text/javascript">
-        requirejs.config({
-            'baseUrl' : '../../src',
-            'paths' : {
-                '_' : '../thirdparty/lodash.compat',
-                'glmatrix' : '../thirdparty/gl-matrix'
-            },
-            'shim' : {
-                '_' : {
-                    exports : '_'
-                }
-            }
-        });
         // requirejs.config({
+        //     'baseUrl' : '../../src',
         //     'paths' : {
-        //         'qtek' : "../lib/qtek.min",
-        //         '_' : '../lib/lodash.compat',
-        //         "knockout" : "../lib/knockout",
-        //         "ko.mapping" : "../lib/ko.mapping"
+        //         '_' : '../thirdparty/lodash.compat',
+        //         'glmatrix' : '../thirdparty/gl-matrix'
+        //     },
+        //     'shim' : {
+        //         '_' : {
+        //             exports : '_'
+        //         }
         //     }
         // });
+        requirejs.config({
+            'paths' : {
+                'qtek' : "../lib/qtek.min",
+                '_' : '../lib/lodash.compat',
+                "knockout" : "../lib/knockout",
+                "ko.mapping" : "../lib/ko.mapping"
+            }
+        });
         
         function readSMD(content, qtek) {
             var lines = content.split('\n');
