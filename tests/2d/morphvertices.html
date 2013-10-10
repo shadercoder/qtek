@@ -36,11 +36,9 @@
             var pointsNext = generatePoints();
 
             var pathPrev = new qtek2d.shape.Path();
-            pathPrev.pushPoints(pointsPrev);
             var pathNext = new qtek2d.shape.Path();
             pathNext.pushPoints(pointsNext); 
             pathNext.smooth();
-            pathPrev.smooth();
 
             var path = new qtek2d.shape.Path({
                 style : new qtek2d.Style({
@@ -51,38 +49,52 @@
                 stroke : true,
                 closePath : true
             });
-            pointsPrev.forEach(function(point){
-                path.pushPoints([point.clone()]);
-            })
+            path.pushPoints(pointsPrev);
             path.smooth();
             path.position.set(canvas.width / 2, canvas.height / 2);
             layer.add(path);
 
+            var pointsArr = path.segments.map(function(seg) {
+                return seg.point._array;
+            });
+            var pointsArrNext = pathNext.segments.map(function(seg) {
+                return seg.point._array;
+            });
+
             var animation = new qtek.animation.Animation({
                 stage : layer
             });
-            var deferred = animation.animate({
-                target : pathPrev,
-                interpolate : function(prev, next, percent) {
-                    for (var i = 0; i < prev.length; i++) {
-                        path.segments[i].point.lerp(prev[i].point, next[i].point, percent);
-                        path.segments[i].handleIn.lerp(prev[i].handleIn, next[i].handleIn, percent);
-                        path.segments[i].handleOut.lerp(prev[i].handleOut, next[i].handleOut, percent);
-                    }
-                    return prev;
-                },
-            }).when(1000, {
-                segments : pathNext.segments
-            }, 'CubicOut')
-            .done(function(){
-                pathNext.segments.forEach(function(seg, i){
-                    pathPrev.segments[i] = seg;
+            var target = {points : pointsArr};
+            var deferred = animation.animate(target)
+                .during(function() {
+                    path.smooth();
                 })
-                pathNext.segments.length = 0;
-                pathNext.pushPoints(generatePoints());
-                pathNext.smooth();
-                deferred.delay(500).start();
-            }).delay(500).start();
+                .when(1000, {
+                    points : pointsArrNext
+                })
+                .done(function(){
+                    pathNext.segments.forEach(function(seg, i){
+                        path.segments[i] = seg;
+                    });
+                    pathNext.segments.length = 0;
+                    pathNext.pushPoints(generatePoints());
+
+                    target.points = path.segments.map(function(seg) {
+                        return seg.point._array;
+                    });
+                    pointsArrNext = pathNext.segments.map(function(seg) {
+                        return seg.point._array;
+                    });
+
+                    pathNext.smooth();
+
+                    deferred
+                        .when(1000, {
+                            points : pointsArrNext
+                        })
+                        .delay(500).start('CubicOut');
+                })
+                .delay(500).start('CubicOut');
 
             function generatePoints(){
                 var points = [];

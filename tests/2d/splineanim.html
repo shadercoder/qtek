@@ -1,0 +1,70 @@
+<html>
+<head>
+    <title></title>
+    <script type="text/javascript" src="../../thirdparty/require.js"></script>
+</head>
+<body>
+    <canvas id="Main"></canvas>
+    <script type="text/javascript">
+        requirejs.config({
+            'baseUrl' : '../../src',
+            'paths' : {
+                '_' : '../thirdparty/lodash.compat',
+                'glmatrix' : '../thirdparty/gl-matrix'
+            },
+            'shim' : {
+                '_' : {
+                    exports : '_'
+                }
+            }
+        })
+
+        require(['qtek'], function(qtek){
+            var qtek2d = qtek['2d'];
+
+            var canvas = document.getElementById("Main");
+            var layer = new qtek2d.Layer({
+                canvas : canvas,
+                enablePicking : false
+            });
+            layer.resize(window.innerWidth, window.innerHeight);
+
+            var NUMBER = 10;
+            var animation = new qtek.animation.Animation({
+                stage : layer
+            });
+
+            for (var i = 0; i < NUMBER; i++) {
+                var circle = new qtek2d.shape.Circle({
+                    radius : 5,
+                    style : new qtek2d.Style({
+                        fill : "grey"
+                    })
+                });
+                circle.position.set(
+                    Math.random() * layer.canvas.width,
+                    Math.random() * layer.canvas.height
+                );
+                layer.add(circle);
+                var deferred = animation.animate(circle.position, {
+                    loop : true
+                });
+                for (var j = 1; j < 20; j++) {
+                    deferred.when(j * 500, {
+                        _array : [
+                            Math.random() * layer.canvas.width,
+                            Math.random() * layer.canvas.height
+                        ]
+                    });
+                }
+                deferred.start('spline');
+            }
+
+            animation.start();
+            animation.onframe = function() {
+                console.log(layer.children.length)
+            }
+        })
+    </script>
+</body>
+</html>
