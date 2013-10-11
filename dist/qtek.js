@@ -20199,10 +20199,20 @@ define('3d/renderer',['require','core/base','_','glmatrix','util/util','./light'
         },
 
         disposeScene : function(scene) {
+            this.disposeNode(scene);
+            scene.lightNumber = {};
+            scene.lightUniforms = {};
+            scene.material = {};
+            scene._nodeRepository = {};
+            scene.children = [];
+        },
+
+        disposeNode : function(root) {
             var materials = {};
-            scene.traverse(function(node) {
+            var _gl = this.gl;
+            root.traverse(function(node) {
                 if (node.geometry) {
-                    node.geometry.dispose(this.gl);
+                    node.geometry.dispose(_gl);
                 }
                 if (node.material) {
                     materials[node.material.__GUID__] = node.material;
@@ -20210,7 +20220,7 @@ define('3d/renderer',['require','core/base','_','glmatrix','util/util','./light'
             });
             for (var guid in materials) {
                 var mat = materials[guid];
-                mat.shader.dispose(this.gl);
+                mat.shader.dispose(_gl);
                 for (var name in mat.uniforms) {
                     var val = mat.uniforms[name].value;
                     if (!val ) {
@@ -20218,23 +20228,18 @@ define('3d/renderer',['require','core/base','_','glmatrix','util/util','./light'
                     }
                     if (val.instanceof &&
                         val.instanceof(Texture)) {
-                        val.dispose(this.gl);
+                        val.dispose(_gl);
                     }
                     else if (val instanceof Array) {
                         for (var i = 0; i < val.length; i++) {
                             if (val[i] && val[i].instanceof && val[i].instanceof(Texture)) {
-                                val[i].dispose(this.gl);
+                                val[i].dispose(_gl);
                             }
                         }
                     }
                 }
                 mat.dispose();
             }
-            scene.lightNumber = {};
-            scene.lightUniforms = {};
-            scene.material = {};
-            scene._nodeRepository = {};
-            scene.children = [];
         },
 
         _materialSortFunc : function(x, y) {
@@ -21538,8 +21543,20 @@ define('loader/instantgeometry',['require','core/base','util/util','3d/boundingb
 
             return geometry;
         },
-        dispose : function() {
+        dispose : function(_gl) {
+            this.cache.use(_gl.__GUID__);
+            var chunks = this.cache.get('chunks');
+            if (chunks) {
+                for (var c = 0; c < chunks.length; c++) {
+                    var chunk = chunks[c];
 
+                    for (var name in chunk.attributeBuffers) {
+                        var attribs = chunk.attributeBuffers[name];
+                        _gl.deleteBuffer(attribs.buffer);
+                    }
+                }
+            }
+            this.cache.deleteContext(_gl.__GUID__);
         }
     });
 
