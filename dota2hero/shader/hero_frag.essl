@@ -1,6 +1,6 @@
 // http://media.steampowered.com/apps/dota2/workshop/Dota2ShaderMaskGuide.pdf
 // https://developer.valvesoftware.com/wiki/Phong_materials
-// TODO Fresnel / Diffuse Color Warp
+// TODO Fresnel / Diffuse Color Warp, metalness
 uniform mat4 viewInverse : VIEWINVERSE;
 
 varying vec2 v_Texcoord;
@@ -71,7 +71,8 @@ void main(){
     fresnelTerm.r = 0.2 + 0.85 * pow(1.0 - max(0.0, dot(V, normal)), 4.0);
     fresnelTerm.r *= fresnelTerm.r;
     // TODO
-    fresnelTerm.g = pow(1.0 - dot(V, normal), 6.0);
+    fresnelTerm.g = 1.0 - dot(V, normal);
+    fresnelTerm.g *= fresnelTerm.g;
 
     #ifdef DIFFUSEMAP_ENABLED
         vec4 tex = texture2D(diffuseMap, v_Texcoord);
@@ -86,6 +87,8 @@ void main(){
         specularIntensity *= mask2Tex.r;
         // Mask2 g -> rim lightning
         rimLightning = vec3(fresnelTerm.g * u_RimLightScale * mask2Tex.g) * u_RimLightColor;
+        // Masked by a 'sky light' 
+        rimLightning *= clamp(dot(normal, vec3(0.0, 1.0, 0.0)), 0.0, 1.0);
         // Mask2 b -> tint specular by color
         specularColor = mix(u_SpecularColor.rgb, finalColor.rgb, mask2Tex.b);
         // Mask2 a -> specularExponentlar exponent

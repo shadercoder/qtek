@@ -124,7 +124,9 @@
         // z up
         control.enable();
 
-        var light = new qtek3d.light.Directional();
+        var light = new qtek3d.light.Directional({
+            intensity : 0.6
+        });
         light.position.set(10, 10, 10);
         light.lookAt(new qtek.core.Vector3(0, 0, 0), new qtek.core.Vector3(0, 0, 1));
         scene.add(light);
@@ -196,7 +198,7 @@
                             mat.set(name, texture);
                         }
                     });
-                ['u_SpecularExponent', 'u_SpecularIntensity', 'u_SpecularColor', 'u_RimLightScale', 'u_RimLightColor']
+                ['u_SpecularExponent', 'u_SpecularScale', 'u_SpecularColor', 'u_RimLightScale', 'u_RimLightColor']
                     .forEach(function(name) {
                         if (params[name] !== undefined) {
                             mat.set(name, params[name]);
