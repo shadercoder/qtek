@@ -92,11 +92,16 @@
         canvas : document.getElementById("ViewPort")
     });
     renderer.resize($(window).width(), $(window).height());
-    var shadowMapPass = new qtek3d.prepass.ShadowMap();
 
     var GLTFLoader = new qtek.loader.GLTF();
-
-    GLTFLoader.load("doom/doom.json");
+    var matExtend, heroShaderFrag;
+    $.get("ogre_magi/mat_extend.json", function(_matExtend) {
+        $.get("shader/hero_frag.essl", function(_heroFrag) {
+            matExtend = _matExtend;
+            heroShaderFrag = _heroFrag;
+            GLTFLoader.load("ogre_magi/ogre_magi.json");
+        });
+    });
 
     GLTFLoader.on("load", function(scene, cameras, skeleton) {
         var camera = cameras[Object.keys(cameras)[0]];
@@ -120,21 +125,11 @@
         control.enable();
 
         var light = new qtek3d.light.Directional();
-        light.shadowCamera = {
-            left : -10,
-            right : 10,
-            top : 10, 
-            bottom : -10,
-            near : 0,
-            far : 100
-        };
-        light.shadowResolution = 1024;
-        light.shadowBias = 0.0002;   
         light.position.set(10, 10, 10);
         light.lookAt(new qtek.core.Vector3(0, 0, 0), new qtek.core.Vector3(0, 0, 1));
         scene.add(light);
         scene.add(new qtek3d.light.Ambient({
-            intensity : 0.5
+            intensity : 0.4
         }));
 
         var skeletonDebugScene = createSkeletonDebugScene(skeleton, scene.children[0], qtek);
@@ -168,6 +163,47 @@
         scene.rotation.rotateX(-Math.PI/2);
         scene.scale.set(0.1, 0.1, 0.1);
         scene.update();
+
+        scene.traverse(function(node) {
+            if (node.geometry) {
+                node.geometry = node.geometry.convertToGeometry();
+                node.geometry.generateTangents();
+            }
+            if (node.material) {
+                var mat = node.material;
+                var shader = mat.shader;
+                shader.setFragment(heroShaderFrag);
+                // reattach
+                mat.attachShader(shader);
+                shader.enableTexturesAll();
+                // shader.define('fragment', 'RENDER_SPECULAR_COLOR');
+            }
+        });
+
+        for (var name in matExtend) {
+            var params = matExtend[name];
+            var mat = qtek3d.Material.getMaterial(name);
+            var Texture2D = qtek3d.texture.Texture2D;
+            if (mat) {
+                ['diffuseMap', 'normalMap', 'maskMap1', 'maskMap2']
+                    .forEach(function(name) {
+                        if (params[name] !== undefined) {
+                            var texture = new Texture2D({
+                                wrapS : qtek3d.Texture.REPEAT,
+                                wrapT : qtek3d.Texture.REPEAT
+                            });
+                            texture.load(params[name]);
+                            mat.set(name, texture);
+                        }
+                    });
+                ['u_SpecularExponent', 'u_SpecularIntensity', 'u_SpecularColor', 'u_RimLightScale', 'u_RimLightColor']
+                    .forEach(function(name) {
+                        if (params[name] !== undefined) {
+                            mat.set(name, params[name]);
+                        }
+                    });
+            }
+        }
         
         var clearAll = renderer.clear;
 
@@ -175,8 +211,8 @@
         var frame = 0;
         var showSkeleton = false;
         var showAxis = false;
+
         function render() {
-            // shadowMapPass.render(renderer, scene);
             var timeNow = new Date().getTime();
             var deltaTime = timeNow - time;
             time = timeNow;
@@ -203,7 +239,7 @@
             joints[skeleton.joints[i].name] = skeleton.joints[i];
         }
         var frameLen = 0;
-        $.get('doom/animations/idle.smd', function(animationData) {
+        $.get('ogre_magi/smd/idle.smd', function(animationData) {
             var frames = window.readSMD(animationData, qtek);
             for (var name in frames) {
                 joints[name].poses = frames[name];
@@ -211,7 +247,7 @@
             }
         });
         $("#Actions .button").click(function() {
-            var url = "doom/animations/" + this.getAttribute("data-smd");
+            var url = "ogre_magi/smd/" + this.getAttribute("data-smd");
             $.get(url, function(animationData) {
                 var frames = window.readSMD(animationData, qtek);
                 for (var name in frames) {
@@ -230,13 +266,14 @@
                 if (node.material) {
                     node.material.shader.unDefine("fragment", "RENDER_NORMAL");
                     node.material.shader.unDefine("fragment", "RENDER_WEIGHT");
-                    node.mode = qtek3d.Mesh.TRIANGLES;
+                    node.material.set('lineWidth', 0);
                     if (shading == 'normal') {
                         node.material.shader.define("fragment", "RENDER_NORMAL");
                     } else if (shading == 'weight') {
                         node.material.shader.define("fragment", "RENDER_WEIGHT");
                     } else if (shading == 'wireframe') {
-                        node.mode = qtek3d.Mesh.LINES;
+                        node.material.set('lineWidth', 1);
+                        node.material.set('lineColor', [0.5, 0.5, 0.5]);
                     }
                 }
             });
