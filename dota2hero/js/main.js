@@ -111,8 +111,8 @@
                 far : 1000
             });
 
-            camera.position.set(20, 20, 20);
-            camera.lookAt(new qtek.core.Vector3(0, 20, 0));
+            camera.position.set(20, 10, 20);
+            camera.lookAt(new qtek.core.Vector3(0, 10, 0));
         }
         camera.aspect = renderer.canvas.width / renderer.canvas.height;
 
