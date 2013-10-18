@@ -92,18 +92,41 @@
         canvas : document.getElementById("ViewPort")
     });
     renderer.resize($(window).width(), $(window).height());
+    var shadowMapPass = new qtek3d.prepass.ShadowMap();
 
-    var GLTFLoader = new qtek.loader.GLTF();
+    var heroLoader = new qtek.loader.GLTF();
+    var rockLoader = new qtek.loader.GLTF();
+
     var matExtend, heroShaderFrag;
     $.get("ogre_magi/mat_extend.json", function(_matExtend) {
         $.get("shader/hero_frag.essl", function(_heroFrag) {
             matExtend = _matExtend;
             heroShaderFrag = _heroFrag;
-            GLTFLoader.load("ogre_magi/ogre_magi.json");
+            heroLoader.load("ogre_magi/ogre_magi.json");
         });
     });
 
-    GLTFLoader.on("load", function(scene, cameras, skeleton) {
+    var scene = new qtek3d.Scene();
+    rockLoader.load('rock/rock.json');
+    rockLoader.on('load', function(_scene) {
+        var rockRoot = _scene.childAt(0);
+        rockRoot.rotation.rotateX(-Math.PI/2);
+        rockRoot.position.set(-5, -3.2, 0);
+        rockRoot.scale.set(0.15, 0.15, 0.15);
+        // rockRoot.childAt(0).material.shader.define('fragment', 'RENDER_NORMAL')
+        scene.add(rockRoot);
+    });
+
+    heroLoader.on("load", function(_scene, cameras, skeleton) {
+        var heroRoot = new qtek3d.Node();
+        var children = _scene.children();
+        for (var i = 0; i < children.length; i++) {
+            heroRoot.add(children[i]);
+        }
+        scene.add(heroRoot);
+        heroRoot.rotation.rotateX(-Math.PI/2);
+        heroRoot.scale.set(0.1, 0.1, 0.1);
+
         var camera = cameras[Object.keys(cameras)[0]];
         if (!camera) {
             camera = new qtek3d.camera.Perspective({
@@ -111,7 +134,7 @@
                 far : 1000
             });
 
-            camera.position.set(20, 10, 20);
+            camera.position.set(40, 10, 40);
             camera.lookAt(new qtek.core.Vector3(0, 10, 0));
         }
         camera.aspect = renderer.canvas.width / renderer.canvas.height;
@@ -125,16 +148,26 @@
         control.enable();
 
         var light = new qtek3d.light.Directional({
-            intensity : 0.6
+            intensity : 0.6,
+            shadowCamera : {
+                left : -25,
+                right : 25,
+                top : 25,
+                bottom : -25,
+                near : 0,
+                far : 50,
+            },
+            shadowResolution : 1024,
+            shadowBias : 0.01
         });
-        light.position.set(10, 10, 10);
+        light.position.set(10, 20, 5);
         light.lookAt(new qtek.core.Vector3(0, 0, 0), new qtek.core.Vector3(0, 0, 1));
         scene.add(light);
         scene.add(new qtek3d.light.Ambient({
-            intensity : 0.4
+            intensity : 0.2
         }));
 
-        var skeletonDebugScene = createSkeletonDebugScene(skeleton, scene.children[0], qtek);
+        var skeletonDebugScene = createSkeletonDebugScene(skeleton, scene.childAt(0), qtek);
 
         var axisScene = new qtek3d.Scene();
         for (var i = 0; i < scene.children.length; i++) {
@@ -143,7 +176,7 @@
                 continue;
             }
             (function(node) {
-                var axis = createDebugAxis(50, qtek);
+                var axis = createDebugAxis(2, qtek);
                 axis.autoUpdateLocalTransform = false;
                 node.on("afterupdate", function() {
                     axis.localTransform.copy(node.worldTransform);
@@ -151,22 +184,18 @@
                 axisScene.add(axis);
             })(node);
         }
-        skeleton.joints.forEach(function(node) {
-            var axis = createDebugAxis(10, qtek);
-            axis.autoUpdateLocalTransform = false;
-            axisScene.add(axis);
-            node.on('afterupdate', function() {
-                axis.localTransform.copy(scene.children[0].worldTransform).multiply(node.worldTransform);
-            });
-        });
+        // skeleton.joints.forEach(function(node) {
+        //     var axis = createDebugAxis(1, qtek);
+        //     axis.autoUpdateLocalTransform = false;
+        //     axisScene.add(axis);
+        //     node.on('afterupdate', function() {
+        //         axis.localTransform.copy(scene.children[0].worldTransform).multiply(node.worldTransform);
+        //     });
+        // });
 
         skeleton.update();
 
-        scene.rotation.rotateX(-Math.PI/2);
-        scene.scale.set(0.1, 0.1, 0.1);
-        scene.update();
-
-        scene.traverse(function(node) {
+        heroRoot.traverse(function(node) {
             if (node.geometry) {
                 node.geometry = node.geometry.convertToGeometry();
                 node.geometry.generateTangents();
@@ -223,15 +252,16 @@
             skeleton.setPose(frame % frameLen);
 
             renderer.clear = clearAll;
+            shadowMapPass.render(renderer, scene);
             renderer.render(scene, camera);
             renderer.clear = renderer.gl.DEPTH_BUFFER_BIT;
+            shadowMapPass.renderDebug(renderer)
             if (showAxis) {
                 renderer.render(axisScene, camera);
             }
             if (showSkeleton) {
                 renderer.render(skeletonDebugScene, camera);
             }
-            
             requestAnimationFrame(render);
         }
 
