@@ -40,7 +40,7 @@ define(function(require) {
             // visible flag
             visible : true,
 
-            children : [],
+            _children : [],
             // virtual width of the stroke line for intersect
             intersectLineWidth : 0,
 
@@ -86,16 +86,26 @@ define(function(require) {
         },
         add : function(elem) {
             if (elem) {
-                this.children.push(elem);
+                this._children.push(elem);
+                if (elem.parent) {
+                    elem.parent.remove(elem);
+                }
                 elem.parent = this;
             }
         },
         remove : function(elem) {
             if (elem) {
-                this.children.splice(this.children.indexOf(elem), 1);
+                this._children.splice(this._children.indexOf(elem), 1);
+                elem.parent = null;
             }
         },
-
+        children : function() {
+            // get a copy of children
+            return this._children.slice();
+        },
+        childAt : function(idx) {
+            return this._children[idx];
+        },
         draw : null,
 
         render : function(context) {
@@ -138,7 +148,7 @@ define(function(require) {
         traverse : function(callback) {
             var stopTraverse = callback && callback(this);
             if (! stopTraverse) {
-                var children = this.children;
+                var children = this._children;
                 for (var i = 0, len = children.length; i < len; i++) {
                     children[i].traverse(callback);
                 }
