@@ -9,8 +9,8 @@
  */
 define(function(require) {
 
-    var Node = require('../node');
-    var Vector2 = require("core/vector2");
+    var Node = require('../Node');
+    var Vector2 = require("core/Vector2");
     var Text = require('./text');
     var _ = require('_');
 

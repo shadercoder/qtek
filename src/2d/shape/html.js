@@ -4,7 +4,7 @@
  */
 define(function(require){
 
-    var Node = require("../node");
+    var Node = require("../Node");
 
     var tpl = '<svg xmlns="http://www.w3.org/2000/svg" width="200" height="200">\
                     <foreignObject>\

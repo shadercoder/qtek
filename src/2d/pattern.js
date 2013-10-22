@@ -5,8 +5,8 @@
  */
 define(function(require) {
 
-    var Base = require('core/base');
-    var Vector2 = require("core/vector2");
+    var Base = require('core/Base');
+    var Vector2 = require("core/Vector2");
 
     var Pattern = Base.derive(function(){
         return {
