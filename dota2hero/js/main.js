@@ -103,17 +103,31 @@
             matExtend = _matExtend;
             heroShaderFrag = _heroFrag;
             heroLoader.load("ogre_magi/ogre_magi.json");
+            rockLoader.load('rock/rock.json');
         });
     });
 
     var scene = new qtek3d.Scene();
-    rockLoader.load('rock/rock.json');
     rockLoader.on('load', function(_scene) {
         var rockRoot = _scene.childAt(0);
         rockRoot.rotation.rotateX(-Math.PI/2);
         rockRoot.position.set(-5, -3.2, 0);
         rockRoot.scale.set(0.15, 0.15, 0.15);
-        // rockRoot.childAt(0).material.shader.define('fragment', 'RENDER_NORMAL')
+        var mat = rockRoot.childAt(0).material;
+        var shader = mat.shader;
+        shader.setFragment(heroShaderFrag);
+        // reattach
+        mat.attachShader(shader);
+        shader.enableTexture('maskMap2');
+        shader.enableTexture('diffuseMap');
+        shader.define('vertex', 'IS_SPECULAR_MAP');
+        var specularTexture = new qtek3d.texture.Texture2D();
+        var diffuseTexture = new qtek3d.texture.Texture2D();
+        specularTexture.load('rock/textures/badside_rocks001_spec.png');
+        diffuseTexture.load('rock/textures/badside_rocks001.png');
+        mat.set('maskMap2', specularTexture);
+        mat.set('diffuseMap', diffuseTexture);
+
         scene.add(rockRoot);
     });
 

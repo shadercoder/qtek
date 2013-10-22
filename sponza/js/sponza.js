@@ -24,12 +24,12 @@ define(['qtek', 'knockout', 'ko.mapping'], function(qtek, ko, koMapping){
         color : [0.0, 0.0, 0.0, 0.0]
     });
     renderer.resize(window.innerWidth, window.innerHeight);
+    var animation = new qtek.animation.Animation();
+    animation.start();
 
     var scene;
     var camera;
-    var shadowMapPass = new qtek3d.prepass.ShadowMap({
-        useVSM : true
-    });
+    var shadowMapPass = new qtek3d.prepass.ShadowMap();
 
     if( textureResolution === "high"){
         var texturePath = "assets/textures"
@@ -55,19 +55,41 @@ define(['qtek', 'knockout', 'ko.mapping'], function(qtek, ko, koMapping){
         });
         firstPersonControl.enable();
 
-        // var light = scene.getNode("Lamp").children[0];
-        // light.castShadow = true;
-        var light = new qtek3d.light.Point();
-        light.range = 60;
-        light.position.y = 20;
+        var light = new qtek3d.light.Directional({
+            intensity : 0.6,
+            shadowCamera : {
+                left : -50,
+                right : 50,
+                top : 50,
+                bottom : -50,
+                near : 0,
+                far : 200
+            },
+            shadowResolution : 1024,
+            // shadowBias : 0.01
+        });
+        light.position.set(0, 50, 7)
+        light.lookAt(new qtek.core.Vector3(0, 0, 0));
         scene.add(light);
+        scene.add(new qtek3d.light.Ambient({
+            intensity : 0.3
+        }));
 
-        // shadowMapPass.render( renderer, scene );
-        setInterval(function(){
-            renderer.render( scene, camera );
+        scene.traverse(function(node) {
+            if (node.geometry) {
+                node.geometry = node.geometry.convertToGeometry();
+                node.geometry.generateTangents();
+            }
+        })
+
+        animation.onframe = function() {
+            shadowMapPass.render(renderer, scene);
+            renderer.render(scene, camera);
+            renderer.clear = renderer.gl.DEPTH_BUFFER_BIT;
+            shadowMapPass.renderDebug(renderer);
             // Update debug render info
             koMapping.fromJS(renderInfo, mapping, debugInfoVM);
-        }, 50);
+        };
     });
 
 
