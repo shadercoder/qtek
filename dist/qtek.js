@@ -13798,7 +13798,6 @@ define('3d/node',['require','core/base','core/vector3','./boundingbox','core/qua
         var id = util.genGUID();
 
         return {
-            
             __GUID__ : id,
 
             name : 'NODE_' + id,
@@ -13816,9 +13815,8 @@ define('3d/node',['require','core/base','core/vector3','./boundingbox','core/qua
             eulerAngle : new Vector3(),
             useEuler : false,
 
-            _children : [],
-
             parent : null,
+            scene : null,
 
             worldTransform : new Matrix4(),
 
@@ -13826,14 +13824,17 @@ define('3d/node',['require','core/base','core/vector3','./boundingbox','core/qua
 
             autoUpdateLocalTransform : true,
 
-            boundingBox : new BoundingBox()
+            boundingBox : new BoundingBox(),
+
+            _children : [],
         }
     }, function() {
-        // Prevent multiple nodes use the same vector and 
+        // In case multiple nodes use the same vector and 
         // have problem in dirty checking
         var position = this.position;
         var rotation = this.rotation;
         var scale = this.scale;
+        var name = this.name;
         Object.defineProperty(this, 'position', {
             set : function(v) {
                 position.copy(v);
@@ -13858,6 +13859,18 @@ define('3d/node',['require','core/base','core/vector3','./boundingbox','core/qua
                 return scale;
             }
         });
+        Object.defineProperty(this, 'name', {
+            set : function(newName) {
+                if (this.scene) {
+                    this.scene._nodeRepository[name] = null;
+                    this.scene._nodeRepository[newName] = this;
+                }
+                name = newName;
+            },
+            get : function() {
+                return name;
+            }
+        })
     }, {
 
         add : function(node) {
@@ -13870,12 +13883,13 @@ define('3d/node',['require','core/base','core/vector3','./boundingbox','core/qua
             node.parent = this;
             this._children.push(node);
 
-            var scene = this.getScene();
+            var scene = this.scene;
 
             if (scene) {
                 node.traverse(function(n) {
                     scene.addToScene(n);
-                });   
+                    n.scene = scene;
+                });
             }
         },
 
@@ -13883,11 +13897,12 @@ define('3d/node',['require','core/base','core/vector3','./boundingbox','core/qua
             this._children.splice(this._children.indexOf(node), 1);
             node.parent = null;
 
-            var scene = this.getScene();
+            var scene = this.scene;
 
             if (scene) {
                 node.traverse(function(n) {
                     scene.removeFromScene(n);
+                    n.scene = null;
                 });
             }
         },
@@ -13901,12 +13916,13 @@ define('3d/node',['require','core/base','core/vector3','./boundingbox','core/qua
             return this._children[idx];
         },
 
-        getScene : function() {
+        findScene : function() {
             var root = this;
             while(root.parent) {
                 root = root.parent;
             }
             if (root.addToScene) {
+                this._scene = root;
                 return root;
             }
         },
@@ -14274,6 +14290,8 @@ define('3d/scene',['require','./node'],function(require){
     var Scene = Node.derive(function(){
         return {
 
+            scene : null,
+
             // Global material of scene
             material : null,
 
@@ -14287,8 +14305,12 @@ define('3d/scene',['require','./node'],function(require){
             filter : null,
 
             _nodeRepository : {}
+
         }
-    },{
+    }, function() {
+        this.scene = this;
+    }, {
+
         addToScene : function(node) {
             if (node.name) {
                 this._nodeRepository[node.name] = node;
@@ -15732,7 +15754,7 @@ define('3d/shader',['require','core/base','glmatrix','util/util','_'],function(r
     }, function() {
 
         this._updateShaderString();
-
+        
     }, {
 
         setVertex : function(str) {
@@ -16912,11 +16934,12 @@ define('3d/texture/texturecube',['require','../texture','../webglinfo','_'],func
 
     return TextureCube;
 });
-define('3d/material',['require','core/base','./shader','util/util','./texture','./texture/texture2d','./texture/texturecube','_'],function(require) {
+define('3d/material',['require','core/base','./shader','util/util','./glenum','./texture','./texture/texture2d','./texture/texturecube','_'],function(require) {
 
     var Base = require("core/base");
     var Shader = require("./shader");
     var util = require("util/util");
+    var glenum = require("./glenum");
     var Texture = require('./texture');
     var Texture2D = require('./texture/texture2d');
     var TextureCube = require('./texture/texturecube');
@@ -16944,9 +16967,6 @@ define('3d/material',['require','core/base','./shader','util/util','./texture','
 
             depthTest : true,
             depthMask : true,
-
-            //TODO
-            cullFace : false,
 
             transparent : false,
             // Blend func is a callback function when the material 
@@ -17107,6 +17127,11 @@ define('3d/mesh',['require','./node','./glenum','core/vector3','_'],function(req
             mode : glenum.TRIANGLES,
             // Only if mode is LINES
             lineWidth : 1,
+
+            // Culling
+            culling : true,
+            cullFace : glenum.BACK,
+            frontFace : glenum.CCW,
             
             receiveShadow : true,
             castShadow : true,
@@ -17121,12 +17146,10 @@ define('3d/mesh',['require','./node','./glenum','core/vector3','_'],function(req
         }
     }, {
 
-        render : function(renderer, globalMaterial) {
-
-            var _gl = renderer.gl;
+        render : function(_gl, globalMaterial) {
 
             this.trigger('beforerender', this, _gl);
-            
+
             var material = globalMaterial || this.material;
             var shader = material.shader;
             var geometry = this.geometry;
@@ -17213,7 +17236,13 @@ define('3d/mesh',['require','./node','./glenum','core/vector3','_'],function(req
     Mesh.LINE_STRIP = glenum.LINE_STRIP;
     Mesh.TRIANGLES = glenum.TRIANGLES;
     Mesh.TRIANGLE_STRIP = glenum.TRIANGLE_STRIP;
-    Mesh.TRIANGLE_FAN = glenum.TRIANGLE_FAN
+    Mesh.TRIANGLE_FAN = glenum.TRIANGLE_FAN;
+
+    Mesh.BACK = glenum.BACK;
+    Mesh.FRONT = glenum.FRONT;
+    Mesh.FRONT_AND_BACK = glenum.FRONT_AND_BACK;
+    Mesh.CW = glenum.CW;
+    Mesh.CCW = glenum.CCW;
 
     return Mesh;
 });
@@ -19538,12 +19567,14 @@ define('3d/prepass/shadowmap',['require','core/base','core/vector3','../shader',
             },
 
             _materialPreserve : {},
+            _depthMaterials : {},
+            _distanceMaterials : {},
 
             useVSM : false
         }
     }, function() {
 
-        this._depthMaterial =  new Material({
+        this._defaultDepthMaterial =  new Material({
             shader : new Shader({
                 vertex : Shader.source("buildin.sm.depth.vertex"),
                 fragment : Shader.source("buildin.sm.depth.fragment")
@@ -19551,7 +19582,7 @@ define('3d/prepass/shadowmap',['require','core/base','core/vector3','../shader',
         });
         // Point light write the distance instance of depth projected
         // http://http.developer.nvidia.com/GPUGems/gpugems_ch12.html
-        this._distanceMaterial = new Material({
+        this._defaultDistanceMaterial = new Material({
             shader : new Shader({
                 vertex : Shader.source("buildin.sm.distance.vertex"),
                 fragment : Shader.source("buildin.sm.distance.fragment")
@@ -19594,63 +19625,69 @@ define('3d/prepass/shadowmap',['require','core/base','core/vector3','../shader',
         _bindDepthMaterial : function(renderQueue) {
             for (var i = 0; i < renderQueue.length; i++) {
                 var mesh = renderQueue[i];
-                if (mesh.material !== mesh._depthMaterial) {
-                    if (!mesh._depthMaterial) {
+                var depthMaterial = this._depthMaterials[mesh.__GUID__];
+                if (mesh.material !== depthMaterial) {
+                    if (!depthMaterial) {
                         // Skinned mesh
                         if (mesh.skeleton) {
-                            mesh._depthMaterial = new Material({
+                            depthMaterial = new Material({
                                 shader : new Shader({
                                     vertex : Shader.source("buildin.sm.depth.vertex"),
                                     fragment : Shader.source("buildin.sm.depth.fragment")
                                 })
                             });
-                            mesh._depthMaterial.shader.define('vertex', 'SKINNING');
-                            mesh._depthMaterial.shader.define('vertex', 'JOINT_NUMBER', mesh.joints.length);
+                            depthMaterial.shader.define('vertex', 'SKINNING');
+                            depthMaterial.shader.define('vertex', 'JOINT_NUMBER', mesh.joints.length);
                         } else {
-                            mesh._depthMaterial = this._depthMaterial;
+                            depthMaterial = this._defaultDepthMaterial;
                         }
+                        this._depthMaterials[mesh.__GUID__] = depthMaterial;
                     }
 
                     this._materialPreserve[mesh.__GUID__] = mesh.material;
-                    mesh.material = mesh._depthMaterial;
+                    mesh.material = depthMaterial;
 
                     if (this.useVSM) {
-                        mesh._depthMaterial.shader.define("fragment", "USE_VSM");
+                        depthMaterial.shader.define("fragment", "USE_VSM");
                     } else {
-                        mesh._depthMaterial.shader.unDefine("fragment", "USE_VSM");
+                        depthMaterial.shader.unDefine("fragment", "USE_VSM");
                     }
                 }
             }
         },
 
-        _bindDistanceMaterial : function(renderQueue) {
+        _bindDistanceMaterial : function(renderQueue, light) {
             for (var i = 0; i < renderQueue.length; i++) {
                 var mesh = renderQueue[i];
-                if (mesh.material !== mesh._distanceMaterial) {
-                    if (!mesh._distanceMaterial) {
+                var distanceMaterial = this._distanceMaterials[mesh.__GUID__];
+                if (mesh.material !== distanceMaterial) {
+                    if (!distanceMaterial) {
                         // Skinned mesh
                         if (mesh.skeleton) {
-                            mesh._distanceMaterial = new Material({
+                            distanceMaterial = new Material({
                                 shader : new Shader({
                                     vertex : Shader.source("buildin.sm.distance.vertex"),
                                     fragment : Shader.source("buildin.sm.distance.fragment")
                                 })
                             });
-                            mesh._distanceMaterial.shader.define('vertex', 'SKINNING');
-                            mesh._distanceMaterial.shader.define('vertex', 'JOINT_NUMBER', mesh.skeleton.getBoneNumber());
+                            distanceMaterial.shader.define('vertex', 'SKINNING');
+                            distanceMaterial.shader.define('vertex', 'JOINT_NUMBER', mesh.skeleton.getBoneNumber());
                         } else {
-                            mesh._distanceMaterial = this._distanceMaterial;
+                            distanceMaterial = this._defaultDistanceMaterial;
                         }
+                        this._distanceMaterials[mesh.__GUID__] = distanceMaterial;
                     }
 
                     this._materialPreserve[mesh.__GUID__] = mesh.material;
-                    mesh.material = mesh._distanceMaterial;
+                    mesh.material = distanceMaterial;
 
                     if (this.useVSM) {
-                        mesh._distanceMaterial.shader.define("fragment", "USE_VSM");
+                        distanceMaterial.shader.define("fragment", "USE_VSM");
                     } else {
-                        mesh._distanceMaterial.shader.unDefine("fragment", "USE_VSM");
+                        distanceMaterial.shader.unDefine("fragment", "USE_VSM");
                     }
+                    distanceMaterial.set("lightPosition", light.position._array);
+                    distanceMaterial.set("range", light.range * 5);
                 }
             }
         },
@@ -19775,7 +19812,7 @@ define('3d/prepass/shadowmap',['require','core/base','core/vector3','../shader',
                     pointLightShadowMaps.push(texture);
                     pointLightRanges.push(light.range * 5);
 
-                    this._bindDistanceMaterial(renderQueue);
+                    this._bindDistanceMaterial(renderQueue, light);
                     for (var i = 0; i < 6; i++) {
                         var target = targets[i];
                         var camera = this._getCamera(light.__GUID__, light, target);
@@ -19786,8 +19823,6 @@ define('3d/prepass/shadowmap',['require','core/base','core/vector3','../shader',
                         _gl.clear(_gl.COLOR_BUFFER_BIT | _gl.DEPTH_BUFFER_BIT);
 
                         renderer._scene = scene;
-                        this._distanceMaterial.set("lightPosition", light.position._array);
-                        this._distanceMaterial.set("range", light.range * 5);
 
                         renderer.renderQueue(renderQueue, camera, null, true);
 
@@ -19961,6 +19996,35 @@ define('3d/prepass/shadowmap',['require','core/base','core/vector3','../shader',
             camera.updateProjectionMatrix();
 
             return camera;
+        },
+
+        dispose : function(renderer) {
+            var _gl = renderer;
+    
+            for (var guid in this._depthMaterials) {
+                var mat = this._depthMaterials[guid];
+                mat.dispose();
+            }
+            for (var guid in this._distanceMaterials) {
+                var mat = this._distanceMaterials[guid];
+                mat.dispose();
+            }
+
+            for (var name in this._textures) {
+                this._textures[name].dispose(_gl);
+            }
+
+            this._depthMaterials = {};
+            this._distanceMaterials = {};
+            this._textures = {};
+            this._cameras = {};
+            this._shadowMapNumber = {
+                'POINT_LIGHT' : 0,
+                'DIRECTIONAL_LIGHT' : 0,
+                'SPOT_LIGHT' : 0
+            };
+            this._materialPreserve = {};
+
         }
     });
     
@@ -20158,11 +20222,6 @@ define('3d/renderer',['require','core/base','_','glmatrix','util/util','./light'
                 this.trigger("beforerender:opaque", this, opaqueQueue);
             }
 
-            // Cull Face
-            // _gl.frontFace(_gl.CCW);
-            // _gl.cullFace(_gl.BACK);
-            // _gl.enable(_gl.CULL_FACE);
-
             _gl.disable(_gl.BLEND);
             this.renderQueue(opaqueQueue, camera, sceneMaterial, silent);
 
@@ -20237,19 +20296,21 @@ define('3d/renderer',['require','core/base','_','glmatrix','util/util','./light'
             mat4.invert(matrices['PROJECTIONINVERSE'], matrices['PROJECTION']);
             mat4.invert(matrices['VIEWPROJECTIONINVERSE'], matrices['VIEWPROJECTION']);
 
-            var prevMaterialID;
-            var prevShaderID;
             var _gl = this.gl;
             var scene = this._scene;
             
-            var depthTest;
-            var depthMask;
+            var prevMaterialID;
+            var prevShaderID;
+            
+            // Status 
+            var depthTest, depthMask;
+            var culling, cullFace, frontFace;
 
             for (var i =0; i < queue.length; i++) {
-                var object = queue[i];
-                var material = globalMaterial || object.material;
+                var mesh = queue[i];
+                var material = globalMaterial || mesh.material;
                 var shader = material.shader;
-                var geometry = object.geometry;
+                var geometry = mesh.geometry;
                 var customBlend = material.transparent && material.blend;
 
                 if (prevShaderID !== shader.__GUID__) {
@@ -20296,33 +20357,33 @@ define('3d/renderer',['require','core/base','_','glmatrix','util/util','./light'
                     customBlend(_gl);
                 }
 
-                var worldM = object.worldTransform._array;
+                var worldM = mesh.worldTransform._array;
 
                 // All matrices ralated to world matrix will be updated on demand;
-                if (shader.semantics.hasOwnProperty('WORLD') ||
-                    shader.semantics.hasOwnProperty('WORLDTRANSPOSE')) {
+                if (shader.semantics['WORLD'] ||
+                    shader.semantics['WORLDTRANSPOSE']) {
                     mat4.copy(matrices['WORLD'], worldM);
                 }
-                if (shader.semantics.hasOwnProperty('WORLDVIEW') ||
-                    shader.semantics.hasOwnProperty('WORLDVIEWINVERSE') ||
-                    shader.semantics.hasOwnProperty('WORLDVIEWINVERSETRANSPOSE')) {
+                if (shader.semantics['WORLDVIEW'] ||
+                    shader.semantics['WORLDVIEWINVERSE'] ||
+                    shader.semantics['WORLDVIEWINVERSETRANSPOSE']) {
                     mat4.multiply(matrices['WORLDVIEW'], matrices['VIEW'] , worldM);
                 }
-                if (shader.semantics.hasOwnProperty('WORLDVIEWPROJECTION') ||
-                    shader.semantics.hasOwnProperty('WORLDVIEWPROJECTIONINVERSE') ||
-                    shader.semantics.hasOwnProperty('WORLDVIEWPROJECTIONINVERSETRANSPOSE')) {
+                if (shader.semantics['WORLDVIEWPROJECTION'] ||
+                    shader.semantics['WORLDVIEWPROJECTIONINVERSE'] ||
+                    shader.semantics['WORLDVIEWPROJECTIONINVERSETRANSPOSE']) {
                     mat4.multiply(matrices['WORLDVIEWPROJECTION'], matrices['VIEWPROJECTION'] , worldM);
                 }
-                if (shader.semantics.hasOwnProperty('WORLDINVERSE') ||
-                    shader.semantics.hasOwnProperty('WORLDINVERSETRANSPOSE')) {
+                if (shader.semantics['WORLDINVERSE'] ||
+                    shader.semantics['WORLDINVERSETRANSPOSE']) {
                     mat4.invert(matrices['WORLDINVERSE'], worldM);
                 }
-                if (shader.semantics.hasOwnProperty('WORLDVIEWINVERSE') ||
-                    shader.semantics.hasOwnProperty('WORLDVIEWINVERSETRANSPOSE')) {
+                if (shader.semantics['WORLDVIEWINVERSE'] ||
+                    shader.semantics['WORLDVIEWINVERSETRANSPOSE']) {
                     mat4.invert(matrices['WORLDVIEWINVERSE'], matrices['WORLDVIEW']);
                 }
-                if (shader.semantics.hasOwnProperty('WORLDVIEWPROJECTIONINVERSE') ||
-                    shader.semantics.hasOwnProperty('WORLDVIEWPROJECTIONINVERSETRANSPOSE')) {
+                if (shader.semantics['WORLDVIEWPROJECTIONINVERSE'] ||
+                    shader.semantics['WORLDVIEWPROJECTIONINVERSETRANSPOSE']) {
                     mat4.invert(matrices['WORLDVIEWPROJECTIONINVERSE'], matrices['WORLDVIEWPROJECTION']);
                 }
 
@@ -20346,11 +20407,23 @@ define('3d/renderer',['require','core/base','_','glmatrix','util/util','./light'
                 }
 
                 if (! silent) {
-                    this.trigger("beforerender:mesh", this, object);
+                    this.trigger("beforerender:mesh", this, mesh);
                 }
-                var drawInfo = object.render(this, globalMaterial);
+                if (mesh.cullFace !== cullFace) {
+                    cullFace = mesh.cullFace;
+                    _gl.cullFace(cullFace);
+                }
+                if (mesh.frontFace !== frontFace) {
+                    frontFace = mesh.frontFace;
+                    _gl.frontFace(frontFace);
+                }
+                if (mesh.culling !== culling) {
+                    culling = mesh.culling;
+                    culling ? _gl.enable(_gl.CULL_FACE) : _gl.disable(_gl.CULL_FACE)
+                }
+                var drawInfo = mesh.render(_gl, globalMaterial);
                 if (! silent) {
-                    this.trigger("afterrender:mesh", this, object, drawInfo);
+                    this.trigger("afterrender:mesh", this, mesh, drawInfo);
                 }
                 // Restore the default blend function
                 if (customBlend) {
@@ -20377,6 +20450,13 @@ define('3d/renderer',['require','core/base','_','glmatrix','util/util','./light'
                 }
                 if (node.material) {
                     materials[node.material.__GUID__] = node.material;
+                }
+                // Dispose the resource in shadow mapping
+                if (node._depthMaterial) {
+                    materials[node._depthMaterial.__GUID__] = node._depthMaterial;
+                }
+                if (node._distanceMaterial) {
+                    materials[node._distanceMaterial.__GUID__] = node._distanceMaterial;
                 }
             });
             for (var guid in materials) {
@@ -22135,7 +22215,7 @@ define('loader/instantgeometry',['require','core/base','util/util','3d/boundingb
                         }
                     }
                 }
-                offset += chunk.attributes.position / 3;
+                offset += chunk.attributes.position.length / 3;
             }
 
             return geometry;
@@ -22507,9 +22587,10 @@ define('loader/gltf',['require','core/base','core/request','3d/scene','3d/shader
             for (var name in json.meshes) {
                 var meshInfo = json.meshes[name];
 
+                lib.meshes[name] = [];
                 // Geometry
-                var geometry = new InstantGeometry();
                 for (var i = 0; i < meshInfo.primitives.length; i++) {
+                    var geometry = new InstantGeometry();
                     var chunk = {
                         attributes : {},
                         indices : null
@@ -22566,29 +22647,28 @@ define('loader/gltf',['require','core/base','core/request','3d/scene','3d/shader
                         };
                     }
                     geometry.addChunk(chunk);
-                }
 
-                // Material
-                // All primitives have the same material and skin
-                // TODO;
-                var material = lib.materials[meshInfo.primitives[0].material];
-                var mesh = new Mesh({
-                    geometry : geometry,
-                    material : material
-                });
-                if (meshInfo.name) {
-                    mesh.name = meshInfo.name;
-                }
-                var skinName = meshInfo.primitives[0].skin
-                if (skinName) {
-                    mesh.joints = lib.skins[skinName].joints;
-                    mesh.skeleton = lib.skeleton;
-                    material.shader = material.shader.clone();
-                    material.shader.define('vertex', 'SKINNING');
-                    material.shader.define('vertex', 'JOINT_NUMBER', mesh.joints.length);
-                }
+                    var material = lib.materials[primitiveInfo.material];
+                    var mesh = new Mesh({
+                        geometry : geometry,
+                        material : material
+                    });
 
-                lib.meshes[name] = mesh;
+                    var skinName = primitiveInfo.skin;
+                    if (skinName) {
+                        mesh.joints = lib.skins[skinName].joints;
+                        mesh.skeleton = lib.skeleton;
+                        material.shader = material.shader.clone();
+                        material.shader.define('vertex', 'SKINNING');
+                        material.shader.define('vertex', 'JOINT_NUMBER', mesh.joints.length);
+                    }
+
+                    if (meshInfo.name) {
+                        mesh.name = [meshInfo.name, i].join('-');
+                    }
+
+                    lib.meshes[name].push(mesh);
+                }
             }
         },
 
@@ -22633,9 +22713,9 @@ define('loader/gltf',['require','core/base','core/request','3d/scene','3d/shader
                 }
                 if (nodeInfo.meshes) {
                     for (var i = 0; i < nodeInfo.meshes.length; i++) {
-                        var mesh = lib.meshes[nodeInfo.meshes[i]];
-                        if (mesh) {
-                            node.add(mesh);
+                        var primitives = lib.meshes[nodeInfo.meshes[i]];
+                        for (var j = 0; j < primitives.length; j++) {                            
+                            node.add(primitives[j]);
                         }
                     }
                 }
