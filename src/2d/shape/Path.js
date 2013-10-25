@@ -5,7 +5,7 @@
 define(function(require) {
 
     var Node = require('../Node');
-    var util = require('../Util');
+    var util = require('../util');
     var Vector2 = require("core/Vector2");
 
     var minTmp = new Vector2();

@@ -11,7 +11,7 @@ define(function(require) {
 
     var Node = require('../Node');
     var Vector2 = require("core/Vector2");
-    var Text = require('./text');
+    var Text = require('./Text');
     var _ = require('_');
 
     var TextBox = Node.derive(function() {

@@ -4,7 +4,7 @@
  */
 define(function(require) {
     
-    var Vector2 = require("core/vector2");
+    var Vector2 = require("core/Vector2");
     var glMatrix = require("glmatrix");
     var vec2 = glMatrix.vec2;
 
