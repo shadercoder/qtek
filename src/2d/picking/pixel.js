@@ -1,6 +1,6 @@
 define(function(require) {
 
-    var Base = require('core/base');
+    var Base = require('core/Base');
 
     var PixelPicking = Base.derive(function() {
 

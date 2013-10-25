@@ -4,10 +4,10 @@
  */
 define(function(require) {
     
-    var Base = require("core/base");
-    var Vector2 = require("core/vector2");
-    var Matrix2d = require("core/matrix2d");
-    var Style = require("./style");
+    var Base = require("core/Base");
+    var Vector2 = require("core/Vector2");
+    var Matrix2d = require("core/Matrix2d");
+    var Style = require("./Style");
     var util = require("util/util");
 
     var Node = Base.derive(function() {
@@ -177,7 +177,7 @@ define(function(require) {
         },
 
         getSortedRenderQueue : function() {
-            var renderQueue = this.children.slice();
+            var renderQueue = this._children.slice();
             renderQueue.sort(function(x, y) {
                 if (x.z === y.z)
                     return x.__GUID__ > y.__GUID__ ? 1 : -1;

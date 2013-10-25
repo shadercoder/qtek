@@ -1,7 +1,7 @@
 define(function(require) {
 
-    var Node = require('./node');
-    var PixelPicking = require('./picking/pixel');
+    var Node = require('./Node');
+    var PixelPicking = require('./picking/Pixel');
 
     var Layer = Node.derive(function() {
         return {

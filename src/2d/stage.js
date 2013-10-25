@@ -1,8 +1,8 @@
 define(function(require) {
 
-    var Base = require('core/base');
-    var Layer = require('./layer');
-    var QEvent = require('core/event');
+    var Base = require('core/Base');
+    var Layer = require('./Layer');
+    var QEvent = require('core/Event');
 
     var Stage = Base.derive(function() {
         return {

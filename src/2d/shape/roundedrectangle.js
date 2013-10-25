@@ -3,9 +3,9 @@
  */
 define(function(require) {
 
-    var Node = require('../node');
+    var Node = require('../Node');
     var util = require('../util');
-    var Vector2 = require("core/vector2");
+    var Vector2 = require("core/Vector2");
 
     var RoundedRectange = Node.derive(function() {
         return {
