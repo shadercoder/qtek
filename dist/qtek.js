@@ -19259,8 +19259,8 @@ define('3d/plugin/FirstPersonControl',['require','core/Base','core/Vector3','cor
 
     var FirstPersonControl = Base.derive(function() {
         return {
-            camera : null,
-            canvas : null,
+            target : null,
+            domElement : null,
 
             sensitivity : 1,
             speed : 0.4,
@@ -19277,12 +19277,12 @@ define('3d/plugin/FirstPersonControl',['require','core/Base','core/Vector3','cor
         }
     }, {
         enable : function() {
-            this.camera.on("beforeupdate", this._beforeUpdateCamera, this);
+            this.target.on("beforeupdate", this._beforeUpdateCamera, this);
 
-            this.camera.eulerOrder = ["Y", "X", "Z"];
+            this.target.eulerOrder = ["Y", "X", "Z"];
             // Use pointer lock
             // http://www.html5rocks.com/en/tutorials/pointerlock/intro/
-            var el = this.canvas;
+            var el = this.domElement;
 
             //Must request pointer lock after click event, can't not do it directly
             //Why ? ?
@@ -19298,9 +19298,9 @@ define('3d/plugin/FirstPersonControl',['require','core/Base','core/Vector3','cor
 
         disable : function() {
 
-            this.camera.off('beforeupdate', this._beforeUpdateCamera);
+            this.target.off('beforeupdate', this._beforeUpdateCamera);
 
-            var el = this.canvas;
+            var el = this.domElement;
 
             el.exitPointerLock = el.exitPointerLock ||
                                     el.mozExitPointerLock ||
@@ -19330,11 +19330,11 @@ define('3d/plugin/FirstPersonControl',['require','core/Base','core/Vector3','cor
             
             return function() {
                 
-                var camera = this.camera;
+                var target = this.target;
 
-                var position = this.camera.position,
-                    xAxis = camera.localTransform.right.normalize(),
-                    zAxis = camera.localTransform.forward.normalize();
+                var position = this.target.position,
+                    xAxis = target.localTransform.right.normalize(),
+                    zAxis = target.localTransform.forward.normalize();
 
                 if (this._moveForward) {
                     // Opposite direction of z
@@ -19351,9 +19351,9 @@ define('3d/plugin/FirstPersonControl',['require','core/Base','core/Vector3','cor
                 }
 
 
-                camera.rotateAround(camera.position, this.up, -this._offsetPitch * Math.PI / 180);
-                var xAxis = camera.localTransform.right;
-                camera.rotateAround(camera.position, xAxis, -this._offsetRoll * Math.PI / 180);
+                target.rotateAround(target.position, this.up, -this._offsetPitch * Math.PI / 180);
+                var xAxis = target.localTransform.right;
+                target.rotateAround(target.position, xAxis, -this._offsetRoll * Math.PI / 180);
 
                 this._offsetRoll = this._offsetPitch = 0;
             }
@@ -19361,9 +19361,9 @@ define('3d/plugin/FirstPersonControl',['require','core/Base','core/Vector3','cor
         })(),
 
         _lockChange : function() {
-            if (document.pointerlockElement === this.canvas ||
-                document.mozPointerlockElement === this.canvas ||
-                document.webkitPointerLockElement === this.canvas) {
+            if (document.pointerlockElement === this.domElement ||
+                document.mozPointerlockElement === this.domElement ||
+                document.webkitPointerLockElement === this.domElement) {
 
                 document.addEventListener('mousemove', bindOnce(this._mouseMove, this), false);
             }else{
@@ -19448,8 +19448,8 @@ define('3d/plugin/OrbitControl',['require','core/Base','core/Vector3','core/Matr
     var OrbitControl = Base.derive(function() {
         return {
             
-            camera : null,
-            canvas : null,
+            target : null,
+            domElement : null,
 
             sensitivity : 1,
 
@@ -19476,19 +19476,17 @@ define('3d/plugin/OrbitControl',['require','core/Base','core/Vector3','core/Matr
     }, {
 
         enable : function() {
-
-            this.camera.on("beforeupdate", this._beforeUpdateCamera, this);
-
-            this.canvas.addEventListener("mousedown", bindOnce(this._mouseDown, this), false);
-            this.canvas.addEventListener("mousewheel", bindOnce(this._mouseWheel, this), false);
-            this.canvas.addEventListener("DOMMouseScroll", bindOnce(this._mouseWheel, this), false);
+            this.target.on("beforeupdate", this._beforeUpdateCamera, this);
+            this.domElement.addEventListener("mousedown", bindOnce(this._mouseDown, this), false);
+            this.domElement.addEventListener("mousewheel", bindOnce(this._mouseWheel, this), false);
+            this.domElement.addEventListener("DOMMouseScroll", bindOnce(this._mouseWheel, this), false);
         },
 
         disable : function() {
-            this.camera.off("beforeupdate", this._beforeUpdateCamera);
-            this.canvas.removeEventListener("mousedown", bindOnce(this._mouseDown, this));
-            this.canvas.removeEventListener("mousewheel", bindOnce(this._mouseWheel, this));
-            this.canvas.removeEventListener("DOMMouseScroll", bindOnce(this._mouseWheel, this));
+            this.target.off("beforeupdate", this._beforeUpdateCamera);
+            this.domElement.removeEventListener("mousedown", bindOnce(this._mouseDown, this));
+            this.domElement.removeEventListener("mousewheel", bindOnce(this._mouseWheel, this));
+            this.domElement.removeEventListener("DOMMouseScroll", bindOnce(this._mouseWheel, this));
             this._mouseUp();
         },
 
@@ -19524,8 +19522,8 @@ define('3d/plugin/OrbitControl',['require','core/Base','core/Vector3','core/Matr
                 this._offsetPitch += dx * this.sensitivity / 100;
                 this._offsetRoll += dy * this.sensitivity / 100;
             } else if (this._op === 1) {
-                var len = this.origin.distance(this.camera.position);
-                var tmp = Math.sin(this.camera.fov/2) / 100;
+                var len = this.origin.distance(this.target.position);
+                var tmp = Math.sin(this.target.fov/2) / 100;
                 this._panX -= dx * this.sensitivity * len * tmp;
                 this._panY -= dy * this.sensitivity * len * tmp;
             }
@@ -19549,27 +19547,27 @@ define('3d/plugin/OrbitControl',['require','core/Base','core/Vector3','core/Matr
 
         _beforeUpdateCamera : function() {
 
-            var camera = this.camera;
+            var target = this.target;
 
             if (this._op === 0) {
                 // Rotate
-                camera.rotateAround(this.origin, this.up, -this._offsetPitch);            
-                var xAxis = camera.localTransform.right;
-                camera.rotateAround(this.origin, xAxis, -this._offsetRoll);
+                target.rotateAround(this.origin, this.up, -this._offsetPitch);            
+                var xAxis = target.localTransform.right;
+                target.rotateAround(this.origin, xAxis, -this._offsetRoll);
                 this._offsetRoll = this._offsetPitch = 0;
             } else if (this._op === 1) {
                 // Pan
-                var xAxis = camera.localTransform.right.normalize().scale(-this._panX);
-                var yAxis = camera.localTransform.up.normalize().scale(this._panY);
-                camera.position.add(xAxis).add(yAxis);
+                var xAxis = target.localTransform.right.normalize().scale(-this._panX);
+                var yAxis = target.localTransform.up.normalize().scale(this._panY);
+                target.position.add(xAxis).add(yAxis);
                 this.origin.add(xAxis).add(yAxis);
                 this._panX = this._panY = 0;
             }
             
             // Zoom
-            var zAxis = camera.localTransform.forward.normalize();
-            var distance = camera.position.distance(this.origin);
-            camera.position.scaleAndAdd(zAxis, distance * this._forward / 2000);
+            var zAxis = target.localTransform.forward.normalize();
+            var distance = target.position.distance(this.origin);
+            target.position.scaleAndAdd(zAxis, distance * this._forward / 2000);
             this._forward = 0;
 
         }
@@ -19713,7 +19711,10 @@ define('3d/plugin/Skybox',['require','../Mesh','../geometry/Cube','../Shader','.
     var Material = require('../Material');
     var shaderLibrary = require('../shader/library');
 
-    var skyboxShader = shaderLibrary.get("buildin.skybox", "environmentMap");
+    var skyboxShader = new Shader({
+        vertex : Shader.source("buildin.skybox.vertex"), 
+        fragment : Shader.source("buildin.skybox.fragment")
+    });
 
     var Skybox = Mesh.derive(function() {
 
@@ -19727,7 +19728,9 @@ define('3d/plugin/Skybox',['require','../Mesh','../geometry/Cube','../Shader','.
             material : material,
 
             renderer : null,
-            camera : null
+            camera : null,
+
+            culling : false
         }
     }, function() {
         var camera = this.camera;
@@ -22676,8 +22679,10 @@ define('loader/GLTF',['require','core/Base','core/request','3d/Scene','3d/Shader
                 if (nodeInfo.meshes) {
                     for (var i = 0; i < nodeInfo.meshes.length; i++) {
                         var primitives = lib.meshes[nodeInfo.meshes[i]];
-                        for (var j = 0; j < primitives.length; j++) {                            
-                            node.add(primitives[j]);
+                        if (primitives) {
+                            for (var j = 0; j < primitives.length; j++) {                            
+                                node.add(primitives[j]);
+                            }
                         }
                     }
                 }
