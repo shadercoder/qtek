@@ -92,7 +92,9 @@
         canvas : document.getElementById("ViewPort")
     });
     renderer.resize($(window).width(), $(window).height());
-    var shadowMapPass = new qtek3d.prepass.ShadowMap();
+    var shadowMapPass = new qtek3d.prePass.ShadowMap({
+        useVSM : true
+    });
 
     var heroLoader = new qtek.loader.GLTF();
     var rockLoader = new qtek.loader.GLTF();
@@ -154,8 +156,8 @@
         camera.aspect = renderer.canvas.width / renderer.canvas.height;
 
         var control = new qtek3d.plugin.OrbitControl({
-            camera : camera,
-            canvas : renderer.canvas,
+            target : camera,
+            domElement : renderer.canvas,
             sensitivity : 0.4
         });
         // z up
@@ -171,7 +173,7 @@
                 near : 0,
                 far : 50,
             },
-            shadowResolution : 1024,
+            shadowResolution : 512,
             shadowBias : 0.01
         });
         light.position.set(10, 20, 5);

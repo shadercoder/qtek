@@ -29,7 +29,7 @@ define(['qtek', 'knockout', 'ko.mapping'], function(qtek, ko, koMapping){
 
     var scene;
     var camera;
-    var shadowMapPass = new qtek3d.prepass.ShadowMap();
+    var shadowMapPass = new qtek3d.prePass.ShadowMap();
 
     if( textureResolution === "high"){
         var texturePath = "assets/textures"
@@ -50,13 +50,13 @@ define(['qtek', 'knockout', 'ko.mapping'], function(qtek, ko, koMapping){
         camera.lookAt(new qtek.core.Vector3(0, 10, 0))
         scene = sponzaScene;
         var firstPersonControl = new qtek3d.plugin.FirstPersonControl({
-            camera : camera,
-            canvas : renderer.canvas
+            target : camera,
+            domElement : renderer.canvas
         });
         firstPersonControl.enable();
 
         var light = new qtek3d.light.Directional({
-            intensity : 0.6,
+            intensity : 0.9,
             shadowCamera : {
                 left : -50,
                 right : 50,
@@ -66,7 +66,7 @@ define(['qtek', 'knockout', 'ko.mapping'], function(qtek, ko, koMapping){
                 far : 200
             },
             shadowResolution : 1024,
-            // shadowBias : 0.01
+            shadowBias : 0.01
         });
         light.position.set(0, 50, 7)
         light.lookAt(new qtek.core.Vector3(0, 0, 0));
@@ -79,6 +79,9 @@ define(['qtek', 'knockout', 'ko.mapping'], function(qtek, ko, koMapping){
             if (node.geometry) {
                 node.geometry = node.geometry.convertToGeometry();
                 node.geometry.generateTangents();
+            }
+            if (node.material) {
+                // node.material.shader.define('fragment', 'RENDER_NORMAL');
             }
         })
 

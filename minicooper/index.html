@@ -22,7 +22,7 @@
         // });
         requirejs.config({
             'paths' : {
-                'qtek' : "../lib/qtek.min",
+                'qtek' : "../lib/qtek",
                 '_' : '../lib/lodash.compat',
                 "knockout" : "../lib/knockout",
                 "ko.mapping" : "../lib/ko.mapping"
@@ -36,9 +36,7 @@
                 canvas : document.getElementById("Main")
             });
             renderer.resize(window.innerWidth, window.innerHeight);
-            var shadowMapPass = new qtek3d.prepass.ShadowMap({
-                // useVSM : true
-            });
+            var shadowMapPass = new qtek3d.prePass.ShadowMap();
 
             var GLTFLoader = new qtek.loader.GLTF();
 
@@ -60,8 +58,8 @@
                 camera.aspect = renderer.canvas.width / renderer.canvas.height;
 
                 var control = new qtek3d.plugin.OrbitControl({
-                    camera : camera,
-                    canvas : renderer.canvas,
+                    target : camera,
+                    domElement : renderer.canvas,
                     sensitivity : 0.4
                 });
                 // z up
