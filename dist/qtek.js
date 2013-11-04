@@ -10535,7 +10535,7 @@ define('core/Matrix2d',['require','glmatrix'],function(require) {
         this._array = mat2d.create();
     };
 
-    var Matrix2dProto = {
+    Matrix2d.prototype = {
 
         constructor : Matrix2d,
 
@@ -10826,7 +10826,7 @@ define('2d/Node',['require','core/Base','core/Vector2','core/Matrix2d','./Style'
 
         render : function(context) {
             
-            this.trigger("beforerender", context);
+            this.trigger("beforerender", [context]);
 
             var renderQueue = this.getSortedRenderQueue();
             // TODO : some style should not be inherited ?
@@ -10845,9 +10845,9 @@ define('2d/Node',['require','core/Base','core/Vector2','core/Matrix2d','./Style'
             context.transform(m[0], m[1], m[2], m[3], m[4], m[5]);
 
             if (this.draw) {
-                this.trigger("beforedraw", context);
+                this.trigger("beforedraw", [context]);
                 this.draw(context);
-                this.trigger("afterdraw", context);
+                this.trigger("afterdraw", [context]);
             }
 
             //clip from current path;
@@ -10858,7 +10858,7 @@ define('2d/Node',['require','core/Base','core/Vector2','core/Matrix2d','./Style'
             }
             context.restore();
 
-            this.trigger("afterrender", context);
+            this.trigger("afterrender", [context]);
         },
 
         traverse : function(callback) {
@@ -11247,7 +11247,7 @@ define('core/Event',['require','./Base'], function(require) {
         // enable bubbling
         while (target && !e.cancelBubble ) {
             e.currentTarget = target;
-            target.trigger(eventType, e);
+            target.trigger(eventType, [e]);
 
             target = target.parent;
         }
@@ -13590,7 +13590,7 @@ define('core/Matrix3',['require','glmatrix'],function(require) {
         this._array = mat3.create();
     };
 
-    var Matrix3Proto = {
+    Matrix3.prototype = {
 
         constructor : Matrix3,
 
@@ -21588,7 +21588,7 @@ define('core/Matrix2',['require','glmatrix'],function(require) {
         this._array = mat2.create();
     };
 
-    var Matrix2Proto = {
+    Matrix2.prototype = {
 
         constructor : Matrix2,
 
@@ -22191,15 +22191,15 @@ define('loader/GLTF',['require','core/Base','core/request','3d/Scene','3d/Shader
             request.get({
                 url : url,
                 onprogress : function(percent, loaded, total) {
-                    self.trigger("progress", percent, loaded, total);
+                    self.trigger("progress", [percent, loaded, total]);
                 },
                 onerror : function(e) {
-                    self.trigger("error", e);
+                    self.trigger("error", [e]);
                 },
                 responseType : "text",
                 onload : function(data) {
                     self.parse(JSON.parse(data), function(scene, cameras, skeleton) {
-                        self.trigger("load", scene, cameras, skeleton);
+                        self.trigger("load", [scene, cameras, skeleton]);
                     });
                 }
             });
@@ -22707,15 +22707,15 @@ define('loader/SVG',['require','core/Base','core/request','2d/Node','2d/shape/Ci
             request.get({
                 url : url,
                 onprogress : function(percent, loaded, total) {
-                    self.trigger("progress", percent, loaded, total);
+                    self.trigger("progress", [percent, loaded, total]);
                 },
                 onerror : function(e) {
-                    self.trigger("error", e);
+                    self.trigger("error", [e]);
                 },
                 responseType : "text",
                 onload : function(xmlString) {
                     self.parse(xmlString, function(root){
-                        self.trigger('load', root);
+                        self.trigger('load', [root]);
                     });
                 }
             })
@@ -23166,10 +23166,10 @@ define('loader/three/Model',['require','core/Base','core/request','3d/Shader','3
             request.get({
                 url : url,
                 onprogress : function(percent, loaded, total) {
-                    self.trigger("progress", percent, loaded, total);
+                    self.trigger("progress", [percent, loaded, total]);
                 },
                 onerror : function(e) {
-                    self.trigger("error", e);
+                    self.trigger("error", [e]);
                 },
                 responseType : "text",
                 onload : function(data) {
@@ -23223,7 +23223,7 @@ define('loader/three/Model',['require','core/Base','core/request','3d/Shader','3
                 }
             }
             
-            this.trigger('load', meshList);
+            this.trigger('load', [meshList]);
             return meshList;
         },
 
