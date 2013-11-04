@@ -499,14 +499,13 @@ return {
 define('core/mixin/notifier',[],function() {
 
     return{
-        trigger : function(name) {
+        trigger : function(name, params) {
             if (! this.hasOwnProperty('__handlers__')) {
                 return;
             }
             if (!this.__handlers__.hasOwnProperty(name)) {
                 return;
             }
-            var params = Array.prototype.slice.call(arguments, 1);
 
             var handlers = this.__handlers__[name];
             for (var i = 0; i < handlers.length; i+=2) {
@@ -12837,7 +12836,7 @@ define('core/Vector3',['require','glmatrix'],function(require) {
 
         this._array = vec3.fromValues(x, y, z);
         // Dirty flag is used by the Node to determine
-        // if the matrix is updated to latest
+        // if the localTransform is updated to latest
         this._dirty = true;
     }
 
@@ -13833,10 +13832,13 @@ define('3d/Node',['require','core/Base','core/Vector3','./BoundingBox','core/Qua
         // Update the node status in each frame
         update : function(force) {
             
-            this.trigger('beforeupdate', this);
+            this.trigger('beforeupdate', [this]);
 
             if (this.autoUpdateLocalTransform) {
                 this.updateLocalTransform();
+            } else {
+                // Transform is manually setted
+                force = true;
             }
 
             if (force || this._needsUpdateWorldTransform) {
@@ -13862,7 +13864,7 @@ define('3d/Node',['require','core/Base','core/Vector3','./BoundingBox','core/Qua
                 }
             }
 
-            this.trigger('beforeupdate', this);
+            this.trigger('afterupdate', [this]);
         },
 
         getWorldPosition : function(out) {
@@ -15180,18 +15182,18 @@ define('3d/Geometry',['require','core/Base','core/Vector3','./BoundingBox','./gl
 
         _getDirtyAttributes : function() {
 
-            var result = {};
             var attributes = this.getEnabledAttributes();
             
             var noDirtyAttributes = true;
 
-            if (this.hint = glenum.STATIC_DRAW) {
+            if (this.hint === glenum.STATIC_DRAW) {
                 if (this.cache.miss('chunks')) {
                     return attributes;
                 } else {
                     return null;
                 }
             } else {
+                var result = {};
                 for (var name in attributes) {
                     var attrib = attributes[name];
                     if (this.cache.isDirty(name)) {
@@ -15199,9 +15201,9 @@ define('3d/Geometry',['require','core/Base','core/Vector3','./BoundingBox','./gl
                         noDirtyAttributes = false;
                     }
                 }   
-            }
-            if (! noDirtyAttributes) {
-                return result;
+                if (! noDirtyAttributes) {
+                    return result;
+                }
             }
         },
 
@@ -15572,11 +15574,11 @@ define('3d/Geometry',['require','core/Base','core/Vector3','./BoundingBox','./gl
                 this.generateUniqueVertex();
             }
 
-            var faces = this.faces,
-                len = faces.length,
-                positions = this.attributes.position.value,
-                normals = this.attributes.normal.value,
-                normal = vec3.create();
+            var faces = this.faces;
+            var len = faces.length;
+            var positions = this.attributes.position.value;
+            var normals = this.attributes.normal.value;
+            var normal = vec3.create();
 
             var v12 = vec3.create(), v23 = vec3.create();
 
@@ -16042,10 +16044,8 @@ define('3d/Shader',['require','core/Base','glmatrix','util/util','_'],function(r
             _textureStatus : {},
 
             _vertexProcessed : "",
-            _fragmentProcessed : "",
+            _fragmentProcessed : ""
 
-            // Assume shader in all context will get the same location
-            _locations : {}
         }
     }, function() {
 
@@ -16066,6 +16066,7 @@ define('3d/Shader',['require','core/Base','glmatrix','util/util','_'],function(r
         bind : function(_gl) {
 
             this.cache.use(_gl.__GUID__ , {
+                "locations" : {},
                 "attriblocations" : {}
             });
 
@@ -16082,6 +16083,7 @@ define('3d/Shader',['require','core/Base','glmatrix','util/util','_'],function(r
             this.cache.dirty();
             for (var contextId in this.cache._caches) {
                 var context = this.cache._caches[contextId];
+                context["locations"] = {};
                 context["attriblocations"] = {};
             }
             this._locations = {};
@@ -16217,7 +16219,7 @@ define('3d/Shader',['require','core/Base','glmatrix','util/util','_'],function(r
 
             var program = this.cache.get("program");            
 
-            var locationsMap = this._locations;
+            var locationsMap = this.cache.get("locations");
             var location = locationsMap[symbol];
             // Uniform is not existed in the shader
             if (location === null) {
@@ -17073,21 +17075,22 @@ define('3d/Mesh',['require','./Node','./glenum','core/Vector3','_'],function(req
                         _gl.bindBuffer(_gl.ARRAY_BUFFER, buffer);
                         shader.setMeshAttribute(_gl, symbol, attributeBufferInfo.type, attributeBufferInfo.size);
                     }
+                    if (glDrawMode === glenum.LINES) {
+                        _gl.lineWidth(this.lineWidth);
+                    }
+                    
+                    prevDrawIsUseFace = geometry.isUseFace();
+                    prevDrawIndicesBuffer = indicesBuffer;
+                    //Do drawing
+                    if (prevDrawIsUseFace) {
+                        _gl.bindBuffer(_gl.ELEMENT_ARRAY_BUFFER, indicesBuffer.buffer);
+                        _gl.drawElements(glDrawMode, indicesBuffer.count, _gl.UNSIGNED_SHORT, 0);
+                        faceNumber += indicesBuffer.count;
+                    } else {
+                        _gl.drawArrays(glDrawMode, 0, vertexNumber);
+                    }
+                    drawCallNumber++;
                 }
-                if (glDrawMode === glenum.LINES) {
-                    _gl.lineWidth(this.lineWidth);
-                }
-                prevDrawIsUseFace = geometry.isUseFace();
-                prevDrawIndicesBuffer = indicesBuffer;
-                //Do drawing
-                if (prevDrawIsUseFace) {
-                    _gl.bindBuffer(_gl.ELEMENT_ARRAY_BUFFER, indicesBuffer.buffer);
-                    _gl.drawElements(glDrawMode, indicesBuffer.count, _gl.UNSIGNED_SHORT, 0);
-                    faceNumber += indicesBuffer.count;
-                } else {
-                    _gl.drawArrays(glDrawMode, 0, vertexNumber);
-                }
-                drawCallNumber++;
             }
 
             var drawInfo = {
@@ -17262,9 +17265,9 @@ define('3d/Renderer',['require','core/Base','util/util','./Light','./Mesh','./Te
             var renderStart = performance.now();
             if (!silent) {
                 // Render plugin like shadow mapping must set the silent true
-                this.trigger("beforerender", this, scene, camera);
+                this.trigger("beforerender", [this, scene, camera]);
             }
-            
+
             this._scene = scene;
 
             var color = this.color;
@@ -17300,15 +17303,15 @@ define('3d/Renderer',['require','core/Base','util/util','./Light','./Mesh','./Te
             opaqueQueue.sort(this._materialSortFunc);
             // Render Opaque queue
             if (! silent) {
-                this.trigger("beforerender:opaque", this, opaqueQueue);
+                this.trigger("beforerender:opaque", [this, opaqueQueue]);
             }
 
             _gl.disable(_gl.BLEND);
             this.renderQueue(opaqueQueue, camera, sceneMaterial, silent);
 
             if (! silent) {
-                this.trigger("afterrender:opaque", this, opaqueQueue);
-                this.trigger("beforerender:transparent", this, transparentQueue);
+                this.trigger("afterrender:opaque", [this, opaqueQueue]);
+                this.trigger("beforerender:transparent", [this, transparentQueue]);
             }
 
             // Render Transparent Queue
@@ -17330,8 +17333,8 @@ define('3d/Renderer',['require','core/Base','util/util','./Light','./Mesh','./Te
             this.renderQueue(transparentQueue, camera, sceneMaterial, silent);
 
             if (! silent) {
-                this.trigger("afterrender:transparent", this, transparentQueue);
-                this.trigger("afterrender", this, scene, camera);
+                this.trigger("afterrender:transparent", [this, transparentQueue]);
+                this.trigger("afterrender", [this, scene, camera]);
             }
         },
 
@@ -20103,9 +20106,9 @@ define('3d/prePass/ShadowMap',['require','core/Base','core/Vector3','../Shader',
     }, {
 
         render : function(renderer, scene) {
-            this.trigger('beforerender', this, renderer, scene);
+            this.trigger('beforerender', [this, renderer, scene]);
             this._renderShadowPass(renderer, scene);
-            this.trigger('afterrender', this, renderer, scene);
+            this.trigger('afterrender', [this, renderer, scene]);
         },
 
         renderDebug : function(renderer) {
