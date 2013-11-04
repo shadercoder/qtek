@@ -29,7 +29,9 @@ define(['qtek', 'knockout', 'ko.mapping'], function(qtek, ko, koMapping){
 
     var scene;
     var camera;
-    var shadowMapPass = new qtek3d.prePass.ShadowMap();
+    var shadowMapPass = new qtek3d.prePass.ShadowMap({
+        useVSM : true
+    });
 
     if( textureResolution === "high"){
         var texturePath = "assets/textures"
@@ -65,7 +67,7 @@ define(['qtek', 'knockout', 'ko.mapping'], function(qtek, ko, koMapping){
                 near : 0,
                 far : 200
             },
-            shadowResolution : 1024,
+            shadowResolution : 512,
             shadowBias : 0.01
         });
         light.position.set(0, 50, 7)
