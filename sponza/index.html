@@ -64,8 +64,12 @@
                     <span data-bind="text:fps" class="value"></span>
                 </li>
                 <li>
-                    <span>Frame time:</span>
-                    <span data-bind="text:frameTime()+'ms'" class="value"></span>
+                    <span>Shadow Pass time:</span>
+                    <span data-bind="text:shadowPassTime().toFixed(1)+'ms'" class="value"></span>
+                </li>
+                <li>
+                    <span>Render time:</span>
+                    <span data-bind="text:renderTime().toFixed(1)+'ms'" class="value"></span>
                 </li>
                 <li>
                     <span>Vertices:</span>
@@ -81,7 +85,7 @@
                 </li>
                 <li>
                     <span>Draw call:</span>
-                    <span data-bind="text:drawcallNumber" class="value"></span>
+                    <span data-bind="text:drawCallNumber" class="value"></span>
                 </li>
                 <li>
                     <span>Use wireframe:</span>

@@ -1,8 +1,8 @@
 define(['qtek', 'knockout', 'ko.mapping'], function(qtek, ko, koMapping){
 
-    var qtek3d = qtek['3d'],
-        Vector3 = qtek.core.Vector3,
-        Shader = qtek3d.Shader;
+    var qtek3d = qtek['3d'];
+    var Vector3 = qtek.core.Vector3;
+    var Shader = qtek3d.Shader;
 
     function getUrlVars(){
         var vars = [], hash;
@@ -86,31 +86,33 @@ define(['qtek', 'knockout', 'ko.mapping'], function(qtek, ko, koMapping){
         })
 
         animation.onframe = function() {
+            renderInfo.clear();
             shadowMapPass.render(renderer, scene);
             renderer.render(scene, camera);
             renderer.clear = renderer.gl.DEPTH_BUFFER_BIT;
             shadowMapPass.renderDebug(renderer);
             // Update debug render info
-            koMapping.fromJS(renderInfo, mapping, debugInfoVM);
+            koMapping.fromJS(renderInfo.log, mapping, debugInfoVM);
         };
     });
 
 
     // Show debug render info
 
-    // Put render info collection before shadow pass
     var renderInfo = new qtek3d.debug.RenderInfo({
-        renderer : renderer
+        renderer : renderer,
+        shadowPass : shadowMapPass
     });
     renderInfo.enable();
 
     var mapping = {
-        "ignore" : ["renderer"]
+        "ignore" : []
     };
-    var debugInfoVM = koMapping.fromJS(renderInfo, mapping);
+    var debugInfoVM = koMapping.fromJS(renderInfo.log, mapping);
     debugInfoVM.fps = ko.computed(function(){
-        if( debugInfoVM.frameTime ){
-            return Math.min( Math.floor( 1000 / debugInfoVM.frameTime() ), 50);
+        if(debugInfoVM.renderTime){
+            var frameTime = debugInfoVM.shadowPassTime() + debugInfoVM.renderTime();
+            return Math.min(Math.floor(1000 / frameTime), 50);
         }else{
             return 0;
         }
