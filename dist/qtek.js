@@ -19171,12 +19171,25 @@ define('3d/light/Spot',['require','../Light','../Shader','core/Vector3'],functio
 
     return SpotLight;
 } );
-;
-define("3d/particleSystem/Particle", function(){});
+define('3d/particleSystem/Particle',[],function() {
 
-define('3d/particleSystem/ParticleSystem',['require','../Node'],function(require) {
+    var Particle = function() {
+        
+        this.position = [];
+
+        this.velocity = [];
+
+        this.lifeTime = 0;
+
+        this.gravity = [];
+    }
+
+    return Particle;
+});
+define('3d/particleSystem/ParticleSystem',['require','../Node','core/Vector3'],function(require) {
 
     var Node = require('../Node');
+    var Vector3 = require('core/Vector3');
     
     var ParticleSystem = Node.derive(function() {
         return {
@@ -19184,10 +19197,23 @@ define('3d/particleSystem/ParticleSystem',['require','../Node'],function(require
 
             sprite : null,
 
-            
+            velocity : null,
+
+            angularVelocity : null,
+
+            lifeTime : null,
+
+            gravity : new Vector3()
         }
     }, {
 
+        update : function(deltaTime) {
+
+        },
+
+        render : function(_gl) {
+
+        }
     });
 
     return ParticleSystem;
@@ -21644,6 +21670,86 @@ define('core/Matrix2',['require','glmatrix'],function(require) {
 
     return Matrix2;
 });
+define('core/Value',['./Vector3','./Vector2'],function() {
+
+    var Vector3 = require('./Vector3');
+    var Vector2 = require('./Vector2');
+
+    var Value = function() {};
+    Value.prototype.get = function() {};
+    Value.prototype.set = function(val) {};
+
+    // Constant
+    var ConstantValue = function(val) {
+        this.get = function() {
+            return val;
+        }
+    }
+    ConstantValue.prototype = new Value();
+
+    //Random 1D
+    var Random1D = function(min, max) {
+        var range = max - min;
+        this.get = function() {
+            return Math.random() * range + min;
+        }
+    }
+    Random1D.prototype = new Value();
+
+    // Random2D
+    var Random2D = function(min, max) {
+        var rangeX = max.x - min.x;
+        var rangeY = max.y - min.y;
+
+        this.get = function(out) {
+            if (!out) {
+                out = new Vector2();
+            }
+            out.set(
+                rangeX * Math.random() + min._array[0],
+                rangeY * Math.random() + min._array[1]
+            );
+
+            return out;
+        }
+    }
+
+    var Random3D = function(min, max) {
+        var rangeX = max.x - min.x;
+        var rangeY = max.y - min.y;
+        var rangeZ = max.z - min.z;
+
+        this.get = function(out) {
+            if (!out) {
+                out = new Vector3();
+            }
+            out.set(
+                rangeX * Math.random() + min._array[0],
+                rangeY * Math.random() + min._array[1],
+                rangeZ * Math.random() + min._array[2]
+            );
+
+            return out;
+        }
+    }
+
+    // Factory methods
+    Value.constant = function(constant) {
+        return new Constant(constant);
+    }
+
+    Value.random1D = function(min, max) {
+        return new Random1D(min, max);
+    }
+
+    Value.random2D = function(min, max) {
+        return new Random2D(min, max);
+    }
+
+    Value.random3D = function(min, max) {
+        return new Random3D(min, max);
+    }
+});
 /**
  *  @export{object} request
  */
@@ -23679,7 +23785,7 @@ define('util/color',['require'],function(require){
 
 	
 });
-define('qtek',['require','2d/Gradient','2d/Layer','2d/LinearGradient','2d/Node','2d/Pattern','2d/RadialGradient','2d/Stage','2d/Style','2d/picking/Box','2d/picking/Pixel','2d/shape/Arc','2d/shape/Circle','2d/shape/Ellipse','2d/shape/HTML','2d/shape/Image','2d/shape/Line','2d/shape/Path','2d/shape/Polygon','2d/shape/Rectangle','2d/shape/RoundedRectangle','2d/shape/SVGPath','2d/shape/Sector','2d/shape/Text','2d/shape/TextBox','2d/util','3d/BoundingBox','3d/Camera','3d/FrameBuffer','3d/Geometry','3d/Joint','3d/Light','3d/Material','3d/Mesh','3d/Node','3d/Renderer','3d/Scene','3d/Shader','3d/Skeleton','3d/Texture','3d/WebGLInfo','3d/camera/Orthographic','3d/camera/Perspective','3d/compositor/Compositor','3d/compositor/Graph','3d/compositor/Group','3d/compositor/Node','3d/compositor/Pass','3d/compositor/SceneNode','3d/compositor/TextureNode','3d/compositor/texturePool','3d/debug/PointLight','3d/debug/RenderInfo','3d/geometry/Cube','3d/geometry/Plane','3d/geometry/Sphere','3d/glenum','3d/light/Ambient','3d/light/Directional','3d/light/Point','3d/light/Spot','3d/particleSystem/Particle','3d/particleSystem/ParticleSystem','3d/plugin/FirstPersonControl','3d/plugin/OrbitControl','3d/plugin/Skybox','3d/plugin/Skydome','3d/prePass/Reflection','3d/prePass/ShadowMap','3d/shader/library','3d/texture/Texture2D','3d/texture/TextureCube','3d/util/mesh','animation/Animation','animation/Clip','animation/easing','core/Base','core/Cache','core/Event','core/Matrix2','core/Matrix2d','core/Matrix3','core/Matrix4','core/Quaternion','core/Vector2','core/Vector3','core/Vector4','core/mixin/derive','core/mixin/notifier','core/request','loader/FX','loader/GLTF','loader/InstantGeometry','loader/SVG','loader/three/Model','util/color','util/util','glmatrix'], function(require){
+define('qtek',['require','2d/Gradient','2d/Layer','2d/LinearGradient','2d/Node','2d/Pattern','2d/RadialGradient','2d/Stage','2d/Style','2d/picking/Box','2d/picking/Pixel','2d/shape/Arc','2d/shape/Circle','2d/shape/Ellipse','2d/shape/HTML','2d/shape/Image','2d/shape/Line','2d/shape/Path','2d/shape/Polygon','2d/shape/Rectangle','2d/shape/RoundedRectangle','2d/shape/SVGPath','2d/shape/Sector','2d/shape/Text','2d/shape/TextBox','2d/util','3d/BoundingBox','3d/Camera','3d/FrameBuffer','3d/Geometry','3d/Joint','3d/Light','3d/Material','3d/Mesh','3d/Node','3d/Renderer','3d/Scene','3d/Shader','3d/Skeleton','3d/Texture','3d/WebGLInfo','3d/camera/Orthographic','3d/camera/Perspective','3d/compositor/Compositor','3d/compositor/Graph','3d/compositor/Group','3d/compositor/Node','3d/compositor/Pass','3d/compositor/SceneNode','3d/compositor/TextureNode','3d/compositor/texturePool','3d/debug/PointLight','3d/debug/RenderInfo','3d/geometry/Cube','3d/geometry/Plane','3d/geometry/Sphere','3d/glenum','3d/light/Ambient','3d/light/Directional','3d/light/Point','3d/light/Spot','3d/particleSystem/Particle','3d/particleSystem/ParticleSystem','3d/plugin/FirstPersonControl','3d/plugin/OrbitControl','3d/plugin/Skybox','3d/plugin/Skydome','3d/prePass/Reflection','3d/prePass/ShadowMap','3d/shader/library','3d/texture/Texture2D','3d/texture/TextureCube','3d/util/mesh','animation/Animation','animation/Clip','animation/easing','core/Base','core/Cache','core/Event','core/Matrix2','core/Matrix2d','core/Matrix3','core/Matrix4','core/Quaternion','core/Value','core/Vector2','core/Vector3','core/Vector4','core/mixin/derive','core/mixin/notifier','core/request','loader/FX','loader/GLTF','loader/InstantGeometry','loader/SVG','loader/three/Model','util/color','util/util','glmatrix'], function(require){
 	
 	var exportsObject =  {
 	"2d": {
@@ -23798,6 +23904,7 @@ define('qtek',['require','2d/Gradient','2d/Layer','2d/LinearGradient','2d/Node',
 		"Matrix3": require('core/Matrix3'),
 		"Matrix4": require('core/Matrix4'),
 		"Quaternion": require('core/Quaternion'),
+		"Value": require('core/Value'),
 		"Vector2": require('core/Vector2'),
 		"Vector3": require('core/Vector3'),
 		"Vector4": require('core/Vector4'),
