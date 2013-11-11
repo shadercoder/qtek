@@ -91,6 +91,8 @@
     var renderer = new qtek3d.Renderer({
         canvas : document.getElementById("ViewPort")
     });
+    var animation = new qtek.animation.Animation();
+    animation.start();
     renderer.resize($(window).width(), $(window).height());
     var shadowMapPass = new qtek3d.prePass.ShadowMap({
         useVSM : true
@@ -158,7 +160,11 @@
         var control = new qtek3d.plugin.OrbitControl({
             target : camera,
             domElement : renderer.canvas,
-            sensitivity : 0.4
+            sensitivity : 0.4,
+            minDistance : 35,
+            maxDistance : 70,
+            maxRollAngle : Math.PI / 4,
+            minRollAngle : -0.1
         });
         // z up
         control.enable();
@@ -254,15 +260,11 @@
         
         var clearAll = renderer.clear;
 
-        var time = new Date().getTime();
         var frame = 0;
         var showSkeleton = false;
         var showAxis = false;
 
-        function render() {
-            var timeNow = new Date().getTime();
-            var deltaTime = timeNow - time;
-            time = timeNow;
+        animation.on('frame', function(deltaTime){
             // 30fps
             frame += deltaTime / 1000 * 30;
             skeleton.setPose(frame % frameLen);
@@ -278,8 +280,7 @@
             if (showSkeleton) {
                 renderer.render(skeletonDebugScene, camera);
             }
-            requestAnimationFrame(render);
-        }
+        })
 
         // Animations
         var joints = {};
@@ -336,6 +337,5 @@
         $("#ShowAxis").click(function() {
             showAxis = $(this).children("input").is(':checked')
         });
-        render();
     });
 })();

@@ -2,134 +2,114 @@
 <head>
     <title></title>
     <meta charset="utf-8">
-    <script type="application/javascript" src="../lib/require.js"></script>
+    <link rel="stylesheet" href="../style/pace.css" />
+    <script type="application/javascript" src="../lib/pace.js"></script>
+    <script type="application/javascript" src="../lib/qtek.js"></script>
 </head>
 <body style="margin:0px">
     <canvas id="Main"></canvas>
-
     <script type="text/javascript">
-        // requirejs.config({
-        //     'baseUrl' : '../../src',
-        //     'paths' : {
-        //         '_' : '../thirdparty/lodash.compat',
-        //         'glmatrix' : '../thirdparty/gl-matrix'
-        //     },
-        //     'shim' : {
-        //         '_' : {
-        //             exports : '_'
-        //         }
-        //     }
-        // });
-        requirejs.config({
-            'paths' : {
-                'qtek' : "../lib/qtek",
-                '_' : '../lib/lodash.compat',
-                "knockout" : "../lib/knockout",
-                "ko.mapping" : "../lib/ko.mapping"
-            }
+        var qtek3d = qtek['3d'];
+
+        var renderer = new qtek3d.Renderer({
+            canvas : document.getElementById("Main")
         });
+        renderer.resize(window.innerWidth, window.innerHeight);
+        var animation = new qtek.animation.Animation();
+        animation.start();
+        var shadowMapPass = new qtek3d.prePass.ShadowMap();
 
-        require(['qtek'], function(qtek) {
-            var qtek3d = qtek['3d'];
+        var GLTFLoader = new qtek.loader.GLTF();
 
-            var renderer = new qtek3d.Renderer({
-                canvas : document.getElementById("Main")
+        GLTFLoader.load("assets/minicooper_low.json");
+
+        var ENVMAP_OBJECTS;
+
+        GLTFLoader.on("load", function(scene, cameras) {
+            var camera = cameras[Object.keys(cameras)[0]];
+            if (!camera) {
+                camera = new qtek3d.camera.Perspective({
+                    aspect : renderer.canvas.width/renderer.canvas.height,
+                    far : 500
+                });
+
+                camera.position.set(1, 1, 1);
+                camera.lookAt(scene.position);
+            }
+            camera.aspect = renderer.canvas.width / renderer.canvas.height;
+
+            var control = new qtek3d.plugin.OrbitControl({
+                target : camera,
+                domElement : renderer.canvas,
+                sensitivity : 0.4
             });
-            renderer.resize(window.innerWidth, window.innerHeight);
-            var shadowMapPass = new qtek3d.prePass.ShadowMap();
+            // z up
+            control.up.set(0, 0, 1);
+            control.enable();
 
-            var GLTFLoader = new qtek.loader.GLTF();
+            var light = scene.getNode("Lamp_002-light");
+            light.shadowCamera = {
+                left : -3,
+                right : 3,
+                top : 3, 
+                bottom : -3,
+                near : 0,
+                far : 100
+            };
+            light.shadowResolution = 1024;
+            light.shadowBias = 0.002;   
+            light.position.set(-1, -1, 5);
+            light.lookAt(new qtek.core.Vector3(0, 0, 0), new qtek.core.Vector3(0, 0, -1));
 
-            GLTFLoader.load("assets/minicooper_low.json");
+            // Env map
+            var texture = new qtek3d.texture.TextureCube({
+                flipY : false
+            });
+            texture.load({
+                px : 'assets/textures/envmap/px.jpg',
+                nx : 'assets/textures/envmap/nx.jpg',
+                py : 'assets/textures/envmap/py.jpg',
+                ny : 'assets/textures/envmap/ny.jpg',
+                pz : 'assets/textures/envmap/pz.jpg',
+                nz : 'assets/textures/envmap/nz.jpg',
+            });
 
-            var ENVMAP_OBJECTS;
+            var skybox = new qtek3d.plugin.Skybox({
+                camera : camera,
+                renderer : renderer                    
+            });
+            skybox.material.set("environmentMap", texture);
 
-            GLTFLoader.on("load", function(scene, cameras) {
-                var camera = cameras[Object.keys(cameras)[0]];
-                if (!camera) {
-                    camera = new qtek3d.camera.Perspective({
-                        aspect : renderer.canvas.width/renderer.canvas.height,
-                        far : 500
-                    });
 
-                    camera.position.set(1, 1, 1);
-                    camera.lookAt(scene.position);
-                }
-                camera.aspect = renderer.canvas.width / renderer.canvas.height;
+            var REFLECT_MATS = {
+                'CAR_PAINT' : 0.1,
+                'mini_windows_001' : 0.2,
+                'mini_windows_002' : 0.2,
+                'mini_headlight_gl_001' : 0.2,
+                'DISC' : 0.2,
+                // 'mini_wheels_chrom_001' : 0.1,
+                // 'mini_wheels_chrom_002' : 0.1,
+                // 'mini_wheels_chrom_004' : 0.1,
+                // 'mini_wheels_chrom_005' : 0.1,
+                // 'mini_wheels_chrom_006' : 0.1,
+                // 'mini_wheels_chrom_007' : 0.1,
+                // 'mini_wheels_chrom_008' : 0.1
+            }
 
-                var control = new qtek3d.plugin.OrbitControl({
-                    target : camera,
-                    domElement : renderer.canvas,
-                    sensitivity : 0.4
+            for (var matName in REFLECT_MATS) {
+                var mat = qtek3d.Material.getMaterial(matName);
+                mat.shader.enableTexture("environmentMap");
+                mat.set({
+                    "environmentMap": texture,
+                    "reflectivity" : REFLECT_MATS[matName]
                 });
-                // z up
-                control.up.set(0, 0, 1);
-                control.enable();
+            }
 
-                var light = scene.getNode("Lamp_002-light");
-                light.shadowCamera = {
-                    left : -3,
-                    right : 3,
-                    top : 3, 
-                    bottom : -3,
-                    near : 0,
-                    far : 100
-                };
-                light.shadowResolution = 1024;
-                light.shadowBias = 0.002;   
-                light.position.set(-1, -1, 5);
-                light.lookAt(new qtek.core.Vector3(0, 0, 0), new qtek.core.Vector3(0, 0, -1));
+            scene.rotation.rotateX(-Math.PI / 2);
 
-                // Env map
-                var texture = new qtek3d.texture.TextureCube({
-                    flipY : false
-                });
-                texture.load({
-                    px : 'assets/textures/envmap/px.jpg',
-                    nx : 'assets/textures/envmap/nx.jpg',
-                    py : 'assets/textures/envmap/py.jpg',
-                    ny : 'assets/textures/envmap/ny.jpg',
-                    pz : 'assets/textures/envmap/pz.jpg',
-                    nz : 'assets/textures/envmap/nz.jpg',
-                });
-
-                var skybox = new qtek3d.plugin.Skybox({
-                    camera : camera,
-                    renderer : renderer                    
-                });
-                skybox.material.set("environmentMap", texture);
-
-
-                var REFLECT_MATS = {
-                    'CAR_PAINT' : 0.1,
-                    'mini_windows_001' : 0.2,
-                    'mini_windows_002' : 0.2,
-                    'mini_headlight_gl_001' : 0.2,
-                    'DISC' : 0.2,
-                    // 'mini_wheels_chrom_001' : 0.1,
-                    // 'mini_wheels_chrom_002' : 0.1,
-                    // 'mini_wheels_chrom_004' : 0.1,
-                    // 'mini_wheels_chrom_005' : 0.1,
-                    // 'mini_wheels_chrom_006' : 0.1,
-                    // 'mini_wheels_chrom_007' : 0.1,
-                    // 'mini_wheels_chrom_008' : 0.1
-                }
-
-                for (var matName in REFLECT_MATS) {
-                    var mat = qtek3d.Material.getMaterial(matName);
-                    mat.shader.enableTexture("environmentMap");
-                    mat.set({
-                        "environmentMap": texture,
-                        "reflectivity" : REFLECT_MATS[matName]
-                    });
-                }
-
-                scene.rotation.rotateX(-Math.PI / 2);
-
-                setInterval(function() {
-                    shadowMapPass.render(renderer, scene);
-                    renderer.render(scene, camera);
-                }, 50);
+            animation.on('frame', function() {
+                shadowMapPass.render(renderer, scene);
+                renderer.render(scene, camera);
             });
         });
     </script>
