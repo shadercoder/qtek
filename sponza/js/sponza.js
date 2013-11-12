@@ -87,18 +87,19 @@ define(['qtek', 'knockout', 'ko.mapping'], function(qtek, ko, koMapping){
             }
         })
 
-        animation.on('frame', function() {
+        animation.on('frame', function(deltaTime) {
             var time = performance.now();
             shadowMapPass.render(renderer, scene);
             var shadowPassTime = performance.now() - time;
             time = performance.now();
-            renderInfo = renderer.render(scene, camera);
+            var renderInfo = renderer.render(scene, camera);
             var renderTime = performance.now() - time;
             renderer.clear = renderer.gl.DEPTH_BUFFER_BIT;
             shadowMapPass.renderDebug(renderer);
             // Update debug render info
             renderInfo.shadowPassTime = shadowPassTime;
             renderInfo.renderTime = renderTime;
+            renderInfo.fps = Math.round(1000 / deltaTime);
             koMapping.fromJS(renderInfo, mapping, debugInfoVM);
         });
     });
@@ -114,16 +115,9 @@ define(['qtek', 'knockout', 'ko.mapping'], function(qtek, ko, koMapping){
         drawCallNumber : 0,
         renderTime : 0,
         shadowPassTime : 0,
-        meshNumber : 0
+        meshNumber : 0,
+        fps : 0
     }, mapping);
-    debugInfoVM.fps = ko.computed(function(){
-        if(debugInfoVM.renderTime){
-            var frameTime = debugInfoVM.shadowPassTime() + debugInfoVM.renderTime();
-            return Math.min(Math.floor(1000 / frameTime), 50);
-        }else{
-            return 0;
-        }
-    });
     debugInfoVM.useWireframe = ko.observable(false);
 
     debugInfoVM.useWireframe.subscribe(function(value){
