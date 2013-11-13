@@ -15,13 +15,12 @@ define(['qtek', 'knockout', 'ko.mapping'], function(qtek, ko, koMapping){
         return vars;
     }
     var env = getUrlVars();
-    var textureResolution = env.texture || "medium";
+    var textureResolution = env.texture || "high";
     var shadowResolution = parseInt(env.shadow || 512);
 
     var renderer = new qtek3d.Renderer({
         canvas : document.getElementById( "Main"),
-        devicePixelRatio : 1.0,
-        color : [0.0, 0.0, 0.0, 0.0]
+        devicePixelRatio : 1.0
     });
     renderer.resize(window.innerWidth, window.innerHeight);
     var animation = new qtek.animation.Animation();
@@ -29,7 +28,7 @@ define(['qtek', 'knockout', 'ko.mapping'], function(qtek, ko, koMapping){
 
     var scene;
     var camera;
-    var shadowMapPass = new qtek3d.prePass.ShadowMap({
+    window.shadowMapPass = new qtek3d.prePass.ShadowMap({
         useVSM : true
     });
 
@@ -57,24 +56,26 @@ define(['qtek', 'knockout', 'ko.mapping'], function(qtek, ko, koMapping){
         });
         firstPersonControl.enable();
 
-        var light = new qtek3d.light.Directional({
+        window.light = new qtek3d.light.Point({
             intensity : 0.9,
-            shadowCamera : {
-                left : -50,
-                right : 50,
-                top : 50,
-                bottom : -50,
-                near : 0,
-                far : 200
-            },
+            // shadowCamera : {
+            //     left : -50,
+            //     right : 50,
+            //     top : 50,
+            //     bottom : -50,
+            //     near : 0,
+            //     far : 200
+            // },
+            castShadow : true,
             shadowResolution : 512,
-            shadowBias : 0.01
+            shadowBias : 0.01,
+            range : 100
         });
-        light.position.set(0, 50, 7)
+        light.position.set(10, 10, 0);
         light.lookAt(new qtek.core.Vector3(0, 0, 0));
         scene.add(light);
         scene.add(new qtek3d.light.Ambient({
-            intensity : 0.3
+            intensity : 0.2
         }));
 
         scene.traverse(function(node) {
@@ -84,18 +85,19 @@ define(['qtek', 'knockout', 'ko.mapping'], function(qtek, ko, koMapping){
             }
             if (node.material) {
                 // node.material.shader.define('fragment', 'RENDER_NORMAL');
+                // node.material.shader.disableTexture('diffuseMap');
+                // node.material.shader.disableTexture('normalMap');
             }
-        })
+        });
 
+        shadowMapPass.render(renderer, scene);
         animation.on('frame', function(deltaTime) {
             var time = performance.now();
-            shadowMapPass.render(renderer, scene);
             var shadowPassTime = performance.now() - time;
             time = performance.now();
             var renderInfo = renderer.render(scene, camera);
             var renderTime = performance.now() - time;
-            renderer.clear = renderer.gl.DEPTH_BUFFER_BIT;
-            shadowMapPass.renderDebug(renderer);
+            // shadowMapPass.renderDebug(renderer);
             // Update debug render info
             renderInfo.shadowPassTime = shadowPassTime;
             renderInfo.renderTime = renderTime;
@@ -121,7 +123,7 @@ define(['qtek', 'knockout', 'ko.mapping'], function(qtek, ko, koMapping){
     debugInfoVM.useWireframe = ko.observable(false);
 
     debugInfoVM.useWireframe.subscribe(function(value){
-        if( value ){
+        if(value){
             scene.traverse(function(node){
                 if(node.geometry){
                     node.mode = qtek3d.Mesh.LINES
