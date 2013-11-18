@@ -1,0 +1,26 @@
+<html>
+<head>
+    <title></title>
+    <meta charset="utf-8">
+    <link rel="stylesheet" href="../style/pace.css" />
+    <script type="application/javascript" src="../lib/pace.js"></script>
+    <script type="application/javascript" src="../lib/require.js"></script>
+</head>
+<body style="margin:0px">
+    <canvas id="Main"></canvas>
+
+    <script type="application/javascript">
+        requirejs.config({
+            'paths' : {
+                'qtek' : "../lib/qtek",
+                '_' : '../lib/lodash.compat',
+                "knockout" : "../lib/knockout",
+                "ko.mapping" : "../lib/ko.mapping",
+                "common" : "../common",
+                "text" : "../lib/text"
+            }
+        })
+        require(["js/main.js"], function(){})
+    </script>
+</body>
+</html>

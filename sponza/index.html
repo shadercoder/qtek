@@ -97,20 +97,6 @@
             <div data-bind="text:loading"></div>
         </div>
         <script type="application/javascript">
-            // requirejs.config({
-            //     'baseUrl' : '../../src',
-            //     'paths' : {
-            //         '_' : '../thirdparty/lodash.compat',
-            //         'glmatrix' : '../thirdparty/gl-matrix',
-            //         "knockout" : "../gh-pages/lib/knockout",
-            //         "ko.mapping" : "../gh-pages/lib/ko.mapping"
-            //     },
-            //     'shim' : {
-            //         '_' : {
-            //             exports : '_'
-            //         }
-            //     }
-            // });
             requirejs.config({
                 'paths' : {
                     'qtek' : "../lib/qtek",
@@ -120,7 +106,6 @@
                 }
             })
             require(["js/sponza.js"], function(){
-
             })
         </script>
     </body>

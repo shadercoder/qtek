@@ -1,6 +1,6 @@
 <html>
 <head>
-    <title></title>
+    <title>Mini Cooper</title>
     <meta charset="utf-8">
     <link rel="stylesheet" href="../style/pace.css" />
     <script type="application/javascript" src="../lib/pace.js"></script>
@@ -98,6 +98,7 @@
 
             for (var matName in REFLECT_MATS) {
                 var mat = qtek3d.Material.getMaterial(matName);
+                mat.shader = mat.shader.clone();
                 mat.shader.enableTexture("environmentMap");
                 mat.set({
                     "environmentMap": texture,

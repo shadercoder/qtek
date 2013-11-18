@@ -20,7 +20,7 @@ define(['qtek', 'knockout', 'ko.mapping'], function(qtek, ko, koMapping){
 
     var renderer = new qtek3d.Renderer({
         canvas : document.getElementById( "Main"),
-        devicePixelRatio : 1.0
+        // devicePixelRatio : 1.0
     });
     renderer.resize(window.innerWidth, window.innerHeight);
     var animation = new qtek.animation.Animation();
@@ -90,9 +90,9 @@ define(['qtek', 'knockout', 'ko.mapping'], function(qtek, ko, koMapping){
             }
         });
 
-        shadowMapPass.render(renderer, scene);
         animation.on('frame', function(deltaTime) {
             var time = performance.now();
+            shadowMapPass.render(renderer, scene);
             var shadowPassTime = performance.now() - time;
             time = performance.now();
             var renderInfo = renderer.render(scene, camera);
