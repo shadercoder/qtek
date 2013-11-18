@@ -6824,7 +6824,7 @@
                 },
                 {
                     "indices": "indices_92",
-                    "material": "Misc",
+                    "material": "Misc_0",
                     "semantics": {
                         "NORMAL": "attribute_90",
                         "POSITION": "attribute_89",
@@ -6852,7 +6852,7 @@
             "primitives": [
                 {
                     "indices": "indices_100",
-                    "material": "Misc",
+                    "material": "Misc_0",
                     "semantics": {
                         "NORMAL": "attribute_98",
                         "POSITION": "attribute_97",
@@ -6898,7 +6898,7 @@
             "primitives": [
                 {
                     "indices": "indices_116",
-                    "material": "Misc",
+                    "material": "Misc_0",
                     "semantics": {
                         "NORMAL": "attribute_114",
                         "POSITION": "attribute_113",
@@ -6907,7 +6907,7 @@
                 },
                 {
                     "indices": "indices_120",
-                    "material": "Misc",
+                    "material": "Misc_3",
                     "semantics": {
                         "NORMAL": "attribute_118",
                         "POSITION": "attribute_117",
@@ -6995,7 +6995,7 @@
             "primitives": [
                 {
                     "indices": "indices_148",
-                    "material": "Misc",
+                    "material": "Misc_5",
                     "semantics": {
                         "NORMAL": "attribute_146",
                         "POSITION": "attribute_145",
@@ -7106,7 +7106,7 @@
             "primitives": [
                 {
                     "indices": "indices_180",
-                    "material": "Misc",
+                    "material": "Misc_7",
                     "semantics": {
                         "NORMAL": "attribute_178",
                         "POSITION": "attribute_177",
@@ -7129,7 +7129,7 @@
             "primitives": [
                 {
                     "indices": "indices_188",
-                    "material": "Misc",
+                    "material": "Misc_0",
                     "semantics": {
                         "NORMAL": "attribute_186",
                         "POSITION": "attribute_185",
@@ -7138,7 +7138,7 @@
                 },
                 {
                     "indices": "indices_192",
-                    "material": "Misc",
+                    "material": "Misc_0",
                     "semantics": {
                         "NORMAL": "attribute_190",
                         "POSITION": "attribute_189",
@@ -7235,7 +7235,7 @@
             "primitives": [
                 {
                     "indices": "indices_224",
-                    "material": "Misc",
+                    "material": "Misc_0",
                     "semantics": {
                         "NORMAL": "attribute_222",
                         "POSITION": "attribute_221",
@@ -7253,7 +7253,7 @@
                 },
                 {
                     "indices": "indices_232",
-                    "material": "Misc",
+                    "material": "Misc_0",
                     "semantics": {
                         "NORMAL": "attribute_230",
                         "POSITION": "attribute_229",

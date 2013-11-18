@@ -17,7 +17,8 @@ define(function(require) {
 
     var envMap = new qtek3d.texture.TextureCube({
         width : 512,
-        height : 512
+        height : 512,
+        type :  qtek3d.Texture.FLOAT
     })
     var atmospherePass = new Atmosphere({
         texture : envMap
@@ -32,7 +33,7 @@ define(function(require) {
             aspect : renderer.canvas.width/renderer.canvas.height,
             far : 1000
         });
-        camera.position.set(1, 1, 4);
+        camera.position.set(2, 0.8, 5);
         camera.lookAt(scene.position);
         camera.aspect = renderer.canvas.width / renderer.canvas.height;
 
@@ -48,7 +49,7 @@ define(function(require) {
 
         var shader = qtek3d.shader.library.get("buildin.lambert");
 
-        var material = new qtek3d.Material({
+        var planeMat = new qtek3d.Material({
             shader : shader
         });
         // Add Plane
@@ -58,13 +59,15 @@ define(function(require) {
         });
         var planeMesh = new qtek3d.Mesh({
             geometry : plane,
-            material : material
+            material : planeMat
         });
         planeMesh.rotation.rotateX(-Math.PI/2);
         planeMesh.scale.set(100, 100, 100);
         scene.add(planeMesh);
 
-        var light = new qtek3d.light.Directional();
+        var light = new qtek3d.light.Directional({
+            intensity : 0.8
+        });
         light.shadowCamera = {
             left : -3,
             right : 3,
@@ -75,12 +78,12 @@ define(function(require) {
         };
         light.shadowResolution = 512;
         light.shadowBias = 0.002;   
-        light.position.set(1, 1.0, 0);
+        light.position.set(2, 2, 0);
         light.lookAt(new qtek.core.Vector3(0, 0, 0), new qtek.core.Vector3(0, 1, 1));
 
         scene.add(light);
         scene.add(new qtek3d.light.Ambient({
-            intensity : 0.1
+            intensity : 0.01
         }));
 
         var skybox = new qtek3d.plugin.Skybox({
@@ -98,15 +101,13 @@ define(function(require) {
                 if (node.geometry.convertToGeometry) {
                     node.geometry = node.geometry.convertToGeometry();
                 }
+                node.culling = false;
             }
         });
 
         var REFLECT_MATS = {
             'Body paint' : 0.1,
-            'Material #595' : 0.6,
-            // 'mini_windows_002' : 0.2,
-            // 'mini_headlight_gl_001' : 0.2,
-            // 'DISC' : 0.2
+            'Material #595' : 0.4
         }
         qtek3d.Material.getMaterial('Body paint').set('color', [1.0, 1.0, 1.0]);
 
@@ -119,14 +120,14 @@ define(function(require) {
                 "reflectivity" : REFLECT_MATS[matName]
             });
         }
+        planeMat.shader.enableTexture('environmentMap');
+        planeMat.set('environmentMap', envMap);
+        planeMat.set('reflectivity', 0.2);
 
         var clearAll = renderer.clear;
         animation.on('frame', function() {
             shadowMapPass.render(renderer, scene);
             renderer.render(scene, camera);
-            // renderer.clear = qtek3d.Renderer.CLEAR_DEPTH;
-            // shadowMapPass.renderDebug(renderer);
-            // renderer.clear = clearAll;
         });
     });
 });

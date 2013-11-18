@@ -17,22 +17,36 @@ uniform float km : 0.0010;      // Mie scattering constant
 uniform float ESun : 20;        // Sun brightness
 uniform float scaleDepth : 0.25;// The scale depth (i.e. the altitude at which the atmosphere's average density is found)
 
-const int nSamples = 10;
-const float fSamples = 10.0;
+const int nSamples = 2;
+const float fSamples = 2.0;
 
 varying vec3 v_Color;
 varying vec3 v_SecondaryColor;
 varying vec3 v_Direction;
 varying vec3 v_LightDirection;
 
-float scale(float fCos)
-{
+float scale(float fCos){
     float x = 1.0 - fCos;
     return scaleDepth * exp(-0.00287 + x*(0.459 + x*(3.83 + x*(-6.80 + x*5.25))));
 }
+// http://codeflow.org/entries/2011/apr/13/advanced-webgl-part-2-sky-rendering/
+float horizonExtinction(vec3 position, vec3 dir, float radius){
+    float u = dot(dir, -position);
+    if(u<0.0){
+        return 1.0;
+    }
+    vec3 near = position + u*dir;
+    if(length(near) < radius){
+        return 0.0;
+    }
+    else{
+        vec3 v2 = normalize(near)*radius - position;
+        float diff = acos(dot(normalize(v2), dir));
+        return smoothstep(0.0, 1.0, pow(diff*2.0, 3.0));
+    }
+}
 
-void main(void)
-{
+void main(void){
     vec3 worldPosition = position * outerRadius;
     float cameraHeight = length(cameraPos);
     float fScale = 1.0 / (outerRadius - innerRadius);
@@ -54,6 +68,7 @@ void main(void)
     float scaledLength = sampleLength * fScale;
     vec3 sampleRay = ray * sampleLength;
     vec3 samplePoint = startPos + sampleRay * 0.5;
+    float cameraExtinction = horizonExtinction(cameraPos, ray, innerRadius - 0.15);
 
     // Now loop through the sample rays
     vec3 v3FrontColor = vec3(0.0, 0.0, 0.0);
@@ -66,13 +81,14 @@ void main(void)
         float cameraAngle = dot(ray, samplePoint) / height;
         float scatter = (startOffset + depth*(scale(lightAngle) - scale(cameraAngle)));
         vec3 attenuate = exp(-scatter * (invWavelength * kr * 4.0 * PI + km * 4.0 * PI));
-        v3FrontColor += attenuate * (depth * scaledLength);
+        float extinction = horizonExtinction(samplePoint, lightDirection, innerRadius - 0.15);
+        v3FrontColor += attenuate * (depth * scaledLength) * extinction;
         samplePoint += sampleRay;
     }
 
-    v_Color = v3FrontColor * invWavelength * kr * ESun;
+    v_Color = v3FrontColor * invWavelength * kr * ESun * cameraExtinction;
     // Calculate the attenuation factor for the ground
-    v_SecondaryColor = v3FrontColor * km * ESun;
+    v_SecondaryColor = v3FrontColor * km * ESun * cameraExtinction;
     gl_Position = worldViewProjection * vec4(position, 1.0);
 
     v_LightDirection = lightDirection;
@@ -96,8 +112,8 @@ void main (void)
     float g2 = g * g;
     float fCos = dot(-v_LightDirection, v_Direction) / length(v_Direction);
     float fMiePhase = 1.5 * ((1.0 - g2) / (2.0 + g2)) * (1.0 + fCos*fCos) / pow(1.0 + g2 - 2.0*g*fCos, 1.5);
-    gl_FragColor = vec4(v_Color + fMiePhase * v_SecondaryColor, 1.0);
-    // gl_FragColor.a = gl_FragColor.b;
+    gl_FragColor.rgb = v_Color + fMiePhase * v_SecondaryColor;
+    gl_FragColor.a = gl_FragColor.b;
 }
 
 @end
