@@ -3,6 +3,7 @@ define(function(require) {
     var qtek = require('qtek');
     var qtek3d = qtek['3d'];
     var Atmosphere = require('common/Atmosphere');
+    var IBL = require('common/IBL');
 
     var renderer = new qtek3d.Renderer({
         canvas : document.getElementById("Main"),
@@ -53,12 +54,12 @@ define(function(require) {
             shader : shader
         });
         // Add Plane
-        var plane = new qtek3d.geometry.Plane({
+        var planeGeo = new qtek3d.geometry.Plane({
             widthSegments : 1,
             heightSegments : 1
         });
         var planeMesh = new qtek3d.Mesh({
-            geometry : plane,
+            geometry : planeGeo,
             material : planeMat
         });
         planeMesh.rotation.rotateX(-Math.PI/2);
@@ -66,7 +67,7 @@ define(function(require) {
         scene.add(planeMesh);
 
         var light = new qtek3d.light.Directional({
-            intensity : 0.8
+            intensity : 0.3
         });
         light.shadowCamera = {
             left : -3,
@@ -78,13 +79,10 @@ define(function(require) {
         };
         light.shadowResolution = 512;
         light.shadowBias = 0.002;   
-        light.position.set(2, 2, 0);
+        light.position.set(2, 1.0, 0);
         light.lookAt(new qtek.core.Vector3(0, 0, 0), new qtek.core.Vector3(0, 1, 1));
 
         scene.add(light);
-        scene.add(new qtek3d.light.Ambient({
-            intensity : 0.01
-        }));
 
         var skybox = new qtek3d.plugin.Skybox({
             renderer : renderer,
@@ -96,6 +94,14 @@ define(function(require) {
         atmospherePass.light = light;
         atmospherePass.render(renderer);
 
+        var IBLShader = new qtek3d.Shader({
+            vertex : qtek3d.Shader.source('buildin.phong.vertex'),
+            fragment : qtek3d.Shader.source('IBL.fragment')
+        });
+        IBLShader.enableTexture('diffuseMap');
+        var IBLShaderNoDiffuse = IBLShader.clone();
+        IBLShaderNoDiffuse.disableTexture('diffuseMap');
+        var GGXLookup = IBL.generateGGXLookup();
         scene.traverse(function(node) {
             if (node.geometry) {
                 if (node.geometry.convertToGeometry) {
@@ -103,26 +109,47 @@ define(function(require) {
                 }
                 node.culling = false;
             }
+            if (node.material) {
+                var diffuseMap = node.material.get('diffuseMap');
+                var color = node.material.get('color');
+                var shininess = node.material.get('shininess') || 0;
+                var transparent = node.material.transparent;
+                var alpha = node.material.get('alpha');
+                if (shininess === 0) {
+                    var roughness = 1.0;
+                } else {
+                    var roughness = 1 / shininess;
+                    roughness*= 40;
+                    roughness = Math.min(roughness, 0.9);
+                }
+                node.material.dispose();
+                if (diffuseMap){
+                    node.material = new qtek3d.Material({
+                        name : node.material.name,
+                        shader : IBLShader
+                    });
+                    node.material.set('diffuseMap', diffuseMap);
+                } else {
+                    node.material = new qtek3d.Material({
+                        name : node.material.name,
+                        shader : IBLShaderNoDiffuse
+                    });
+                }
+                node.material.set('color', color);
+                node.material.set('environmentMap', atmospherePass.mipmaps[3]);
+                node.material.set('GGXLookup', GGXLookup);
+                node.material.set('roughness', roughness);
+                if (transparent) {
+                    node.material.transparent = true;
+                    node.material.set('alpha', alpha);
+                    node.castShadow = false;
+                }
+                node.material.set('ambient', 0.3)
+            }
         });
+        planeMesh.material.set('roughness', 0.2);
+        planeMesh.material.set('environmentMap', atmospherePass.mipmaps[5]);
 
-        var REFLECT_MATS = {
-            'Body paint' : 0.1,
-            'Material #595' : 0.4
-        }
-        qtek3d.Material.getMaterial('Body paint').set('color', [1.0, 1.0, 1.0]);
-
-        for (var matName in REFLECT_MATS) {
-            var mat = qtek3d.Material.getMaterial(matName);
-            mat.shader = mat.shader.clone();
-            mat.shader.enableTexture("environmentMap");
-            mat.set({
-                "environmentMap": envMap,
-                "reflectivity" : REFLECT_MATS[matName]
-            });
-        }
-        planeMat.shader.enableTexture('environmentMap');
-        planeMat.set('environmentMap', envMap);
-        planeMat.set('reflectivity', 0.2);
 
         var clearAll = renderer.clear;
         animation.on('frame', function() {

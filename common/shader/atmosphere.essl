@@ -2,6 +2,7 @@
 @export atmosphere.vertex
 
 #define PI 3.1415925
+#define SAMPLES 2
 
 attribute vec3 position : POSITION;
 
@@ -16,9 +17,6 @@ uniform float kr : 0.0025;      // Rayleigh scattering constant
 uniform float km : 0.0010;      // Mie scattering constant
 uniform float ESun : 20;        // Sun brightness
 uniform float scaleDepth : 0.25;// The scale depth (i.e. the altitude at which the atmosphere's average density is found)
-
-const int nSamples = 2;
-const float fSamples = 2.0;
 
 varying vec3 v_Color;
 varying vec3 v_SecondaryColor;
@@ -64,7 +62,7 @@ void main(void){
     float startOffset = depth*scale(startAngle);
 
     // Initialize the scattering loop variables
-    float sampleLength = far / fSamples;
+    float sampleLength = far / float(SAMPLES);
     float scaledLength = sampleLength * fScale;
     vec3 sampleRay = ray * sampleLength;
     vec3 samplePoint = startPos + sampleRay * 0.5;
@@ -73,7 +71,7 @@ void main(void){
     // Now loop through the sample rays
     vec3 v3FrontColor = vec3(0.0, 0.0, 0.0);
     vec3 attenuate;
-    for(int i=0; i<nSamples; i++)
+    for(int i=0; i<SAMPLES; i++)
     {
         float height = length(samplePoint);
         float depth = exp(scaleOverScaleDepth * (innerRadius - height));
@@ -112,8 +110,9 @@ void main (void)
     float g2 = g * g;
     float fCos = dot(-v_LightDirection, v_Direction) / length(v_Direction);
     float fMiePhase = 1.5 * ((1.0 - g2) / (2.0 + g2)) * (1.0 + fCos*fCos) / pow(1.0 + g2 - 2.0*g*fCos, 1.5);
-    gl_FragColor.rgb = v_Color + fMiePhase * v_SecondaryColor;
-    gl_FragColor.a = gl_FragColor.b;
+    gl_FragColor.rgb = max(v_Color + fMiePhase * v_SecondaryColor, vec3(0.0));
+    gl_FragColor.a = 1.0;
+    // gl_FragColor.a = gl_FragColor.b;
 }
 
 @end
