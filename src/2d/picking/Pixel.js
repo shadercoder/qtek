@@ -9,7 +9,7 @@ define(function(require) {
             width : 100,
             height : 100,
 
-            LookupOffset : 1,
+            lookupOffset : 1,
 
             _canvas : null,
             _context : null,
@@ -66,7 +66,7 @@ define(function(require) {
 
             if (node.draw && node.enablePicking === true) {
                 var lut = this._lookupTable;
-                var rgb = packID(lut.length + this.LookupOffset);
+                var rgb = packID(lut.length + this.lookupOffset);
                 var color = 'rgb(' + rgb.join(',') + ')';
                 this._lookupTable.push(node);
                 
@@ -90,12 +90,12 @@ define(function(require) {
 
             // Box sampler, to avoid the problem of anti aliasing
             var ids = [
-                        this._sample(x, y),
-                        this._sample(x-1, y),
-                        this._sample(x+1, y),
-                        this._sample(x, y-1),
-                        this._sample(x, y+1),
-                    ];
+                this._sample(x, y),
+                this._sample(x-1, y),
+                this._sample(x+1, y),
+                this._sample(x, y-1),
+                this._sample(x, y+1),
+            ];
             var count = {};
             var max = 0;
             var maxId;
@@ -112,7 +112,7 @@ define(function(require) {
                 }
             }
 
-            var id = maxId - this.LookupOffset;
+            var id = maxId - this.lookupOffset;
 
             if (id && max >=2) {
                 var el = this._lookupTable[id];
