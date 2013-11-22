@@ -5,51 +5,51 @@ define(function(require) {
     var PixelPicking = Base.derive(function() {
 
         return {
-            layer : null,
-
             downSampleRatio : 1,
+            width : 100,
+            height : 100,
 
-            offset : 1,
+            LookupOffset : 1,
 
             _canvas : null,
             _context : null,
             _imageData : null,
 
             _lookupTable : [],
-
         }
 
     }, function(){
         this.init();
     }, {
         init : function() {
-            if ( ! this.layer) {
-                return;
-            }
             var canvas = document.createElement("canvas");
-            canvas.width = this.layer.canvas.width * this.downSampleRatio;
-            canvas.height = this.layer.canvas.height * this.downSampleRatio;
-
-            this.layer.on("resize", function(){
-                canvas.width = this.layer.canvas.width * this.downSampleRatio;
-                canvas.height = this.layer.canvas.height * this.downSampleRatio;
-            }, this);
-
             this._canvas = canvas;
             this._context = canvas.getContext("2d");
+
+            this.resize(this.width, this.height);
         },
         setPrecision : function(ratio) {
-            this._canvas.width = this.layer.canvas.width * ratio;
-            this._canvas.height = this.layer.canvas.height * ratio;
+            this._canvas.width = this.width * ratio;
+            this._canvas.height = this.height * ratio;
             this.downSampleRatio = ratio;
         },
-        update : function() {
+        resize : function(width, height) {
+            this._canvas.width = width * this.downSampleRatio;
+            this._canvas.height = height * this.downSampleRatio;
+            this.width = width;
+            this.height = height;
+        },
+        update : function(scene, camera) {
             var ctx = this._context;
             ctx.clearRect(0, 0, this._canvas.width, this._canvas.height);
             ctx.save();
             ctx.scale(this.downSampleRatio, this.downSampleRatio);
             this._lookupTable.length = 0;
-            this._renderNode(this.layer, ctx);
+            if (camera) {
+                var vm = camera.getViewMatrix()._array;
+                ctx.transform(vm[0], vm[1], vm[2], vm[3], vm[4], vm[5]);   
+            }
+            this._renderNode(scene, ctx);
             ctx.restore();
             // Cache the image data
             // Get image data is slow
@@ -66,7 +66,7 @@ define(function(require) {
 
             if (node.draw && node.enablePicking === true) {
                 var lut = this._lookupTable;
-                var rgb = packID(lut.length + this.offset);
+                var rgb = packID(lut.length + this.LookupOffset);
                 var color = 'rgb(' + rgb.join(',') + ')';
                 this._lookupTable.push(node);
                 
@@ -112,7 +112,7 @@ define(function(require) {
                 }
             }
 
-            var id = maxId - this.offset;
+            var id = maxId - this.LookupOffset;
 
             if (id && max >=2) {
                 var el = this._lookupTable[id];
@@ -125,9 +125,9 @@ define(function(require) {
             y = Math.max(Math.min(y, this._canvas.height), 1);
             var offset = ((y-1) * this._canvas.width + (x-1))*4;
             var data = this._imageData;
-            var r = data[offset],
-                g = data[offset+1],
-                b = data[offset+2];
+            var r = data[offset];
+            var g = data[offset+1];
+            var b = data[offset+2];
 
             return unpackID(r, g, b);
         }

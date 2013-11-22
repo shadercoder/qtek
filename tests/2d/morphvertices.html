@@ -26,11 +26,15 @@
             var minRadius = 80;
 
             var canvas = document.getElementById("Main");
-            var layer = new qtek2d.Layer({
-                canvas : canvas,
-                enablePicking : false
+            var renderer = new qtek2d.Renderer({
+                canvas : canvas
             });
-            layer.resize(window.innerWidth, window.innerHeight);
+            renderer.resize(window.innerWidth, window.innerHeight);
+            var scene = new qtek2d.Scene();
+            var layer = new qtek.Layer({
+                renderer : renderer,
+                scene : scene
+            });
 
             var pointsPrev = generatePoints();
             var pointsNext = generatePoints();
@@ -52,7 +56,7 @@
             path.pushPoints(pointsPrev);
             path.smooth();
             path.position.set(canvas.width / 2, canvas.height / 2);
-            layer.add(path);
+            scene.add(path);
 
             var pointsArr = path.segments.map(function(seg) {
                 return seg.point._array;

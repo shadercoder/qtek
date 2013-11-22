@@ -1,9 +1,8 @@
 define(function(require) {
 
-    var Node = require('./Node');
-    var PixelPicking = require('./picking/Pixel');
+    var Base = require('core/Base');
 
-    var Layer = Node.derive(function() {
+    var Renderer = Base.derive(function() {
         return {
             canvas : null,
 
@@ -13,11 +12,6 @@ define(function(require) {
             
             height : 0,
             
-            clearColor : '',
-
-            enablePicking : true,
-
-            picking : null
         }
     }, function() {
         if (!this.canvas) {
@@ -40,43 +34,30 @@ define(function(require) {
         this.ctx = this.canvas.getContext('2d');
 
         this.ctx.__GUID__ = this.__GUID__;
-
-        if (this.enablePicking) {
-            this.picking = new PixelPicking({
-                layer : this
-            });
-        }
     }, {
+
         resize : function(width, height) {
             this.canvas.width = width;
             this.canvas.height = height;
 
             this.width = width;
             this.height = height;
-
-            this.trigger("resize", width, height);
         },
 
-        render : function() {
+        render : function(scene, camera) {
             if (this.clearColor) {
                 this.ctx.fillStyle = this.clearColor;
                 this.ctx.fillRect(0, 0, this.width, this.height);
             } else {
                 this.ctx.clearRect(0, 0, this.width, this.height);
             }
-
-            Node.prototype.render.call(this, this.ctx);
-
-            if (this.enablePicking) {
-                this.picking.update();
+            if (camera) {
+                var vm = camera.getViewMatrix()._array;
+                this.ctx.transform(vm[0], vm[1], vm[2], vm[3], vm[4], vm[5]);   
             }
-        },
-
-        setZ : function(z) {
-            this.z = z;
-            this.canvas.style.zIndex = z;
+            scene.render(this.ctx);
         }
     });
 
-    return Layer;
-} )
+    return Renderer;
+});

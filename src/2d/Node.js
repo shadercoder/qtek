@@ -10,6 +10,10 @@ define(function(require) {
     var Style = require("./Style");
     var util = require("util/util");
 
+    var glMatrix = require('glmatrix');
+    var mat2d = glMatrix.mat2d;
+    var vec2 = glMatrix.vec2;
+
     var Node = Base.derive(function() {
         return {
 
@@ -60,24 +64,26 @@ define(function(require) {
         }
     }, {
         updateTransform : function() {
-            var transform = this.transform;
+            var m2d = this.transform._array;
+            if (! this.autoUpdate) {
+                return;
+            }
             if (! this.scale._dirty &&
                 ! this.position._dirty &&
                 this.rotation === this._prevRotation) {
                 return;
             }
-            if (! this.autoUpdate) {
-                return;
-            }
-            transform.identity();
-            transform.scale(this.scale);
-            transform.rotate(this.rotation);
-            transform.translate(this.position);
+            mat2d.identity(m2d, m2d)
+            mat2d.scale(m2d, m2d, this.scale._array);
+            mat2d.rotate(m2d, m2d, this.rotation);
+            mat2d.translate(m2d, m2d, this.position._array);
 
             this._prevRotation = this.rotation;
+            this.scale._dirty = false;
+            this.position._dirty = false;
         },
         updateTransformInverse : function() {
-            this.transformInverse.copy(this.transform).invert();
+            mat2d.invert(this.transformInverse._array, this.transform._array);
         },
         // intersect with the bounding box
         intersectBoundingBox : function(x, y) {
@@ -113,8 +119,6 @@ define(function(require) {
             this.trigger("beforerender", [context]);
 
             var renderQueue = this.getSortedRenderQueue();
-            // TODO : some style should not be inherited ?
-            context.save();
             if (this.style) {
                 if (!this.style instanceof Array) {
                     for (var i = 0; i < this.style.length; i++) {
@@ -124,6 +128,8 @@ define(function(require) {
                     this.style.bind(context);
                 }
             }
+            // TODO : some style should not be inherited ?
+            context.save();
             this.updateTransform();
             var m = this.transform._array;
             context.transform(m[0], m[1], m[2], m[3], m[4], m[5]);
@@ -158,34 +164,27 @@ define(function(require) {
         intersect : function(x, y, eventName) {},
 
         // Get transformed bounding rect
-        getBoundingRect : function() {
-
-            return {
-                left : null,
-                top : null,
-                width : null,
-                height : null
-            }
-        },
-
-        getWidth : function() {
-            
-        },
-
-        getHeight : function() {
-            
-        },
+        // getBoundingRect : function() {
+        //     return {
+        //         left : null,
+        //         top : null,
+        //         width : null,
+        //         height : null
+        //     }
+        // },
 
         getSortedRenderQueue : function() {
             var renderQueue = this._children.slice();
-            renderQueue.sort(function(x, y) {
-                if (x.z === y.z)
-                    return x.__GUID__ > y.__GUID__ ? 1 : -1;
-                return x.z > y.z ? 1 : -1 ;
-            });
+            renderQueue.sort(_zSortFunction);
             return renderQueue; 
         }
-    })
+    });
+
+    function _zSortFunction(x, y) {
+        if (x.z === y.z)
+            return x.__GUID__ > y.__GUID__ ? 1 : -1;
+        return x.z > y.z ? 1 : -1 ;
+    }
 
     return Node;
 })

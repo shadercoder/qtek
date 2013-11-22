@@ -23,11 +23,15 @@
             var qtek2d = qtek['2d'];
 
             var canvas = document.getElementById("Main");
-            var layer = new qtek2d.Layer({
-                canvas : canvas,
-                enablePicking : false
+            var renderer = new qtek2d.Renderer({
+                canvas : canvas
             });
-            layer.resize(window.innerWidth, window.innerHeight);
+            renderer.resize(window.innerWidth, window.innerHeight);
+            var scene = new qtek2d.Scene();
+            var layer = new qtek.Layer({
+                renderer : renderer,
+                scene : scene
+            })
 
             var NUMBER = 10;
             var animation = new qtek.animation.Animation({
@@ -42,19 +46,22 @@
                     })
                 });
                 circle.position.set(
-                    Math.random() * layer.canvas.width,
-                    Math.random() * layer.canvas.height
+                    Math.random() * renderer.canvas.width,
+                    Math.random() * renderer.canvas.height
                 );
-                layer.add(circle);
+                scene.add(circle);
                 var deferred = animation.animate(circle.position, {
                     loop : true
                 });
                 for (var j = 1; j < 20; j++) {
                     deferred.when(j * 500, {
                         _array : [
-                            Math.random() * layer.canvas.width,
-                            Math.random() * layer.canvas.height
+                            Math.random() * renderer.canvas.width,
+                            Math.random() * renderer.canvas.height
                         ]
+                    });
+                    deferred.during(function(target, percent) {
+                        target._dirty = true;
                     });
                 }
                 deferred.start('spline');

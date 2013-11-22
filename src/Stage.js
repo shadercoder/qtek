@@ -2,7 +2,15 @@ define(function(require) {
 
     var Base = require('core/Base');
     var Layer = require('./Layer');
+    var Animation = require('animation/Animation');
     var QEvent = require('core/Event');
+
+    var Scene3D = require('3d/Scene');
+    var Scene2D = require('2d/Scene');
+    var Renderer3D = require('3d/Renderer');
+    var Renderer2D = require('2d/Renderer');
+    var Camera3D = require('3d/camera');
+    var Camera2D = require('2d/camera');
 
     var Stage = Base.derive(function() {
         return {
@@ -44,12 +52,46 @@ define(function(require) {
         this.container.addEventListener("mousedown", this._eventProxy.bind(this, 'mousedown'));
         this.container.addEventListener("mouseup", this._eventProxy.bind(this, 'mouseup'));
         this.container.addEventListener("mouseout", this._mouseOutHandler.bind(this));
+
+        this.animation = new Animation();
+        this.animation.start();
+
+        this.animation.on('frame', function() {
+            this.trigger('frame');
+        }, this);
     }, {
 
-        createLayer : function(options) {
+        /**
+         * Create a new 2d layer
+         * @param {qtek.2d.Renderer} [renderer]
+         * @param {qtek.2d.Scene} [scene]
+         * @param {qtek.2d.Camera} [camera]
+         * @return {qtek.Layer}
+         */
+        create2DLayer : function(options) {
             options = options || {};
-            options.width = this.width;
-            options.height = this.height;
+            options.renderer = options.renderer || new Renderer2D();
+            options.camera = options.camera || new Camera2D();
+            options.scene = options.scene || new Scene2D();
+
+            var layer = new Layer(options);
+            this.addLayer(layer);
+
+            return layer;
+        },
+
+        /**
+         * Create a new 3d layer
+         * @param {qtek.3d.Renderer} [renderer]
+         * @param {qtek.3d.Scene} [scene]
+         * @param {qtek.3d.Camera} [camera]
+         * @return {qtek.Layer}
+         */
+        create3DLayer : function(options) {
+            options = options || {};
+            options.renderer = options.renderer || new Renderer3D();
+            options.camera = options.camera || new Camera3D();
+            options.scene = options.scene || new Scene3D();
 
             var layer = new Layer(options);
             this.addLayer(layer);
@@ -58,14 +100,22 @@ define(function(require) {
         },
 
         addLayer : function(layer) {
-            layer.resize(this.width, this.height);
+            if (!layer.renderer) {
+                console.warn('Layer don\'t have renderer');
+                return;
+            } else if (!layer.renderer.canvas) {
+                console.warn('Layer renderer don\'t have canvas');
+                return;
+            }
+            var canvas = layer.renderer.canvas;
 
-            var canvas = layer.canvas;
+            layer.renderer.resize(this.width, this.height);
+
             canvas.style.position = 'absolute';
             canvas.style.left = '0px';
             canvas.style.top = '0px';
 
-            this.container.appendChild(layer.canvas);
+            this.container.appendChild(canvas);
 
             this._layers.push(layer);
             this._layersSorted = this._layers.slice().sort(function(a, b){
@@ -88,8 +138,6 @@ define(function(require) {
             for (var i = 0; i < this._layers.length; i++) {
                 this._layers[i].resize(width, height);
             }
-
-            this.trigger("resize", width, height);
         },
 
         render : function() {
@@ -101,22 +149,22 @@ define(function(require) {
         _eventProxy : function(type, e) {
             var el = this._findTrigger(e);
             if (el) {
-                QEvent.throw(type, el, this._assembleE(e));
+                QEvent.throw(type, el, this._assembleEvent(e));
             }
         },
 
         _mouseMoveHandler : function(e) {
             var el = this._findTrigger(e);
             if (el) {
-                QEvent.throw('mousemove', el, this._assembleE(e));
+                QEvent.throw('mousemove', el, this._assembleEvent(e));
             }
 
             if (this._mouseOverEl !== el) {
                 if (this._mouseOverEl) {
-                    QEvent.throw('mouseout', this._mouseOverEl, this._assembleE(e));
+                    QEvent.throw('mouseout', this._mouseOverEl, this._assembleEvent(e));
                 }
                 if (el) {
-                    QEvent.throw('mouseover', el, this._assembleE(e));
+                    QEvent.throw('mouseover', el, this._assembleEvent(e));
                 }
                 this._mouseOverEl = el;
             }
@@ -124,26 +172,26 @@ define(function(require) {
 
         _mouseOutHandler : function(e) {
             if (this._mouseOverEl) {
-                QEvent.throw('mouseout', this._mouseOverEl, this._assembleE(e));
+                QEvent.throw('mouseout', this._mouseOverEl, this._assembleEvent(e));
             }
         },
 
         _findTrigger : function(e) {
             var container = this.container;
             var clientRect = container.getBoundingClientRect();
-            var x = e.pageX - clientRect.left - document.body.scrollLeft,
-                y = e.pageY - clientRect.top - document.body.scrollTop;
+            var x = e.pageX - clientRect.left - document.body.scrollLeft;
+            var y = e.pageY - clientRect.top - document.body.scrollTop;
 
             for (var i = this._layersSorted.length - 1; i >= 0 ; i--) {
                 var layer = this._layersSorted[i];
-                var el = layer.picking.pick(x, y);
+                var el = layer.pick(x, y);
                 if (el) {
                     return el;
                 }
             }
         },
 
-        _assembleE : function(e){
+        _assembleEvent : function(e){
             return {
                 pageX : e.pageX,
                 pageY : e.pageY
