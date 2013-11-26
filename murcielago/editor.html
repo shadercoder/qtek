@@ -1,0 +1,26 @@
+<html>
+    <head>
+        <title></title>
+        <meta charset="utf-8" />
+        <link rel="stylesheet" href="../style/pace.css" />
+        <script type="application/javascript" src="../lib/pace.js"></script>
+        <script type="application/javascript"></script>
+    </head>
+    <body>
+        <div id="App"></div>
+        <script>
+            requirejs.config({
+                'paths' : {
+                    'qtek' : "../lib/qtek",
+                    '_' : '../lib/lodash.compat',
+                    "knockout" : "../lib/knockout",
+                    "ko.mapping" : "../lib/ko.mapping",
+                    "common" : "../common",
+                    "text" : "../lib/text",
+                    'qpf' : "../lib/qpf"
+                }
+            });
+            require(["js/main.js"], function(){})
+        </script>
+    </body>
+</html>

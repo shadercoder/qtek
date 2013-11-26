@@ -219,7 +219,6 @@
 
         heroRoot.traverse(function(node) {
             if (node.geometry) {
-                node.geometry = node.geometry.convertToGeometry();
                 node.geometry.generateTangents();
             }
             if (node.material) {

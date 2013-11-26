@@ -40,6 +40,7 @@ define(function(require) {
             geometry : sphereGeo,
             material : material
         });
+        this._mesh.culling = false;
         this._mesh.scale.set(this.outerRadius, this.outerRadius, this.outerRadius);
 
         this._scene = new qtek3d.Scene();
@@ -59,31 +60,6 @@ define(function(require) {
             environmentMapPass.position.copy(this._camera.position);
             environmentMapPass.render(renderer, this._scene);
             // renderer.render(this._scene, this._camera);
-
-            // generate mipmaps
-            var mipmaps = this.mipmaps;
-            var size = this.texture.width;
-            var emptyScene = new qtek3d.Scene();
-            var skybox = new qtek3d.plugin.Skybox({
-                camera : this._camera,
-                renderer : renderer
-            });
-            skybox.material.set('environmentMap', this.texture);
-            mipmaps[0] = this.texture;
-            var mipmapLevel = 1;
-            while (size > 4) {
-                size /= 2;
-                var mipmap = new qtek3d.texture.TextureCube({
-                    width : size,
-                    height : size,
-                    useMipmaps : false,
-                    type : qtek3d.Texture.FLOAT
-                });
-                mipmaps[mipmapLevel++] = mipmap;
-                environmentMapPass.texture = mipmap;
-                environmentMapPass.render(renderer, emptyScene, skybox);
-            }
-            skybox.detachRenderer(renderer);
         }
     });
 

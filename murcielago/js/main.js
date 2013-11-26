@@ -1,13 +1,16 @@
 define(function(require) {
 
+    var ko = require('knockout');
+    ko.mapping = require('ko.mapping');
     var qtek = require('qtek');
     var qtek3d = qtek['3d'];
     var Atmosphere = require('common/Atmosphere');
-    var IBL = require('common/IBL');
+    var IBLClazz = require('common/IBL');
 
     var renderer = new qtek3d.Renderer({
         canvas : document.getElementById("Main"),
-        devicePixelRatio : 1.0
+        devicePixelRatio : 1.0,
+        antialias : false
     });
     renderer.resize(window.innerWidth, window.innerHeight);
     var animation = new qtek.animation.Animation();
@@ -19,7 +22,8 @@ define(function(require) {
     var envMap = new qtek3d.texture.TextureCube({
         width : 512,
         height : 512,
-        type :  qtek3d.Texture.FLOAT
+        type :  qtek3d.Texture.FLOAT,
+        useMipmap : false
     })
     var atmospherePass = new Atmosphere({
         texture : envMap
@@ -67,7 +71,7 @@ define(function(require) {
         scene.add(planeMesh);
 
         var light = new qtek3d.light.Directional({
-            intensity : 0.3
+            intensity : 0.6
         });
         light.shadowCamera = {
             left : -3,
@@ -79,14 +83,21 @@ define(function(require) {
         };
         light.shadowResolution = 512;
         light.shadowBias = 0.002;   
-        light.position.set(2, 1.0, 0);
-        light.lookAt(new qtek.core.Vector3(0, 0, 0), new qtek.core.Vector3(0, 1, 1));
+        light.position.set(2, 2, -1);
+        light.lookAt(new qtek.core.Vector3(0, 0, 0), new qtek.core.Vector3(0, 1, 0));
 
         scene.add(light);
 
+        var aidLight = new qtek3d.light.Directional({
+            intensity : 0.1,
+            castShadow : false
+        });
+        // scene.add(aidLight);
+        aidLight.position.set(-0.5, 2, -1);
+        aidLight.lookAt(new qtek.core.Vector3(0, 0, 0), new qtek.core.Vector3(0, 1, 0));
+
         var skybox = new qtek3d.plugin.Skybox({
-            renderer : renderer,
-            camera : camera
+            scene : scene
         });
         skybox.material.set('environmentMap', envMap);
         scene.update();
@@ -101,20 +112,27 @@ define(function(require) {
         IBLShader.enableTexture('diffuseMap');
         var IBLShaderNoDiffuse = IBLShader.clone();
         IBLShaderNoDiffuse.disableTexture('diffuseMap');
-        var GGXLookup = IBL.generateGGXLookup();
+        var materials = {};
         scene.traverse(function(node) {
             if (node.geometry) {
-                if (node.geometry.convertToGeometry) {
-                    node.geometry = node.geometry.convertToGeometry();
-                }
                 node.culling = false;
             }
             if (node.material) {
-                var diffuseMap = node.material.get('diffuseMap');
-                var color = node.material.get('color');
-                var shininess = node.material.get('shininess') || 0;
-                var transparent = node.material.transparent;
-                var alpha = node.material.get('alpha');
+                materials[node.material.name] = node.material;
+
+                if (node.material.transparent) {
+                    node.castShadow = false;
+                }
+            }
+        });
+        
+        var startRenderering = false;
+        IBL = new IBLClazz(renderer, envMap, function() {
+            for (var name in materials) {
+                var material = materials[name];
+                var diffuseMap = material.get('diffuseMap');
+                var color = material.get('color');
+                var shininess = material.get('shininess') || 0;
                 if (shininess === 0) {
                     var roughness = 1.0;
                 } else {
@@ -122,39 +140,96 @@ define(function(require) {
                     roughness*= 40;
                     roughness = Math.min(roughness, 0.9);
                 }
-                node.material.dispose();
                 if (diffuseMap){
-                    node.material = new qtek3d.Material({
-                        name : node.material.name,
-                        shader : IBLShader
-                    });
-                    node.material.set('diffuseMap', diffuseMap);
+                    material.attachShader(IBLShader, true);
                 } else {
-                    node.material = new qtek3d.Material({
-                        name : node.material.name,
-                        shader : IBLShaderNoDiffuse
-                    });
+                    material.attachShader(IBLShaderNoDiffuse, true);
                 }
-                node.material.set('color', color);
-                node.material.set('environmentMap', atmospherePass.mipmaps[3]);
-                node.material.set('GGXLookup', GGXLookup);
-                node.material.set('roughness', roughness);
-                if (transparent) {
-                    node.material.transparent = true;
-                    node.material.set('alpha', alpha);
-                    node.castShadow = false;
+                material.set('ambient', 0.5);
+
+                IBL.applyToMaterial(material, roughness);
+            }
+            // planeMesh.material.attachShader(qtek3d.shader.library.get('buildin.phong'));
+            IBL.applyToMaterial(planeMesh.material, 0.2);
+            planeMesh.material.set('uvRepeat', [100, 100]);
+            planeMesh.material.set('specularColor', [0.3, 0.3, 0.3]);
+            planeMesh.material.shader = planeMesh.material.shader.clone();
+            planeMesh.material.set('ambient', 0.5);
+            planeMesh.material.shader.enableTexture('diffuseMap');
+            planeMesh.material.shader.enableTexture('normalMap');
+            // planeMesh.material.shader.define('fragment', 'SAMPLE_NUMBER', 128);
+            var groundDiffuse = new qtek3d.texture.Texture2D({
+                wrapS : qtek3d.Texture.REPEAT,
+                wrapT : qtek3d.Texture.REPEAT,
+                anisotropic : 8
+            });
+            var groundNormal = new qtek3d.texture.Texture2D({
+                wrapS : qtek3d.Texture.REPEAT,
+                wrapT : qtek3d.Texture.REPEAT,
+                anisotropic : 8
+            });
+            groundDiffuse.load('assets/10_DIFFUSE.jpg');
+            groundNormal.load('assets/10_NORMAL.jpg');
+            planeMesh.geometry.generateTangents();
+            planeMesh.material.set('diffuseMap', groundDiffuse);
+            planeMesh.material.set('normalMap', groundNormal);
+
+            qtek3d.Material.getMaterial('Body paint').set('color', [1.0, 1.0, 1.0]);
+
+            startRenderering = true;
+        });
+
+        var renderInfo = {
+            fps : 0,
+            renderTime : 0,
+            frameTime : 0
+        }
+        var renderInfoVM = ko.mapping.fromJS(renderInfo);
+        ko.applyBindings(renderInfoVM, document.getElementById('render-info'));
+        var simpleMaterial = new qtek3d.Material({
+            shader : qtek3d.shader.library.get('buildin.basic')
+        });
+
+        var compositor;
+
+        var FXLoader = new qtek.loader.FX();
+        FXLoader.load('assets/fx.json');
+        FXLoader.on('load', function(_compositor) {
+            compositor = _compositor;
+            var sceneNode = new qtek3d.compositor.SceneNode({
+                name : "scene",
+                scene : scene,
+                camera : camera,
+                outputs : {
+                    color : {
+                        parameters : {
+                            width : window.innerWidth,
+                            height : window.innerHeight
+                        }
+                    }
                 }
-                node.material.set('ambient', 0.3)
+            });
+            compositor.add(sceneNode);
+
+            compositor.findNode('FXAA').setParameter('viewportSize', [window.innerWidth, window.innerHeight])
+        });
+
+        animation.on('frame', function(frameTime) {
+            if (startRenderering) {
+                var start = performance.now();
+                if (compositor) {
+                    shadowMapPass.render(renderer, scene);
+                    compositor.render(renderer);
+                }
+                var renderTime = performance.now() - start;
+                renderInfo.fps = Math.floor(1000 / frameTime);
+                renderInfo.frameTime = frameTime;
+                renderInfo.renderTime = renderTime;
             }
         });
-        planeMesh.material.set('roughness', 0.2);
-        planeMesh.material.set('environmentMap', atmospherePass.mipmaps[5]);
 
-
-        var clearAll = renderer.clear;
-        animation.on('frame', function() {
-            shadowMapPass.render(renderer, scene);
-            renderer.render(scene, camera);
-        });
+        setInterval(function() {
+            ko.mapping.fromJS(renderInfo, renderInfoVM);
+        }, 500);
     });
 });

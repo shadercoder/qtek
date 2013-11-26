@@ -1,0 +1,16 @@
+{
+    "type" : "compositor",
+    "nodes" : [
+        {
+            "name" : "FXAA",
+            "shader" : "#source(buildin.compositor.fxaa)",
+            "type" : "processor",
+            "inputs" : {
+                "texture" : {
+                    "node" : "scene",
+                    "pin" : "color"
+                }
+            }
+        }
+    ]
+}

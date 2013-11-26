@@ -1,0 +1,13 @@
+body{
+    margin:0px;
+}
+#render-info {
+    position: absolute;
+    left : 20px;
+    top : 20px;
+    background-color: white;
+    width : 100px;
+    padding : 10px;
+    box-shadow: 3px 3px 1px #222;
+    text-align: right;
+}

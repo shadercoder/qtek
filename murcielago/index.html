@@ -5,10 +5,15 @@
     <link rel="stylesheet" href="../style/pace.css" />
     <script type="application/javascript" src="../lib/pace.js"></script>
     <script type="application/javascript" src="../lib/require.js"></script>
+    <link rel="stylesheet" href="css/main.css" />
 </head>
-<body style="margin:0px">
+<body>
     <canvas id="Main"></canvas>
-
+    <div id="render-info">
+        <div data-bind="text:fps"></div>
+        <div data-bind="text:frameTime().toFixed(1) + 'ms'"></div>
+        <div data-bind="text:renderTime().toFixed(1) + 'ms'"></div>
+    </div>
     <script type="application/javascript">
         requirejs.config({
             'paths' : {
@@ -19,7 +24,7 @@
                 "common" : "../common",
                 "text" : "../lib/text"
             }
-        })
+        });
         require(["js/main.js"], function(){})
     </script>
 </body>

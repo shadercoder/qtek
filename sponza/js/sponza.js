@@ -79,10 +79,6 @@ define(['qtek', 'knockout', 'ko.mapping'], function(qtek, ko, koMapping){
         }));
 
         scene.traverse(function(node) {
-            if (node.geometry) {
-                node.geometry = node.geometry.convertToGeometry();
-                node.geometry.generateTangents();
-            }
             if (node.material) {
                 // node.material.shader.define('fragment', 'RENDER_NORMAL');
                 // node.material.shader.disableTexture('diffuseMap');
