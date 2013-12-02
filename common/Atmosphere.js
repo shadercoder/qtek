@@ -47,7 +47,7 @@ define(function(require) {
         this._scene.add(this._mesh);
 
         this._camera = new qtek3d.camera.Perspective();
-        this._camera.position.set(0, 10.01, 0);
+        this._camera.position.set(0, 10.0001, 0);
     }, {
         render : function(renderer) {
             if (!this.light || !this.texture) {

@@ -1,13 +1,36 @@
 {
+    "meta" : {},
     "type" : "compositor",
+    "shaders" : {
+        "tonemapping" : "#url(../../common/shader/tonemapping.essl)"
+    },
     "nodes" : [
+        {
+            "name" : "tonemapping",
+            "shader" : "#source(common.tonemapping)",
+            "type" : "processor",
+            "inputs" : {
+                "texture" : {
+                    "node" : "scene",
+                    "pin" : "color"
+                }
+            },
+            "outputs" : {
+                "color" : {
+                    "parameters" : {
+                        "width" : 1024,
+                        "height" : 1024
+                    }
+                }
+            }
+        },
         {
             "name" : "FXAA",
             "shader" : "#source(buildin.compositor.fxaa)",
             "type" : "processor",
             "inputs" : {
                 "texture" : {
-                    "node" : "scene",
+                    "node" : "tonemapping",
                     "pin" : "color"
                 }
             }

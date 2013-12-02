@@ -118,7 +118,7 @@
         rockRoot.position.set(-5, -3.2, 0);
         rockRoot.scale.set(0.15, 0.15, 0.15);
         var mat = rockRoot.childAt(0).material;
-        var shader = mat.shader;
+        var shader = mat.shader.clone();
         shader.setFragment(heroShaderFrag);
         // reattach
         mat.attachShader(shader);
@@ -163,8 +163,8 @@
             sensitivity : 0.4,
             minDistance : 35,
             maxDistance : 70,
-            maxRollAngle : Math.PI / 4,
-            minRollAngle : -0.1
+            minPolarAngle : Math.PI / 4,
+            maxPolarAngle : Math.PI / 2
         });
         // z up
         control.enable();
@@ -223,7 +223,7 @@
             }
             if (node.material) {
                 var mat = node.material;
-                var shader = mat.shader;
+                var shader = mat.shader.clone();
                 shader.setFragment(heroShaderFrag);
                 // reattach
                 mat.attachShader(shader);

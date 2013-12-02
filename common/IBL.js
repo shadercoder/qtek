@@ -4,6 +4,7 @@ define(function(require) {
     var qtek3d = qtek['3d'];
 
     qtek3d.Shader.import(require('text!./shader/IBL.essl'));
+    var environmentMapPass = new qtek3d.prePass.EnvironmentMap();
 
     var IBL = function(renderer, envMap, callback) {
         var self = this;
@@ -11,8 +12,26 @@ define(function(require) {
         this.envMap = envMap;
         this.normalDistribution = this.generateNormalDistribution();
         this.BRDFLookup = this.integrateBRDF();
+        this.downSampledEnvMap = new qtek3d.texture.TextureCube({
+            width : 64,
+            height : 64,
+            type : qtek3d.Texture.FLOAT
+        });
+        this.downSampledEnvMap2 = new qtek3d.texture.TextureCube({
+            width : 16,
+            height : 16,
+            type : qtek3d.Texture.FLOAT
+        });
+        this.downSample();
+        this.diffuseEnvMap = new qtek3d.texture.TextureCube({
+            width : 16,
+            height : 16,
+            type : qtek3d.Texture.FLOAT
+        });
+        this.convolveDiffuseEnvMap();
+
         if (this.envMap) {
-            this.prefilterEnvMap(this.envMap, function(mipmaps) {
+            this.prefilterSpecularEnvMap(function(mipmaps) {
                 self.mipmaps = mipmaps;
                 callback && callback();
             });
@@ -88,39 +107,65 @@ define(function(require) {
 
             return texture;
         },
+
+        // Down sample to 32x32
+        downSample : function() {
+            var skybox = new qtek3d.plugin.Skybox({
+                scene : new qtek3d.Scene()
+            })
+            skybox.material.set('environmentMap', this.envMap);
+            environmentMapPass.texture = this.downSampledEnvMap;
+            environmentMapPass.render(this.renderer, skybox.scene);
+            environmentMapPass.texture = this.downSampledEnvMap2;
+            environmentMapPass.render(this.renderer, skybox.scene);
+        },
+
+        convolveDiffuseEnvMap : function() {
+            var skybox = new qtek3d.plugin.Skybox({
+                scene : new qtek3d.Scene()
+            })
+            skybox.material.attachShader(new qtek3d.Shader({
+                vertex : qtek3d.Shader.source('buildin.skybox.vertex'),
+                fragment : qtek3d.Shader.source('IBL.diffuse_convolution')
+            }));
+            skybox.material.set('environmentMap', this.downSampledEnvMap2);
+            environmentMapPass.texture = this.diffuseEnvMap;
+            environmentMapPass.render(this.renderer, skybox.scene);
+        },
         
-        prefilterEnvMap : function(envMap, callback) {
+        prefilterSpecularEnvMap : function(callback) {
             var mipmaps = [];
             var self = this;
+            var envMap = this.envMap;
             var size = envMap.image.px ? envMap.image.px.width : envMap.width;
             var mipmapNum = Math.log(size) / Math.log(2);
+
             var emptyScene = new qtek3d.Scene();
             var skybox = new qtek3d.plugin.Skybox({
                 scene : emptyScene
             });
-            var environmentMapPass = new qtek3d.prePass.EnvironmentMap();
-
             skybox.material.attachShader(new qtek3d.Shader({
                 vertex : qtek3d.Shader.source('buildin.skybox.vertex'),
                 fragment : qtek3d.Shader.source('IBL.prefilter_envmap')
             }));
-            skybox.material.set('environmentMap', envMap);
+            skybox.material.set('environmentMap', this.downSampledEnvMap);
             skybox.material.set('normalDistribution', this.normalDistribution);
-            mipmaps[0] = envMap;
+            mipmaps[0] = this.downSampledEnvMap;
 
             var mipmapLevel = 1;
 
             function onFrame() {
 
-                if (size > 1) {
+                if (size > 4) {
                     size /= 2;
                     roughness = mipmapLevel / mipmapNum;
                     skybox.material.set('roughness', roughness);
                     var mipmap = new qtek3d.texture.TextureCube({
                         useMipmap : false,
-                        width : Math.max(size, 16),
-                        height : Math.max(size, 16),
-                        // type : qtek3d.Texture.FLOAT
+                        width : 32,
+                        height : 32,
+                        type : qtek3d.Texture.FLOAT,
+                        minFilter : qtek3d.Texture.LINEAR
                     });
                     mipmaps[mipmapLevel++] = mipmap;
                     environmentMapPass.texture = mipmap;
@@ -139,8 +184,9 @@ define(function(require) {
             var mipmaps = this.mipmaps;
             var lodLevel = Math.floor(roughness * (mipmaps.length-1));
             material.set('BRDFLookup', this.BRDFLookup);
-            material.set('environmentMap1', mipmaps[lodLevel]);
-            material.set('environmentMap2', mipmaps[lodLevel+1] || mipmaps[mipmaps.length - 1]);
+            material.set('diffuseEnvMap', this.diffuseEnvMap);
+            material.set('specularEnvMap1', mipmaps[lodLevel]);
+            material.set('specularEnvMap2', mipmaps[lodLevel+1] || mipmaps[mipmaps.length - 1]);
             material.set('lodLevel', lodLevel / (mipmaps.length-1));
             material.set('roughness', roughness);
         }

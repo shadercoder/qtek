@@ -1,3 +1,53 @@
+@export IBL.diffuse_convolution
+
+#define PI 3.14159265358979
+
+uniform mat4 viewInverse : VIEWINVERSE;
+uniform samplerCube environmentMap;
+
+varying vec2 v_Texcoord;
+varying vec3 v_WorldPosition;
+
+void main()
+{
+    vec3 eyePos = viewInverse[3].xyz;
+    vec3 V = normalize(v_WorldPosition - eyePos);
+    vec3 N = V;
+
+    vec3 upVector = abs(N.z) < 0.999 ? vec3(0.0, 0.0, 1.0) : vec3(1.0, 0.0, 0.0);
+    vec3 tangentX = normalize(cross(upVector, N));
+    vec3 tangentY = cross(N, tangentX);
+
+    vec3 prefilteredColor = vec3(0.0);
+    float weight = 0.0;
+    for (int i = 0; i < 16; i++)
+    {
+        float theta = float(i) / 32.0 * PI;
+        float sinTheta = sin(theta);
+        float cosTheta = sqrt(1.0 - sinTheta * sinTheta);
+        for (int j = 0; j < 64; j++)
+        {
+            float phi = float(j) / 32.0 * PI;
+            vec3 L;
+            L.x = sinTheta * cos(phi);
+            L.y = sinTheta * sin(phi);
+            L.z = cosTheta;
+
+            L = tangentX * L.x + tangentY * L.y + N * L.z;
+            float NoL = clamp(dot(N, L), 0.0, 1.0);
+
+            if (NoL > 0.0)
+            {
+                prefilteredColor += textureCube(environmentMap, L).rgb * NoL;
+                weight += NoL;
+            }
+        }
+    }
+    gl_FragColor.rgb = prefilteredColor / weight;
+    gl_FragColor.a = 1.0;
+}
+
+@end
 // http://www.unrealengine.com/files/downloads/2013SiggraphPresentationsNotes.pdf
 // http://http.developer.nvidia.com/GPUGems3/gpugems3_ch20.html
 @export IBL.prefilter_envmap
@@ -16,7 +66,8 @@ varying vec3 v_WorldPosition;
 
 const float fSampleNumber = float(SAMPLE_NUMBER);
 
-vec3 importanceSampleNormal(float i, float roughness, vec3 N) {
+vec3 importanceSampleNormal(float i, float roughness, vec3 N)
+{
     vec3 H = texture2D(normalDistribution, vec2(roughness, i)).rgb;
 
     vec3 upVector = abs(N.z) < 0.999 ? vec3(0.0, 0.0, 1.0) : vec3(1.0, 0.0, 0.0);
@@ -26,8 +77,8 @@ vec3 importanceSampleNormal(float i, float roughness, vec3 N) {
     return tangentX * H.x + tangentY * H.y + N * H.z;
 }
 
-void main() {
-
+void main()
+{
     vec3 eyePos = viewInverse[3].xyz;
     vec3 V = normalize(v_WorldPosition - eyePos);
 
@@ -37,12 +88,14 @@ void main() {
     vec3 prefilteredColor = vec3(0.0);
     float totalWeight = 0.0;
 
-    for (int i = 0; i < SAMPLE_NUMBER; i++) {
+    for (int i = 0; i < SAMPLE_NUMBER; i++)
+    {
         vec3 H = importanceSampleNormal(float(i) / fSampleNumber, roughness, N);
         vec3 L = reflect(-V, H);
 
         float NoL = clamp(dot(N, L), 0.0, 1.0);
-        if (NoL > 0.0) {
+        if (NoL > 0.0)
+        {
             prefilteredColor += textureCube(environmentMap, L).rgb * NoL;
             totalWeight += NoL;
         }
@@ -68,7 +121,8 @@ uniform vec2 viewportSize : [512, 256];
 const vec3 N = vec3(0.0, 0.0, 1.0);
 const float fSampleNumber = float(SAMPLE_NUMBER);
 
-vec3 importanceSampleNormal(float i, float roughness, vec3 N) {
+vec3 importanceSampleNormal(float i, float roughness, vec3 N)
+{
     vec3 H = texture2D(normalDistribution, vec2(roughness, i)).rgb;
 
     vec3 upVector = abs(N.z) < 0.999 ? vec3(0.0, 0.0, 1.0) : vec3(1.0, 0.0, 0.0);
@@ -78,7 +132,8 @@ vec3 importanceSampleNormal(float i, float roughness, vec3 N) {
     return tangentX * H.x + tangentY * H.y + N * H.z;
 }
 
-float G_Smith(float roughness, float NoV, float NoL) {
+float G_Smith(float roughness, float NoV, float NoL)
+{
     // float k = (roughness+1.0) * (roughness+1.0) * 0.125;
     float k = roughness * roughness / 2.0;
     float G1V = NoV / (NoV * (1.0 - k) + k);
@@ -86,7 +141,8 @@ float G_Smith(float roughness, float NoV, float NoL) {
     return G1L * G1V;
 }
 
-void main() {
+void main()
+{
     vec2 uv = gl_FragCoord.xy / viewportSize;
     float NoV = uv.x;
     float roughness = uv.y;
@@ -99,14 +155,16 @@ void main() {
     float A = 0.0;
     float B = 0.0;
 
-    for (int i = 0; i < SAMPLE_NUMBER; i++) {
+    for (int i = 0; i < SAMPLE_NUMBER; i++)
+    {
         vec3 H = importanceSampleNormal(float(i) / fSampleNumber, roughness, N);
         vec3 L = reflect(-V, H);
         float NoL = clamp(L.z, 0.0, 1.0);
         float NoH = clamp(H.z, 0.0, 1.0);
         float VoH = clamp(dot(V, H), 0.0, 1.0);
 
-        if (NoL > 0.0) {
+        if (NoL > 0.0)
+        {
             float G = G_Smith(roughness, NoV, NoL);
             float G_Vis = G * VoH / (NoH * NoV);
             float Fc = pow(1.0 - VoH, 5.0);
@@ -135,8 +193,9 @@ varying vec3 v_Weight;
 
 uniform sampler2D diffuseMap;
 uniform sampler2D normalMap;
-uniform samplerCube environmentMap1;
-uniform samplerCube environmentMap2;
+uniform samplerCube diffuseEnvMap;
+uniform samplerCube specularEnvMap1;
+uniform samplerCube specularEnvMap2;
 uniform sampler2D BRDFLookup;
 
 uniform vec3 color : [1.0, 1.0, 1.0];
@@ -146,24 +205,16 @@ uniform vec3 specularColor : [0.56, 0.57, 0.58];
 uniform float roughness : 0;
 uniform float lodLevel : 0;
 
-uniform float ambient : 0.3;
+uniform float ambient : 0.1;
 
 @import buildin.plugin.compute_shadow_map
 
-#ifdef AMBIENT_LIGHT_NUMBER
-@import buildin.header.ambient_light
-#endif
-#ifdef POINT_LIGHT_NUMBER
-@import buildin.header.point_light
-#endif
 #ifdef DIRECTIONAL_LIGHT_NUMBER
 @import buildin.header.directional_light
 #endif
-#ifdef SPOT_LIGHT_NUMBER
-@import buildin.header.spot_light
-#endif
 
-void main(){
+void main()
+{
 
     vec4 albedo = vec4(color, alpha);
 
@@ -172,8 +223,8 @@ void main(){
 
     #ifdef DIFFUSEMAP_ENABLED
         vec4 tex = texture2D(diffuseMap, v_Texcoord);
-        albedo.rgb *= tex.rgb;
-
+        // To linear space
+        albedo.rgb *= pow(tex.rgb, vec3(2.2));
         #ifdef DIFFUSEMAP_USE_ALPHA
             albedo.a *= tex.a;
         #endif
@@ -186,39 +237,25 @@ void main(){
         N = normalize(tbn * N);
     #endif
 
-    // Diffuse part of all lights
-    vec3 diffuseItem = vec3(0.0, 0.0, 0.0);
 
+    vec3 diffuseItem = textureCube(diffuseEnvMap, N).rgb;
     #ifdef DIRECTIONAL_LIGHT_NUMBER
         #if defined(DIRECTIONAL_LIGHT_SHADOWMAP_NUMBER)
             float shadowContribs[DIRECTIONAL_LIGHT_NUMBER];
-            if(shadowEnabled){
+            if(shadowEnabled)
+            {
                 computeShadowOfDirectionalLights(v_WorldPosition, shadowContribs);
             }
         #endif
-        for(int i = 0; i < DIRECTIONAL_LIGHT_NUMBER; i++){
-
-            vec3 L = -normalize(directionalLightDirection[i]);
-            vec3 lightColor = directionalLightColor[i];
-
-            vec3 H = normalize(L + V);
-
-            float ndh = dot(N, H);
-            ndh = clamp(ndh, 0.0, 1.0);
-
-            float ndl = dot(N, L);
-            ndl = clamp(ndl, 0.0, 1.0);
-
-            float shadowContrib = 1.0;
-            #if defined(DIRECTIONAL_LIGHT_SHADOWMAP_NUMBER)
-                if(shadowEnabled){
-                    shadowContrib = shadowContribs[i];
-                }
-            #endif
-
-            diffuseItem += lightColor * ndl * shadowContrib;
-        }
+        float shadowContrib = 1.0;
+        #if defined(DIRECTIONAL_LIGHT_SHADOWMAP_NUMBER)
+            if(shadowEnabled)
+            {
+                shadowContrib = shadowContribs[0];
+            }
+        #endif
     #endif
+    diffuseItem *= shadowContrib;
 
     #ifdef RENDER_DIFFUSE
         gl_FragColor.rgb = diffuseItem;
@@ -229,12 +266,12 @@ void main(){
     float NoV = clamp(dot(N, V), 0.0, 1.0);
     vec2 envBRDF = texture2D(BRDFLookup, vec2(roughness, NoV)).rg;
     vec3 L = reflect(-V, N);
-    vec3 color1 = textureCube(environmentMap1, L).rgb;
-    vec3 color2 = textureCube(environmentMap2, L).rgb;
+    vec3 color1 = textureCube(specularEnvMap1, L).rgb;
+    vec3 color2 = textureCube(specularEnvMap2, L).rgb;
 
     vec3 prefilteredColor = mix(color1, color2, roughness - lodLevel);
     vec3 specularItem = prefilteredColor * (specularColor * envBRDF.x + envBRDF.y);
-    gl_FragColor.rgb = albedo.rgb * diffuseItem + ambient * specularItem;
+    gl_FragColor.rgb = albedo.rgb * diffuseItem + (1.0 - roughness) * specularItem;
     gl_FragColor.a = albedo.a;
 }
 
