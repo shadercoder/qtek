@@ -9,6 +9,10 @@ define(function(require) {
     var IBL = function(renderer, envMap, callback) {
         var self = this;
         this.renderer = renderer;
+        this.normalDistribution = this.generateNormalDistribution();
+        this.BRDFLookup = this.integrateBRDF();
+        this.materials = [];
+        this.mipmaps = [];
         if (envMap instanceof qtek3d.texture.Texture2D) {
             this.environmentMap = this.panoramaToCubeMap(envMap);
             this.update(callback);
@@ -30,11 +34,6 @@ define(function(require) {
                 });
             }
         }
-        this.normalDistribution = this.generateNormalDistribution();
-        this.BRDFLookup = this.integrateBRDF();
-
-        this.materials = [];
-        this.mipmaps = [];
     }
     IBL.prototype = {
 
@@ -162,6 +161,7 @@ define(function(require) {
 
         // Down sample to 32x32
         downSample : function() {
+            console.log('Down sample');
             this.downSampledEnvMap = new qtek3d.texture.TextureCube({
                 width : 128,
                 height : 128,
@@ -181,9 +181,11 @@ define(function(require) {
             environmentMapPass.render(this.renderer, skybox.scene);
             environmentMapPass.texture = this.downSampledEnvMap2;
             environmentMapPass.render(this.renderer, skybox.scene);
+            console.log('Down sample done!');
         },
 
         convolveDiffuseEnvMap : function() {
+            console.log('Convolve diffuse environment map');
             this.diffuseEnvMap = new qtek3d.texture.TextureCube({
                 width : 16,
                 height : 16,
@@ -199,6 +201,7 @@ define(function(require) {
             skybox.material.set('environmentMap', this.downSampledEnvMap2);
             environmentMapPass.texture = this.diffuseEnvMap;
             environmentMapPass.render(this.renderer, skybox.scene);
+            console.log('Convolve diffuse environment map done!');
             return this.diffuseEnvMap;
         },
         
@@ -223,9 +226,13 @@ define(function(require) {
 
             var mipmapLevel = 1;
 
+            if (this._updateTimeout) {
+                clearTimeout(this._updateTimeout);
+            }
+            console.log('Prefilter specular map');
             function onFrame() {
 
-                if (size > 4) {
+                if (size > 1) {
                     size /= 2;
                     roughness = mipmapLevel / mipmapNum;
                     skybox.material.set('roughness', roughness);
@@ -240,13 +247,15 @@ define(function(require) {
                     environmentMapPass.texture = mipmap;
                     environmentMapPass.render(self.renderer, emptyScene);
 
-                    setTimeout(onFrame, 20);
+                    this._updateTimeout = setTimeout(onFrame, 20);
                 } else {
+
+                    console.log('Prefilter specular map done!');
                     callback && callback(mipmaps);
                 }
             }
 
-            setTimeout(onFrame, 20);
+            this._updateTimeout = setTimeout(onFrame, 20);
         },
 
         applyToMaterial : function(material, roughness) {
@@ -256,7 +265,7 @@ define(function(require) {
             material.set('diffuseEnvMap', this.diffuseEnvMap);
             material.set('specularEnvMap1', mipmaps[lodLevel]);
             material.set('specularEnvMap2', mipmaps[lodLevel+1] || mipmaps[mipmaps.length - 1]);
-            material.set('lodLevel', lodLevel / (mipmaps.length-1));
+            material.set('lodMix', roughness * (mipmaps.length-1) - lodLevel);
             material.set('roughness', roughness);
 
             if (this.materials.indexOf(material) < 0) {

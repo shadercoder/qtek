@@ -4,8 +4,8 @@ define(function(require) {
     ko.mapping = require('ko.mapping');
     var qtek = require('qtek');
     var qtek3d = qtek['3d'];
-    var Atmosphere = require('common/Atmosphere');
-    var IBLClazz = require('common/IBL');
+    var Atmosphere = require('../../common/Atmosphere');
+    var IBLClazz = require('../../common/IBL');
     var $ = require('$');
     var editor = require('js/editor');
 
@@ -23,6 +23,7 @@ define(function(require) {
     var atmospherePass = new Atmosphere({
         texture : envMap
     });
+    var startRendering = false;
 
     var stage;
     var IBL;
@@ -54,6 +55,9 @@ define(function(require) {
                 if (renderer) {
                     atmospherePass.render(renderer);
                 }
+                if (!startRendering) {
+                    return;
+                }
                 clearTimeout(filterTimeout);
                 filterTimeout = setTimeout(function() {
                     if (IBL) {
@@ -64,6 +68,23 @@ define(function(require) {
                 }, 200);
             }, 20);
         });
+        ko.computed(function() {
+            var bodyPaintMat = qtek3d.Material.getMaterial('Body paint');
+            var specularColor = editor.config.material.specularColor();
+            var baseColor = editor.config.material.baseColor();
+            var roughness = editor.config.material.roughness();
+            var specularFactor = editor.config.material.specularFactor();
+            var diffuseFactor = editor.config.material.diffuseFactor();
+            if (bodyPaintMat) {
+                bodyPaintMat.set('specularColor', specularColor);
+                bodyPaintMat.set('specularFactor', specularFactor);
+                bodyPaintMat.set('diffuseFactor', diffuseFactor);
+                bodyPaintMat.set('color', baseColor);
+                if (IBL) {
+                    IBL.applyToMaterial(bodyPaintMat, roughness);
+                }
+            }
+        })
     } else {
         stage = new qtek.Stage({
             container : document.getElementById('App')
@@ -162,8 +183,7 @@ define(function(require) {
         planeMesh.culling = true;
         planeMesh.receiveShadow = true;
         
-        var startRenderering = false;
-        // envMap = '../../tests/assets/textures/hdr/path.hdr';
+        // envMap = '../../tests/assets/textures/hdr/ennis.hdr';
         IBL = new IBLClazz(renderer, envMap, function() {
             skybox.material.set('environmentMap', IBL.environmentMap);
             for (var name in materials) {
@@ -210,11 +230,13 @@ define(function(require) {
             planeMesh.material.set('diffuseMap', groundDiffuse);
             planeMesh.material.set('normalMap', groundNormal);
 
+            planeMesh.material.shader.define('fragment', 'SPECULAR_SHADOW');
+
             var bodyPaintMat = qtek3d.Material.getMaterial('Body paint');
             bodyPaintMat.set('color', [1.0, 1.0, 1.0]);
             IBL.applyToMaterial(bodyPaintMat, 0.1);
 
-            startRenderering = true;
+            startRendering = true;
         });
 
         var compositor;
@@ -254,7 +276,7 @@ define(function(require) {
         // var renderInfoVM = ko.mapping.fromJS(renderInfo);
         // ko.applyBindings(renderInfoVM, document.getElementById('render-info'));
         stage.on('frame', function(frameTime) {
-            if (startRenderering) {
+            if (startRendering) {
                 var start = performance.now();
                 if (compositor) {
                     shadowMapPass.render(renderer, scene);

@@ -203,9 +203,10 @@ uniform float alpha : 1.0;
 
 uniform vec3 specularColor : [0.56, 0.57, 0.58];
 uniform float roughness : 0;
-uniform float lodLevel : 0;
+uniform float lodMix : 0;
 
-uniform float ambient : 0.1;
+uniform float specularFactor : 0.1;
+uniform float diffuseFactor : 0.1;
 
 @import buildin.plugin.compute_shadow_map
 
@@ -238,7 +239,7 @@ void main()
     #endif
 
 
-    vec3 diffuseItem = textureCube(diffuseEnvMap, N).rgb * 0.1;
+    vec3 diffuseItem = textureCube(diffuseEnvMap, N).rgb * diffuseFactor;
     float shadowContrib = 1.0;
     #ifdef DIRECTIONAL_LIGHT_NUMBER
         vec3 L = -directionalLightDirection[0];
@@ -276,9 +277,12 @@ void main()
     vec3 color1 = textureCube(specularEnvMap1, R).rgb;
     vec3 color2 = textureCube(specularEnvMap2, R).rgb;
 
-    vec3 prefilteredColor = mix(color1, color2, roughness - lodLevel);
+    vec3 prefilteredColor = mix(color1, color2, lodMix);
     vec3 specularItem = prefilteredColor * (specularColor * envBRDF.x + envBRDF.y);
-    gl_FragColor.rgb = albedo.rgb * diffuseItem + pow((1.0 - roughness),2.0) * specularItem * shadowContrib;
+    #ifdef SPECULAR_SHADOW
+        specularItem *= shadowContrib;
+    #endif
+    gl_FragColor.rgb = albedo.rgb * diffuseItem + specularFactor * specularItem;
     gl_FragColor.a = albedo.a;
 }
 
