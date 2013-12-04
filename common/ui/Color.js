@@ -4,7 +4,7 @@ define(function(require) {
     var ko = require("knockout");
     var Meta = qpf.meta.Meta;
 
-    var palette = require("./palette");
+    var palette = require("./Palette");
 
     function rgb2hex(rgb) {
         return Math.floor(rgb[0] * 255) << 16
