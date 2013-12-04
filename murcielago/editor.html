@@ -3,8 +3,11 @@
         <title></title>
         <meta charset="utf-8" />
         <link rel="stylesheet" href="../style/pace.css" />
+        <link rel="stylesheet" href="../lib/qpf/css/base.css" />
         <script type="application/javascript" src="../lib/pace.js"></script>
+        <script type="application/javascript" src="../lib/require.js"></script>
         <script type="application/javascript"></script>
+        <link rel="stylesheet" href="css/editor.css" />
     </head>
     <body>
         <div id="App"></div>
@@ -17,7 +20,13 @@
                     "ko.mapping" : "../lib/ko.mapping",
                     "common" : "../common",
                     "text" : "../lib/text",
-                    'qpf' : "../lib/qpf"
+                    'qpf' : "../lib/qpf/js/qpf",
+                    "$" : "../lib/jquery"
+                },
+                "shim" : {
+                    "$" : {
+                        exports : '$'
+                    }
                 }
             });
             require(["js/main.js"], function(){})

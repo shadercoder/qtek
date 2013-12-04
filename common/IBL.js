@@ -9,35 +9,72 @@ define(function(require) {
     var IBL = function(renderer, envMap, callback) {
         var self = this;
         this.renderer = renderer;
-        this.envMap = envMap;
+        if (envMap instanceof qtek3d.texture.Texture2D) {
+            this.environmentMap = this.panoramaToCubeMap(envMap);
+            this.update(callback);
+        } else if (envMap instanceof qtek3d.texture.TextureCube) {
+            this.environmentMap = envMap;
+            this.update(callback);
+        } else if (typeof(envMap) === 'string') {
+            var self = this;
+            if (envMap.substr(-3) === 'hdr') {
+                qtek.core.request.get({
+                    url : envMap,
+                    responseType : 'arraybuffer',
+                    onload : function(data) {
+                        var texture = qtek3d.util.hdr.parseRGBE(data);
+                        texture.flipY = false;
+                        self.environmentMap = self.panoramaToCubeMap(texture);
+                        self.update(callback);
+                    }
+                });
+            }
+        }
         this.normalDistribution = this.generateNormalDistribution();
         this.BRDFLookup = this.integrateBRDF();
-        this.downSampledEnvMap = new qtek3d.texture.TextureCube({
-            width : 64,
-            height : 64,
-            type : qtek3d.Texture.FLOAT
-        });
-        this.downSampledEnvMap2 = new qtek3d.texture.TextureCube({
-            width : 16,
-            height : 16,
-            type : qtek3d.Texture.FLOAT
-        });
-        this.downSample();
-        this.diffuseEnvMap = new qtek3d.texture.TextureCube({
-            width : 16,
-            height : 16,
-            type : qtek3d.Texture.FLOAT
-        });
-        this.convolveDiffuseEnvMap();
 
-        if (this.envMap) {
-            this.prefilterSpecularEnvMap(function(mipmaps) {
-                self.mipmaps = mipmaps;
-                callback && callback();
-            });
-        }
+        this.materials = [];
+        this.mipmaps = [];
     }
     IBL.prototype = {
+
+        update : function(callback) {
+            var _gl = this.renderer.gl;
+            var self = this;
+            if (this.downSampledEnvMap) {
+                this.downSampledEnvMap.dispose(_gl);
+                this.downSampledEnvMap2.dispose(_gl);
+                this.diffuseEnvMap.dispose(_gl);
+                for (var i = 0; i < this.mipmaps.length; i++) {
+                    this.mipmaps[i].dispose(_gl);
+                }
+            }
+
+            this.downSample();
+            this.convolveDiffuseEnvMap();
+
+            if (this.environmentMap) {
+                this.prefilterSpecularEnvMap(function(mipmaps) {
+                    self.mipmaps = mipmaps;
+                    callback && callback();
+                });
+            }
+        },
+
+        updateMaterials : function() {
+            for (var i = 0; i < this.materials.length; i++) {
+                var material = this.materials[i];
+                var roughness = material.get('roughness');
+                var mipmaps = this.mipmaps;
+                var lodLevel = Math.floor(roughness * (mipmaps.length-1));
+                material.set('BRDFLookup', this.BRDFLookup);
+                material.set('diffuseEnvMap', this.diffuseEnvMap);
+                material.set('specularEnvMap1', mipmaps[lodLevel]);
+                material.set('specularEnvMap2', mipmaps[lodLevel+1] || mipmaps[mipmaps.length - 1]);
+                material.set('lodLevel', lodLevel / (mipmaps.length-1));
+            }
+        },
+
         generateNormalDistribution : function() {
             // http://holger.dammertz.org/stuff/notes_HammersleyOnHemisphere.html
             // GLSL not support bit operation, use lookup instead
@@ -85,6 +122,21 @@ define(function(require) {
             return normalDistribution;
         },
 
+        panoramaToCubeMap : function(panoramaMap) {
+            var skydome = new qtek3d.plugin.Skydome({
+                scene : new qtek3d.Scene
+            });
+            skydome.material.set('diffuseMap', panoramaMap);
+            var cubeMap = new qtek3d.texture.TextureCube({
+                width : 512,
+                height : 512,
+                type : qtek3d.Texture.FLOAT
+            });
+            environmentMapPass.texture = cubeMap;
+            environmentMapPass.render(this.renderer, skydome.scene);
+
+            return cubeMap;
+        },
 
         integrateBRDF : function() {
             var frameBuffer = new qtek3d.FrameBuffer();
@@ -110,10 +162,21 @@ define(function(require) {
 
         // Down sample to 32x32
         downSample : function() {
+            this.downSampledEnvMap = new qtek3d.texture.TextureCube({
+                width : 128,
+                height : 128,
+                type : qtek3d.Texture.FLOAT
+            });
+            this.downSampledEnvMap2 = new qtek3d.texture.TextureCube({
+                width : 16,
+                height : 16,
+                type : qtek3d.Texture.FLOAT
+            });
+
             var skybox = new qtek3d.plugin.Skybox({
                 scene : new qtek3d.Scene()
             })
-            skybox.material.set('environmentMap', this.envMap);
+            skybox.material.set('environmentMap', this.environmentMap);
             environmentMapPass.texture = this.downSampledEnvMap;
             environmentMapPass.render(this.renderer, skybox.scene);
             environmentMapPass.texture = this.downSampledEnvMap2;
@@ -121,6 +184,11 @@ define(function(require) {
         },
 
         convolveDiffuseEnvMap : function() {
+            this.diffuseEnvMap = new qtek3d.texture.TextureCube({
+                width : 16,
+                height : 16,
+                type : qtek3d.Texture.FLOAT
+            });
             var skybox = new qtek3d.plugin.Skybox({
                 scene : new qtek3d.Scene()
             })
@@ -131,12 +199,13 @@ define(function(require) {
             skybox.material.set('environmentMap', this.downSampledEnvMap2);
             environmentMapPass.texture = this.diffuseEnvMap;
             environmentMapPass.render(this.renderer, skybox.scene);
+            return this.diffuseEnvMap;
         },
         
         prefilterSpecularEnvMap : function(callback) {
             var mipmaps = [];
             var self = this;
-            var envMap = this.envMap;
+            var envMap = this.downSampledEnvMap;
             var size = envMap.image.px ? envMap.image.px.width : envMap.width;
             var mipmapNum = Math.log(size) / Math.log(2);
 
@@ -148,9 +217,9 @@ define(function(require) {
                 vertex : qtek3d.Shader.source('buildin.skybox.vertex'),
                 fragment : qtek3d.Shader.source('IBL.prefilter_envmap')
             }));
-            skybox.material.set('environmentMap', this.downSampledEnvMap);
+            skybox.material.set('environmentMap', envMap);
             skybox.material.set('normalDistribution', this.normalDistribution);
-            mipmaps[0] = this.downSampledEnvMap;
+            mipmaps[0] = envMap;
 
             var mipmapLevel = 1;
 
@@ -162,8 +231,8 @@ define(function(require) {
                     skybox.material.set('roughness', roughness);
                     var mipmap = new qtek3d.texture.TextureCube({
                         useMipmap : false,
-                        width : 32,
-                        height : 32,
+                        width : size,
+                        height : size,
                         type : qtek3d.Texture.FLOAT,
                         minFilter : qtek3d.Texture.LINEAR
                     });
@@ -189,6 +258,10 @@ define(function(require) {
             material.set('specularEnvMap2', mipmaps[lodLevel+1] || mipmaps[mipmaps.length - 1]);
             material.set('lodLevel', lodLevel / (mipmaps.length-1));
             material.set('roughness', roughness);
+
+            if (this.materials.indexOf(material) < 0) {
+                this.materials.push(material);
+            }
         }
     }
 

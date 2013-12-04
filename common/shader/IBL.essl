@@ -20,6 +20,7 @@ void main()
 
     vec3 prefilteredColor = vec3(0.0);
     float weight = 0.0;
+
     for (int i = 0; i < 16; i++)
     {
         float theta = float(i) / 32.0 * PI;
@@ -36,14 +37,13 @@ void main()
             L = tangentX * L.x + tangentY * L.y + N * L.z;
             float NoL = clamp(dot(N, L), 0.0, 1.0);
 
-            if (NoL > 0.0)
-            {
-                prefilteredColor += textureCube(environmentMap, L).rgb * NoL;
+            if (NoL > 0.0) {
+                prefilteredColor += textureCube(environmentMap, L).rgb * NoL * 2.0 * PI;
                 weight += NoL;
             }
         }
     }
-    gl_FragColor.rgb = prefilteredColor / weight;
+    gl_FragColor.rgb = prefilteredColor / 1024.0;
     gl_FragColor.a = 1.0;
 }
 
@@ -238,8 +238,13 @@ void main()
     #endif
 
 
-    vec3 diffuseItem = textureCube(diffuseEnvMap, N).rgb;
+    vec3 diffuseItem = textureCube(diffuseEnvMap, N).rgb * 0.1;
+    float shadowContrib = 1.0;
     #ifdef DIRECTIONAL_LIGHT_NUMBER
+        vec3 L = -directionalLightDirection[0];
+        vec3 lightColor = directionalLightColor[0];
+        float NoL = clamp(dot(v_Normal, L), 0.0, 1.0);
+        // Ignore the pixels not face to the light
         #if defined(DIRECTIONAL_LIGHT_SHADOWMAP_NUMBER)
             float shadowContribs[DIRECTIONAL_LIGHT_NUMBER];
             if(shadowEnabled)
@@ -247,15 +252,17 @@ void main()
                 computeShadowOfDirectionalLights(v_WorldPosition, shadowContribs);
             }
         #endif
-        float shadowContrib = 1.0;
         #if defined(DIRECTIONAL_LIGHT_SHADOWMAP_NUMBER)
             if(shadowEnabled)
             {
                 shadowContrib = shadowContribs[0];
             }
         #endif
+        // vec3 H = normalize(L + V);
+        // float NoH = dot(N, H);
+        // Sun light
+        diffuseItem += lightColor * NoL * shadowContrib;
     #endif
-    diffuseItem *= shadowContrib;
 
     #ifdef RENDER_DIFFUSE
         gl_FragColor.rgb = diffuseItem;
@@ -265,13 +272,13 @@ void main()
 
     float NoV = clamp(dot(N, V), 0.0, 1.0);
     vec2 envBRDF = texture2D(BRDFLookup, vec2(roughness, NoV)).rg;
-    vec3 L = reflect(-V, N);
-    vec3 color1 = textureCube(specularEnvMap1, L).rgb;
-    vec3 color2 = textureCube(specularEnvMap2, L).rgb;
+    vec3 R = reflect(-V, N);
+    vec3 color1 = textureCube(specularEnvMap1, R).rgb;
+    vec3 color2 = textureCube(specularEnvMap2, R).rgb;
 
     vec3 prefilteredColor = mix(color1, color2, roughness - lodLevel);
     vec3 specularItem = prefilteredColor * (specularColor * envBRDF.x + envBRDF.y);
-    gl_FragColor.rgb = albedo.rgb * diffuseItem + (1.0 - roughness) * specularItem;
+    gl_FragColor.rgb = albedo.rgb * diffuseItem + pow((1.0 - roughness),2.0) * specularItem * shadowContrib;
     gl_FragColor.a = albedo.a;
 }
 

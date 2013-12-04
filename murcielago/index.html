@@ -8,7 +8,7 @@
     <link rel="stylesheet" href="css/main.css" />
 </head>
 <body>
-    <canvas id="Main"></canvas>
+    <div id="App"></div>
     <div id="render-info">
         <div data-bind="text:fps"></div>
         <div data-bind="text:frameTime().toFixed(1) + 'ms'"></div>
@@ -23,7 +23,14 @@
                 "knockout" : "../lib/knockout",
                 "ko.mapping" : "../lib/ko.mapping",
                 "common" : "../common",
-                "text" : "../lib/text"
+                "text" : "../lib/text",
+                'qpf' : "../lib/qpf/js/qpf",
+                "$" : "../lib/jquery"
+            },
+            "shim" : {
+                "$" : {
+                    exports : '$'
+                }
             }
         });
         require(["js/main.js"], function(){})

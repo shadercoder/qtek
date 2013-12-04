@@ -1,0 +1,146 @@
+{
+    "meta" : {},
+    "type" : "compositor",
+    "parameters" : {
+        "blur_output" : {
+            "width" : 256,
+            "height" : 256,
+            "type" : "FLOAT"
+        }
+    },
+    "nodes" : [
+        {
+            "name" : "extract_bright",
+            "shader" : "#source(buildin.compositor.hdr.extract_bright)",
+            "type" : "processor",
+            "inputs" : {
+                "texture" : {
+                    "node" : "scene",
+                    "pin" : "color"
+                }
+            },
+            "outputs" : {
+                "color" : {
+                    "parameters" : "#blur_output"
+                }
+            },
+            "parameters" : {
+                "threshold" : 2
+            }
+        },
+        {
+            "name" : "blur_h_1",
+            "shader" : "#source(buildin.compositor.gaussian_blur_h)",
+            "type" : "processor",
+            "inputs" : {
+                "texture" : {
+                    "node" : "extract_bright",
+                    "pin" : "color"
+                }
+            },
+            "outputs" : {
+                "color" : {
+                    "parameters" : "#blur_output"
+                }
+            },
+            "parameters" : {
+                "imageWidth" : 128,
+                "blurSize" : 1.5
+            }
+        },
+        {
+            "name" : "blur_v_1",
+            "shader" : "#source(buildin.compositor.gaussian_blur_v)",
+            "type" : "processor",
+            "inputs" : {
+                "texture" : {
+                    "node" : "blur_h_1",
+                    "pin" : "color"
+                }
+            },
+            "outputs" : {
+                "color" : {
+                    "parameters" : "#blur_output"
+                }
+            },
+            "parameters" : {
+                "imageHeight" : 128,
+                "blurSize" : 1.5
+            }
+        },
+        {
+            "name" : "blur_h_2",
+            "shader" : "#source(buildin.compositor.gaussian_blur_h)",
+            "type" : "processor",
+            "inputs" : {
+                "texture" : {
+                    "node" : "blur_v_1",
+                    "pin" : "color"
+                }
+            },
+            "outputs" : {
+                "color" : {
+                    "parameters" : "#blur_output"
+                }
+            },
+            "parameters" : {
+                "imageWidth" : 128,
+                "blurSize" : 1.5
+            }
+        },
+        {
+            "name" : "blur_v_2",
+            "shader" : "#source(buildin.compositor.gaussian_blur_v)",
+            "type" : "processor",
+            "inputs" : {
+                "texture" : {
+                    "node" : "blur_h_2",
+                    "pin" : "color"
+                }
+            },
+            "outputs" : {
+                "color" : {
+                    "parameters" : "#blur_output"
+                }
+            },
+            "parameters" : {
+                "imageHeight" : 128,
+                "blurSize" : 1.5
+            }
+        },
+        {
+            "name" : "tonemapping",
+            "shader" : "#source(buildin.compositor.hdr.tonemapping)",
+            "type" : "processor",
+            "inputs" : {
+                "texture" : {
+                    "node" : "scene",
+                    "pin" : "color"
+                },
+                "glow" : {
+                    "node" : "blur_v_2",
+                    "pin" : "color"
+                }
+            },
+            "outputs" : {
+                "color" : {
+                    "parameters" : {
+                        "width" : 1024,
+                        "height" : 1024
+                    }
+                }
+            }
+        },
+        {
+            "name" : "FXAA",
+            "shader" : "#source(buildin.compositor.fxaa)",
+            "type" : "processor",
+            "inputs" : {
+                "texture" : {
+                    "node" : "tonemapping",
+                    "pin" : "color"
+                }
+            }
+        }
+    ]
+}

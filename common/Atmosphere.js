@@ -60,6 +60,10 @@ define(function(require) {
             environmentMapPass.position.copy(this._camera.position);
             environmentMapPass.render(renderer, this._scene);
             // renderer.render(this._scene, this._camera);
+        },
+
+        setParameter : function(key, value) {
+            this._mesh.material.set(key, value);
         }
     });
 
