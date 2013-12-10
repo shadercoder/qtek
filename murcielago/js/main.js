@@ -38,9 +38,9 @@ define(function(require) {
         var atmosphereRenderTimeout;
         var filterTimeout;
         ko.computed(function() {
-            atmospherePass.setParameter('km', editor.config.km());
-            atmospherePass.setParameter('kr', editor.config.kr());
-            var time = (editor.config.time() - 6) / 12;
+            atmospherePass.setParameter('km', editor.environment.km());
+            atmospherePass.setParameter('kr', editor.environment.kr());
+            var time = (editor.environment.time() - 6) / 12;
             var angle = time * Math.PI;
             if (light) {
                 light.position.y = Math.sin(angle) * 3;
@@ -68,23 +68,6 @@ define(function(require) {
                 }, 200);
             }, 20);
         });
-        ko.computed(function() {
-            var bodyPaintMat = qtek3d.Material.getMaterial('Body paint');
-            var specularColor = editor.config.material.specularColor();
-            var baseColor = editor.config.material.baseColor();
-            var roughness = editor.config.material.roughness();
-            var specularFactor = editor.config.material.specularFactor();
-            var diffuseFactor = editor.config.material.diffuseFactor();
-            if (bodyPaintMat) {
-                bodyPaintMat.set('specularColor', specularColor);
-                bodyPaintMat.set('specularFactor', specularFactor);
-                bodyPaintMat.set('diffuseFactor', diffuseFactor);
-                bodyPaintMat.set('color', baseColor);
-                if (IBL) {
-                    IBL.applyToMaterial(bodyPaintMat, roughness);
-                }
-            }
-        })
     } else {
         stage = new qtek.Stage({
             container : document.getElementById('App')
@@ -172,6 +155,7 @@ define(function(require) {
             if (node.geometry) {
                 // node.receiveShadow = false;
                 node.culling = false;
+                node.geometry.generateBarycentric();
             }
             if (node.material) {
                 materials[node.material.name] = node.material;
@@ -182,8 +166,13 @@ define(function(require) {
         });
         planeMesh.culling = true;
         planeMesh.receiveShadow = true;
-        
-        // envMap = '../../tests/assets/textures/hdr/ennis.hdr';
+            
+        var materialList = [];
+        for (var name in materials) {
+            materialList.push(materials[name]);
+        }
+        editor.setMaterials(materialList);
+        envMap = '../../tests/assets/textures/hdr/night.hdr';
         IBL = new IBLClazz(renderer, envMap, function() {
             skybox.material.set('environmentMap', IBL.environmentMap);
             for (var name in materials) {
@@ -237,6 +226,8 @@ define(function(require) {
             IBL.applyToMaterial(bodyPaintMat, 0.1);
 
             startRendering = true;
+
+            editor.setIBL(IBL);
         });
 
         var compositor;

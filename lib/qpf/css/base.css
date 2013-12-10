@@ -631,7 +631,6 @@ body {
   margin: 4px 6px;
 }
 .qpf-ui-panel {
-  border-radius: 5px;
   box-shadow: 0px 1px 2px black;
   background-color: #323234;
   position: relative;
@@ -647,7 +646,6 @@ body {
   border-top: 1px solid #626262;
   color: #919191;
   line-height: 25px;
-  border-radius: 5px 5px 0px 0px;
   box-shadow: 0px 1px 1px black;
 }
 .qpf-ui-panel > .qpf-panel-header > .qpf-panel-title {
@@ -658,6 +656,14 @@ body {
 }
 .qpf-ui-panel > .qpf-panel-footer {
   min-height: 5px;
+}
+.qpf-ui-panel.border-radius-5 {
+  border-radius: 5px;
+}
+.qpf-ui-panel.border-radius-5 > .qpf-panel-header {
+  border-radius: 5px 5px 0px 0px;
+}
+.qpf-ui-panel.border-radius-5 > .qpf-panel-footer {
   border-radius: 0px 0px 5px 5px;
 }
 .qpf-ui-window {

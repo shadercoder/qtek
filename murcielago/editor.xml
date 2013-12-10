@@ -1,8 +1,15 @@
+<?xml version='1.0'?>
+
 <application>
     <hbox height="100%">
-        <viewport id="ViewPort"></viewport>
-        <vbox prefer="300">
-            <panel title="Sun" flex="1">
+        <panel title="Materials" prefer="200" id="Materials">
+            <list dataSource="@binding[materialList]" onselect="@binding[selectMaterial]"></list>
+        </panel>
+        <hbox>
+            <viewport id="ViewPort" style="margin:10px;"></viewport>
+        </hbox>
+        <vbox prefer="300" id="Configs">
+            <panel title="Environment" flex="1">
                 <label>Rayleigh Scattering</label>
                 <slider value="@binding[kr]" max="0.006" min="0.0001" step="0.00001"></slider>
                 <label>Mie Scattering</label>
@@ -10,7 +17,7 @@
                 <label>Time</label>
                 <slider value="@binding[time]" step="0.1" max="18" min="6"></slider>
             </panel>
-            <panel title="Car paint" flex="2">
+            <panel title="Material" flex="2">
                 <label>Base Color</label>
                 <color color="@binding[material.baseColor]"></color>
                 <label>Diffuse Factor</label>

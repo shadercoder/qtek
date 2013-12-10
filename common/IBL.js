@@ -163,8 +163,8 @@ define(function(require) {
         downSample : function() {
             console.log('Down sample');
             this.downSampledEnvMap = new qtek3d.texture.TextureCube({
-                width : 128,
-                height : 128,
+                width : 32,
+                height : 32,
                 type : qtek3d.Texture.FLOAT
             });
             this.downSampledEnvMap2 = new qtek3d.texture.TextureCube({
@@ -238,6 +238,7 @@ define(function(require) {
                     skybox.material.set('roughness', roughness);
                     var mipmap = new qtek3d.texture.TextureCube({
                         useMipmap : false,
+                        // TODO : Edge fixup when cube map has resolution 1,2,4
                         width : size,
                         height : size,
                         type : qtek3d.Texture.FLOAT,

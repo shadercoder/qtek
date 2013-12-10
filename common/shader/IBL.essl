@@ -190,6 +190,7 @@ varying vec3 v_WorldPosition;
 varying vec3 v_Tangent;
 varying vec3 v_Bitangent;
 varying vec3 v_Weight;
+varying vec3 v_Barycentric;
 
 uniform sampler2D diffuseMap;
 uniform sampler2D normalMap;
@@ -208,11 +209,16 @@ uniform float lodMix : 0;
 uniform float specularFactor : 0.1;
 uniform float diffuseFactor : 0.1;
 
+uniform float lineWidth : 0.0;
+
 @import buildin.plugin.compute_shadow_map
 
 #ifdef DIRECTIONAL_LIGHT_NUMBER
 @import buildin.header.directional_light
 #endif
+
+#extension GL_OES_standard_derivatives : enable
+@import buildin.util.edge_factor
 
 void main()
 {
@@ -283,6 +289,11 @@ void main()
         specularItem *= shadowContrib;
     #endif
     gl_FragColor.rgb = albedo.rgb * diffuseItem + specularFactor * specularItem;
+
+    if(lineWidth > 0.01)
+    {
+        gl_FragColor.rgb = gl_FragColor.rgb * mix(vec3(0.5), vec3(1.0), edgeFactor(lineWidth));
+    }
     gl_FragColor.a = albedo.a;
 }
 

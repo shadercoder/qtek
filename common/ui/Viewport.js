@@ -21,7 +21,9 @@ define(function(require){
         },
 
         onResize : function() {
-            this.stage.resize(this.width(), this.height());
+            if (this.stage) {
+                this.stage.resize(this.width(), this.height());
+            }
         }
     })
 
