@@ -7,19 +7,22 @@ define(function(require) {
     require('../../common/ui/Viewport.js');
     require('../../common/ui/Color.js');
 
-    var IBL;
+    var remoteMaterials = JSON.parse(require('text!../assets/materials.json'));
+
+    var environment = require('./environment');
 
     var configVM = {
-        kr : ko.observable(0.004),
-        km : ko.observable(0.010),
-        time : ko.observable(6.5),
+        kr : ko.observable(0.003),
+        km : ko.observable(0.0077),
+        time : ko.observable(8),
 
         material : {
             baseColor : ko.observable([1, 1, 1]),
             specularColor : ko.observable([0.8, 0.8, 0.8]),
             specularFactor : ko.observable(0.44),
             diffuseFactor : ko.observable(0.19),
-            roughness : ko.observable(0.04)
+            roughness : ko.observable(0.04),
+            transparent : ko.observable(true)
         },
 
         materialList : ko.observableArray(),
@@ -42,6 +45,7 @@ define(function(require) {
             materialVM.roughness(material.get('roughness'));
             materialVM.specularFactor(material.get('specularFactor'));
             materialVM.diffuseFactor(material.get('diffuseFactor'));
+            materialVM.transparent(material.transparent);
         }
     }
 
@@ -53,6 +57,7 @@ define(function(require) {
         var roughness = currentMaterial.roughness();
         var specularFactor = currentMaterial.specularFactor();
         var diffuseFactor = currentMaterial.diffuseFactor();
+        var transparent = currentMaterial.transparent();
 
         var selectedMaterial = configVM.selectedMaterial;
         if (selectedMaterial) {
@@ -61,9 +66,10 @@ define(function(require) {
                 selectedMaterial.set('specularFactor', specularFactor);
                 selectedMaterial.set('diffuseFactor', diffuseFactor);
                 selectedMaterial.set('color', baseColor);
+                selectedMaterial.transparent = transparent;
 
-                if (IBL) {
-                    IBL.applyToMaterial(selectedMaterial, roughness);
+                if (environment.IBL) {
+                    environment.IBL.applyToMaterial(selectedMaterial, roughness);
                 }
             });
         }
@@ -72,6 +78,10 @@ define(function(require) {
     return {
         init : function() {
             qpf.util.initFromXML(document.getElementById('App'), xml, configVM);
+            var self = this;
+            setInterval(function() {
+                self.save()
+            }, 1000);
         },
 
         environment : {
@@ -89,10 +99,46 @@ define(function(require) {
                 })
             }
             configVM.materialList(dataSource);
+
+            this.load(remoteMaterials);
+            var localMaterials = localStorage.getItem('materials');
+            if (localMaterials) {
+                this.load(JSON.parse(localMaterials));
+            }
         },
 
-        setIBL : function(_IBL) {
-            IBL = _IBL;
+        save : function() {
+            var materialsData = {};
+
+            var materialList = configVM.materialList();
+            materialList.forEach(function(item) {
+                var material = item.material;
+                materialsData[item.title] = {
+                    color : material.get('color'),
+                    specularColor : material.get('specularColor'),
+                    specularFactor : material.get('specularFactor'),
+                    diffuseFactor : material.get('diffuseFactor'),
+                    roughness : material.get('roughness'),
+                    transparent : material.transparent
+                };
+            });
+            localStorage.setItem('materials', JSON.stringify(materialsData));
+        },
+
+        load : function(materialsData) {
+            var materialList = configVM.materialList();
+            materialList.forEach(function(item) {
+                var material = item.material;
+                var matData = materialsData[item.title];
+                if (matData) {
+                    material.set('color', matData.color);
+                    material.set('specularColor', matData.specularColor);
+                    material.set('specularFactor', matData.specularFactor);
+                    material.set('diffuseFactor', matData.diffuseFactor);
+                    material.set('roughness', matData.roughness);
+                    material.transparent = matData.transparent;                
+                }
+            });
         }
     }
 });

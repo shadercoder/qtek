@@ -1,0 +1,460 @@
+{
+  "Badging Chrome":{
+    "color":[
+      1,
+      1,
+      1
+    ],
+    "specularColor":[
+      1,
+      1,
+      1
+    ],
+    "specularFactor":0.1,
+    "diffuseFactor":0.1,
+    "roughness":1
+  },
+  "Misc":{
+    "color":[
+      1,
+      1,
+      1
+    ],
+    "specularColor":[
+      1,
+      1,
+      1
+    ],
+    "specularFactor":0.1,
+    "diffuseFactor":0.1,
+    "roughness":0.1923663555247906
+  },
+  "Body paint":{
+    "color":[
+      1,
+      1,
+      1
+    ],
+    "specularColor":[
+      0.5098039215686274,
+      0.5098039215686274,
+      0.5098039215686274
+    ],
+    "specularFactor":0.16785714285714284,
+    "diffuseFactor":0.30714285714285716,
+    "roughness":0.08571428571428572
+  },
+  "Material #580":{
+    "color":[
+
+    ],
+    "specularColor":[
+
+    ],
+    "specularFactor":0.1,
+    "diffuseFactor":0.1,
+    "roughness":1
+  },
+  "glass":{
+    "color":[
+      0.9647058823529412,
+      0.9372549019607843,
+      0.9372549019607843
+    ],
+    "specularColor":[
+      0.2549019607843137,
+      0.2549019607843137,
+      0.2549019607843137
+    ],
+    "specularFactor":0.7392857142857143,
+    "diffuseFactor":0.1,
+    "roughness":0
+  },
+  "DoorLine":{
+    "color":[
+      0,
+      0,
+      0
+    ],
+    "specularColor":[
+      0,
+      0,
+      0
+    ],
+    "specularFactor":0.1,
+    "diffuseFactor":0.1,
+    "roughness":1
+  },
+  "Misc Chrome":{
+    "color":[
+      1,
+      1,
+      1
+    ],
+    "specularColor":[
+      1,
+      1,
+      1
+    ],
+    "specularFactor":0.1,
+    "diffuseFactor":0.1,
+    "roughness":0.2538289199431503
+  },
+  "Misc_0":{
+    "color":[
+      1,
+      1,
+      1
+    ],
+    "specularColor":[
+      1,
+      1,
+      1
+    ],
+    "specularFactor":0.08928571428571429,
+    "diffuseFactor":0.16428571428571428,
+    "roughness":0.9714285714285714
+  },
+  "Black":{
+    "color":[
+      0,
+      0,
+      0,
+      null
+    ],
+    "specularColor":[
+
+    ],
+    "specularFactor":0.1,
+    "diffuseFactor":0.1,
+    "roughness":0.9
+  },
+  "Brake Pads Left":{
+    "color":[
+      1,
+      1,
+      1
+    ],
+    "specularColor":[
+      0.615686274509804,
+      0.615686274509804,
+      0.615686274509804
+    ],
+    "specularFactor":0.5035714285714286,
+    "diffuseFactor":0.1,
+    "roughness":0.16785714285714284
+  },
+  "Brake Pads Right":{
+    "color":[
+      0.9254901960784314,
+      0.9254901960784314,
+      0.9254901960784314
+    ],
+    "specularColor":[
+      0.5490196078431373,
+      0.5490196078431373,
+      0.5490196078431373
+    ],
+    "specularFactor":0.48214285714285715,
+    "diffuseFactor":0.1,
+    "roughness":0.10357142857142858
+  },
+  "Misc_1":{
+    "color":[
+
+    ],
+    "specularColor":[
+
+    ],
+    "specularFactor":0.1,
+    "diffuseFactor":0.1,
+    "roughness":0.9
+  },
+  "Bottom":{
+    "color":[
+
+    ],
+    "specularColor":[
+
+    ],
+    "specularFactor":0.1,
+    "diffuseFactor":0.1,
+    "roughness":1
+  },
+  "Misc_2":{
+    "color":[
+
+    ],
+    "specularColor":[
+
+    ],
+    "specularFactor":0.1,
+    "diffuseFactor":0.1,
+    "roughness":0.4419416340464185
+  },
+  "Misc_3":{
+    "color":[
+
+    ],
+    "specularColor":[
+
+    ],
+    "specularFactor":0.1,
+    "diffuseFactor":0.1,
+    "roughness":1
+  },
+  "Driver":{
+    "color":[
+      1,
+      1,
+      1
+    ],
+    "specularColor":[
+      0,
+      0,
+      0
+    ],
+    "specularFactor":0,
+    "diffuseFactor":0.25357142857142856,
+    "roughness":0.9
+  },
+  "Misc_4":{
+    "color":[
+
+    ],
+    "specularColor":[
+
+    ],
+    "specularFactor":0.1,
+    "diffuseFactor":0.1,
+    "roughness":0.9
+  },
+  "Misc_5":{
+    "color":[
+      0.09411764705882353,
+      0.09411764705882353,
+      0.09411764705882353
+    ],
+    "specularColor":[
+      0.1568627450980392,
+      0.1568627450980392,
+      0.1568627450980392
+    ],
+    "specularFactor":0.175,
+    "diffuseFactor":0.3464285714285714,
+    "roughness":0.425
+  },
+  "Material #587":{
+    "color":[
+
+    ],
+    "specularColor":[
+
+    ],
+    "specularFactor":0.1,
+    "diffuseFactor":0.1,
+    "roughness":1
+  },
+  "Material #595":{
+    "color":[
+      0.11764706671237946,
+      0.16862745583057404,
+      0.19215688109397888,
+      null
+    ],
+    "specularColor":[
+      0.3137254901960784,
+      0.3137254901960784,
+      0.3137254901960784
+    ],
+    "specularFactor":0.42857142857142855,
+    "diffuseFactor":0.060714285714285714,
+    "roughness":1,
+    "transparent":true
+  },
+  "Misc_6":{
+    "color":[
+
+    ],
+    "specularColor":[
+
+    ],
+    "specularFactor":0.1,
+    "diffuseFactor":0.1,
+    "roughness":0.9
+  },
+  "Interior":{
+    "color":[
+      1,
+      1,
+      1
+    ],
+    "specularColor":[
+      1,
+      1,
+      1
+    ],
+    "specularFactor":0.09285714285714286,
+    "diffuseFactor":0.7464285714285714,
+    "roughness":0.45357142857142857
+  },
+  "Misc_7":{
+    "color":[
+
+    ],
+    "specularColor":[
+
+    ],
+    "specularFactor":0.1,
+    "diffuseFactor":0.1,
+    "roughness":1
+  },
+  "chrom":{
+    "color":[
+      0,
+      0,
+      0,
+      null
+    ],
+    "specularColor":[
+
+    ],
+    "specularFactor":0.1,
+    "diffuseFactor":0.1,
+    "roughness":1
+  },
+  "Misc_8":{
+    "color":[
+
+    ],
+    "specularColor":[
+
+    ],
+    "specularFactor":0.1,
+    "diffuseFactor":0.1,
+    "roughness":0.9
+  },
+  "Material #592":{
+    "color":[
+
+    ],
+    "specularColor":[
+
+    ],
+    "specularFactor":0.1,
+    "diffuseFactor":0.1,
+    "roughness":0.9
+  },
+  "Brake Disc":{
+    "color":[
+      0.996078431372549,
+      0.996078431372549,
+      0.996078431372549
+    ],
+    "specularColor":[
+      1,
+      1,
+      1
+    ],
+    "specularFactor":0.1,
+    "diffuseFactor":0.1,
+    "roughness":1
+  },
+  "Interior_0":{
+    "color":[
+
+    ],
+    "specularColor":[
+
+    ],
+    "specularFactor":0,
+    "diffuseFactor":0.28214285714285714,
+    "roughness":0.9
+  },
+  "Tire":{
+    "color":[
+      1,
+      1,
+      1
+    ],
+    "specularColor":[
+      1,
+      1,
+      1
+    ],
+    "specularFactor":0.025,
+    "diffuseFactor":0.65,
+    "roughness":1
+  },
+  "Tire Back":{
+    "color":[
+      0.19215688109397888,
+      0.19215688109397888,
+      0.19215688109397888,
+      null
+    ],
+    "specularColor":[
+
+    ],
+    "specularFactor":0.1,
+    "diffuseFactor":0.1,
+    "roughness":1
+  },
+  "Mat":{
+    "color":[
+
+    ],
+    "specularColor":[
+
+    ],
+    "specularFactor":0.1,
+    "diffuseFactor":0.1,
+    "roughness":1
+  },
+  "Material #594":{
+    "color":[
+      1,
+      1,
+      1
+    ],
+    "specularColor":[
+      0.4588235294117647,
+      0.4588235294117647,
+      0.4588235294117647
+    ],
+    "specularFactor":0.225,
+    "diffuseFactor":0.28214285714285714,
+    "roughness":0
+  },
+  "Material #596":{
+    "color":[
+      0.16470588743686676,
+      0.16470588743686676,
+      0.16470588743686676,
+      null
+    ],
+    "specularColor":{
+      "0":0.5600000023841858,
+      "1":0.5699999928474426,
+      "2":0.5799999833106995
+    },
+    "specularFactor":0.1,
+    "diffuseFactor":0.1,
+    "roughness":1
+  },
+  "Ground Mat":{
+    "color":[
+      1,
+      1,
+      1
+    ],
+    "specularColor":[
+      0.3607843137254902,
+      0.3607843137254902,
+      0.3607843137254902
+    ],
+    "specularFactor":0.08214285714285714,
+    "diffuseFactor":0.09285714285714286,
+    "roughness":0.21071428571428572
+  }
+}

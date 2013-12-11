@@ -28,6 +28,10 @@
                 <color color="@binding[material.specularColor]"></color>
                 <label>Roughness</label>
                 <slider value="@binding[material.roughness]" max="1" min="0" step="0.01"></slider>
+                <inline>
+                    <label>Transparent</label>
+                    <checkbox checked="@binding[material.transparent]"></checkbox>
+                </inline>
             </panel>
         </vbox>
     </hbox>

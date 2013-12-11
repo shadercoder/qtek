@@ -6,6 +6,9 @@ define(function(require) {
     qtek3d.Shader.import(require('text!./shader/IBL.essl'));
     var environmentMapPass = new qtek3d.prePass.EnvironmentMap();
 
+    var animation = new qtek.animation.Animation();
+    animation.start();
+
     var IBL = function(renderer, envMap, callback) {
         var self = this;
         this.renderer = renderer;
@@ -13,29 +16,40 @@ define(function(require) {
         this.BRDFLookup = this.integrateBRDF();
         this.materials = [];
         this.mipmaps = [];
-        if (envMap instanceof qtek3d.texture.Texture2D) {
-            this.environmentMap = this.panoramaToCubeMap(envMap);
-            this.update(callback);
-        } else if (envMap instanceof qtek3d.texture.TextureCube) {
-            this.environmentMap = envMap;
-            this.update(callback);
-        } else if (typeof(envMap) === 'string') {
-            var self = this;
-            if (envMap.substr(-3) === 'hdr') {
-                qtek.core.request.get({
-                    url : envMap,
-                    responseType : 'arraybuffer',
-                    onload : function(data) {
-                        var texture = qtek3d.util.hdr.parseRGBE(data);
-                        texture.flipY = false;
-                        self.environmentMap = self.panoramaToCubeMap(texture);
-                        self.update(callback);
-                    }
-                });
-            }
+
+        this.environmentMap = null;
+        this.diffuseEnvMap = null;
+        this.downSampledEnvMap = null;
+        this.downSampledEnvMap2 = null;
+        if (envMap) {
+            this.init(envMap, callback);
         }
     }
     IBL.prototype = {
+        init : function(envMap, callback) {
+
+            if (envMap instanceof qtek3d.texture.Texture2D) {
+                this.environmentMap = this.panoramaToCubeMap(envMap);
+                this.update(callback);
+            } else if (envMap instanceof qtek3d.texture.TextureCube) {
+                this.environmentMap = envMap;
+                this.update(callback);
+            } else if (typeof(envMap) === 'string') {
+                var self = this;
+                if (envMap.substr(-3) === 'hdr') {
+                    qtek.core.request.get({
+                        url : envMap,
+                        responseType : 'arraybuffer',
+                        onload : function(data) {
+                            var texture = qtek3d.util.hdr.parseRGBE(data);
+                            texture.flipY = false;
+                            self.environmentMap = self.panoramaToCubeMap(texture);
+                            self.update(callback);
+                        }
+                    });
+                }
+            }
+        },
 
         update : function(callback) {
             var _gl = this.renderer.gl;
@@ -55,6 +69,7 @@ define(function(require) {
             if (this.environmentMap) {
                 this.prefilterSpecularEnvMap(function(mipmaps) {
                     self.mipmaps = mipmaps;
+                    self.updateMaterials();
                     callback && callback();
                 });
             }
@@ -226,9 +241,7 @@ define(function(require) {
 
             var mipmapLevel = 1;
 
-            if (this._updateTimeout) {
-                clearTimeout(this._updateTimeout);
-            }
+            animation.off('frame');
             console.log('Prefilter specular map');
             function onFrame() {
 
@@ -247,16 +260,15 @@ define(function(require) {
                     mipmaps[mipmapLevel++] = mipmap;
                     environmentMapPass.texture = mipmap;
                     environmentMapPass.render(self.renderer, emptyScene);
-
-                    this._updateTimeout = setTimeout(onFrame, 20);
                 } else {
 
                     console.log('Prefilter specular map done!');
+                    animation.off('frame');
                     callback && callback(mipmaps);
                 }
             }
 
-            this._updateTimeout = setTimeout(onFrame, 20);
+            animation.on('frame', onFrame);
         },
 
         applyToMaterial : function(material, roughness) {
