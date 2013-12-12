@@ -116,7 +116,7 @@ define(function(require) {
 
         render : function(context) {
             
-            this.trigger("beforerender", [context]);
+            this.trigger("beforerender", context);
 
             var renderQueue = this.getSortedRenderQueue();
             if (this.style) {
@@ -135,9 +135,9 @@ define(function(require) {
             context.transform(m[0], m[1], m[2], m[3], m[4], m[5]);
 
             if (this.draw) {
-                this.trigger("beforedraw", [context]);
+                this.trigger("beforedraw", context);
                 this.draw(context);
-                this.trigger("afterdraw", [context]);
+                this.trigger("afterdraw", context);
             }
 
             //clip from current path;
@@ -148,7 +148,7 @@ define(function(require) {
             }
             context.restore();
 
-            this.trigger("afterrender", [context]);
+            this.trigger("afterrender", context);
         },
 
         traverse : function(callback) {
