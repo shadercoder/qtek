@@ -24,7 +24,7 @@ define(function(require) {
     var environment = {
 
         useCubeMap : false,
-        // cubeMapUrl : '../../tests/assets/textures/hdr/pisa.hdr',
+        // cubeMapUrl : '../../tests/assets/textures/hdr/old_industrial_hall.hdr',
         time : 8,
         kr : 0,
         km : 0,

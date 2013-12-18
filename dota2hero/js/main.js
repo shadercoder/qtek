@@ -112,8 +112,8 @@
     });
 
     var scene = new qtek3d.Scene();
-    rockLoader.on('load', function(_scene) {
-        var rockRoot = _scene.childAt(0);
+    rockLoader.on('success', function(res) {
+        var rockRoot = res.scene.childAt(0);
         rockRoot.rotation.rotateX(-Math.PI/2);
         rockRoot.position.set(-5, -3.2, 0);
         rockRoot.scale.set(0.15, 0.15, 0.15);
@@ -135,9 +135,10 @@
         scene.add(rockRoot);
     });
 
-    heroLoader.on("load", function(_scene, cameras, skeleton) {
+    heroLoader.on("success", function(res) {
         var heroRoot = new qtek3d.Node();
-        var children = _scene.children();
+        var skeleton = res.skeleton;
+        var children = res.scene.children();
         for (var i = 0; i < children.length; i++) {
             heroRoot.add(children[i]);
         }
@@ -145,16 +146,13 @@
         heroRoot.rotation.rotateX(-Math.PI/2);
         heroRoot.scale.set(0.1, 0.1, 0.1);
 
-        var camera = cameras[Object.keys(cameras)[0]];
-        if (!camera) {
-            camera = new qtek3d.camera.Perspective({
-                aspect : renderer.canvas.width/renderer.canvas.height,
-                far : 1000
-            });
+        var camera = new qtek3d.camera.Perspective({
+            aspect : renderer.canvas.width/renderer.canvas.height,
+            far : 1000
+        });
 
-            camera.position.set(40, 10, 40);
-            camera.lookAt(new qtek.core.Vector3(0, 10, 0));
-        }
+        camera.position.set(40, 10, 40);
+        camera.lookAt(new qtek.core.Vector3(0, 10, 0));
         camera.aspect = renderer.canvas.width / renderer.canvas.height;
 
         var control = new qtek3d.plugin.OrbitControl({

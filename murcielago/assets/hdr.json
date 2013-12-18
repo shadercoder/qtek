@@ -1,6 +1,11 @@
 {
     "meta" : {},
     "type" : "compositor",
+    "textures" : {
+        "lenscolor" : {
+            "path" : "../textures/lensflare/lenscolor.png"
+        }
+    },
     "nodes" : [
         {
             "name" : "bright",
@@ -20,6 +25,33 @@
                         "type" : "FLOAT"
                     }
                 }
+            },
+            "parameters" : {
+                "threshold" : 1
+            }
+        },
+        {
+            "name" : "bright2",
+            "shader" : "#source(buildin.compositor.hdr.bright)",
+            "type" : "processor",
+            "inputs" : {
+                "texture" : {
+                    "node" : "scene",
+                    "pin" : "color"
+                }
+            },
+            "outputs" : {
+                "color" : {
+                    "parameters" : {
+                        "width" : 256,
+                        "height" : 256,
+                        "type" : "FLOAT"
+                    }
+                }
+            },
+            "parameters" : {
+                "threshold" : 50,
+                "scale" : 0.01
             }
         },
         {
@@ -162,7 +194,7 @@
         },
         {
             "name" : "bloom",
-            "shader" : "#source(buildin.compositor.hdr.bloom)",
+            "shader" : "#source(buildin.compositor.blend)",
             "type" : "processor",
             "inputs" : {
                 "texture1" : {
@@ -188,12 +220,84 @@
                 }
             },
             "parameters" : {
-                "scale" : 0.2
+                "weight1" : 0.5,
+                "weight2" : 0.3,
+                "weight3" : 0.1
+            }
+        },
+        {
+            "name" : "lensflare",
+            "shader" : "#source(buildin.compositor.lensflare)",
+            "type" : "processor",
+            "inputs" : {
+                "texture" : {
+                    "node" : "bright2",
+                    "pin" : "color"
+                }
+            },
+            "outputs" : {
+                "color" : {
+                    "parameters" : {
+                        "width" : 128,
+                        "height" : 128,
+                        "type" : "FLOAT"
+                    }
+                }
+            },
+            "parameters" : {
+                "textureSize" : [256, 256],
+                "lensColor" : "#lenscolor"
+            }
+        },
+        {
+            "name" : "lensflare_blur_h",
+            "shader" : "#source(buildin.compositor.gaussian_blur_h)",
+            "type" : "processor",
+            "inputs" : {
+                "texture" : {
+                    "node" : "lensflare",
+                    "pin" : "color"
+                }
+            },
+            "outputs" : {
+                "color" : {
+                    "parameters" : {
+                        "width" : 128,
+                        "height" : 128,
+                        "type" : "FLOAT"
+                    }
+                }
+            },
+            "parameters" : {
+                "blurSize" : 2
+            }
+        },
+        {
+            "name" : "lensflare_blur_v",
+            "shader" : "#source(buildin.compositor.gaussian_blur_v)",
+            "type" : "processor",
+            "inputs" : {
+                "texture" : {
+                    "node" : "lensflare_blur_h",
+                    "pin" : "color"
+                }
+            },
+            "outputs" : {
+                "color" : {
+                    "parameters" : {
+                        "width" : 128,
+                        "height" : 128,
+                        "type" : "FLOAT"
+                    }
+                }
+            },
+            "parameters" : {
+                "blurSize" : 2
             }
         },
         {
             "name" : "tonemapping",
-            "shader" : "#source(buildin.compositor.hdr.tonemapping_eyeadaption)",
+            "shader" : "#source(buildin.compositor.hdr.tonemapping)",
             "type" : "processor",
             "inputs" : {
                 "texture" : {
@@ -204,6 +308,10 @@
                     "node" : "bloom",
                     "pin" : "color"
                 },
+                "lensflare" : {
+                    "node" : "lensflare_blur_v",
+                    "pin" : "color"
+                },
                 "lum" : {
                     "node" : "lum_adaption",
                     "pin" : "color"
@@ -212,12 +320,13 @@
             "outputs" : {
                 "color" : {
                     "parameters" : {
-                        "width" : 1024,
-                        "height" : 1024
+                        "width" : "100%",
+                        "height" : "100%"
                     }
                 }
             }
         },
+
         {
             "name" : "log_lum",
             "shader" : "#source(buildin.compositor.hdr.log_lum)",

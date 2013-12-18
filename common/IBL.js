@@ -41,7 +41,7 @@ define(function(require) {
                         url : envMap,
                         responseType : 'arraybuffer',
                         onload : function(data) {
-                            var texture = qtek3d.util.hdr.parseRGBE(data);
+                            var texture = qtek3d.util.hdr.parseRGBE(data, null, 2.0);
                             texture.flipY = false;
                             self.environmentMap = self.panoramaToCubeMap(texture);
                             self.update(callback);
@@ -178,8 +178,8 @@ define(function(require) {
         downSample : function() {
             console.log('Down sample');
             this.downSampledEnvMap = new qtek3d.texture.TextureCube({
-                width : 32,
-                height : 32,
+                width : 128,
+                height : 128,
                 type : qtek3d.Texture.FLOAT
             });
             this.downSampledEnvMap2 = new qtek3d.texture.TextureCube({

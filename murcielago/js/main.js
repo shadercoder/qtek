@@ -51,8 +51,8 @@ define(function(require) {
 
     GLTFLoader.load("assets/murcielago.json");
 
-    GLTFLoader.on("load", function(_scene) {
-        var children = _scene.children();
+    GLTFLoader.on('success', function(res) {
+        var children = res.scene.children();
         for (var i = 0; i < children.length; i++) {
             scene.add(children[i]);
         }
@@ -95,6 +95,7 @@ define(function(require) {
             wrapT : qtek3d.Texture.REPEAT,
             anisotropic : 8
         });
+        // Texture from http://www.rendertextures.com/pavers-21/
         groundDiffuse.load('assets/10_DIFFUSE.jpg');
         groundNormal.load('assets/10_NORMAL.jpg');
         planeMesh.geometry.generateTangents();
@@ -122,8 +123,8 @@ define(function(require) {
 
         var compositor;
         var FXLoader = new qtek.loader.FX();
-        FXLoader.load('assets/hdr.json');
-        FXLoader.on('load', function(_compositor) {
+        FXLoader.load('../common/assets/fx/hdr.json');
+        FXLoader.on('success', function(_compositor) {
             compositor = _compositor;
             var sceneNode = new qtek3d.compositor.SceneNode({
                 name : "scene",
@@ -166,22 +167,6 @@ define(function(require) {
                 var FXAANode = compositor.findNode('FXAA');
                 if (FXAANode) {
                     FXAANode.setParameter('viewportSize', [renderer.width, renderer.height]);
-                }
-                var tonemappingNode = compositor.findNode('tonemapping');
-                var sceneNode  = compositor.findNode('scene');
-                if (tonemappingNode) {
-                    var colorTex = tonemappingNode.getOutput('color');
-                    if (colorTex) {
-                        colorTex.dispose(renderer.gl);
-                    }
-                    colorTex = sceneNode.getOutput('color');
-                    if (colorTex) {
-                        colorTex.dispose(renderer.gl);
-                    }
-                    tonemappingNode.outputs.color.parameters.width = renderer.width;
-                    tonemappingNode.outputs.color.parameters.height = renderer.height;
-                    sceneNode.outputs.color.parameters.width = renderer.width;
-                    sceneNode.outputs.color.parameters.height = renderer.height;
                 }
             }
         });

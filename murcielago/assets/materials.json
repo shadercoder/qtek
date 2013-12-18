@@ -40,8 +40,8 @@
       0.5098039215686274,
       0.5098039215686274
     ],
-    "specularFactor":0.16785714285714284,
-    "diffuseFactor":0.30714285714285716,
+    "specularFactor":0.7,
+    "diffuseFactor":0.3,
     "roughness":0.08571428571428572
   },
   "Material #580":{

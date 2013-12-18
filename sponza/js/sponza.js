@@ -42,14 +42,13 @@ define(['qtek', 'knockout', 'ko.mapping'], function(qtek, ko, koMapping){
     });
     loader.load("assets/sponza.json");
 
-    loader.on("load", function(sponzaScene, sponzaCameras){
-        // camera = sponzaCameras[Object.keys(sponzaCameras)[0]];
+    loader.on("success", function(res){
         camera = new qtek3d.camera.Perspective({
             aspect : window.innerWidth / window.innerHeight
         });
         camera.position.set(10, 10, 0);
         camera.lookAt(new qtek.core.Vector3(0, 10, 0))
-        scene = sponzaScene;
+        scene = res.scene;
         var firstPersonControl = new qtek3d.plugin.FirstPersonControl({
             target : camera,
             domElement : renderer.canvas
@@ -85,21 +84,24 @@ define(['qtek', 'knockout', 'ko.mapping'], function(qtek, ko, koMapping){
                 // node.material.shader.disableTexture('normalMap');
             }
         });
-
+        var renderInfo;
         animation.on('frame', function(deltaTime) {
             var time = performance.now();
             shadowMapPass.render(renderer, scene);
             var shadowPassTime = performance.now() - time;
             time = performance.now();
-            var renderInfo = renderer.render(scene, camera);
+            renderInfo = renderer.render(scene, camera);
             var renderTime = performance.now() - time;
             // shadowMapPass.renderDebug(renderer);
             // Update debug render info
             renderInfo.shadowPassTime = shadowPassTime;
             renderInfo.renderTime = renderTime;
             renderInfo.fps = Math.round(1000 / deltaTime);
-            koMapping.fromJS(renderInfo, mapping, debugInfoVM);
         });
+
+        setInterval(function() {
+            koMapping.fromJS(renderInfo, mapping, debugInfoVM);
+        }, 200);
     });
 
 
