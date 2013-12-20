@@ -13003,7 +13003,6 @@ define('3d/BoundingBox',['require','core/Base','core/Vector3','glmatrix'],functi
     var glMatrix = require('glmatrix');
     var mat4 = glMatrix.mat4;
     var vec3 = glMatrix.vec3;
-    var vec4 = glMatrix.vec4;
 
     var BoundingBox = function(min, max) {
         this.min = min || new Vector3();
@@ -13011,7 +13010,7 @@ define('3d/BoundingBox',['require','core/Base','core/Vector3','glmatrix'],functi
         // Cube vertices
         var vertices = [];
         for (var i = 0; i < 8; i++) {
-            vertices[i] = vec4.fromValues(0, 0, 0, 1);
+            vertices[i] = vec3.fromValues(0, 0, 0, 1);
         }
         this.vertices = vertices;
     }
@@ -13036,6 +13035,8 @@ define('3d/BoundingBox',['require','core/Base','core/Vector3','glmatrix'],functi
                     _max[1] = Math.max(vertex[1], _max[1]);
                     _max[2] = Math.max(vertex[2], _max[2]);
                 }
+                this.min._dirty = true;
+                this.max._dirty = true;
             }
         },
 
@@ -13049,14 +13050,15 @@ define('3d/BoundingBox',['require','core/Base','core/Vector3','glmatrix'],functi
             var m4 = matrix._array;
             var _min = this.min._array;
             var _max = this.max._array;
-            vec3.set(_min, 99, 99, 99);
-            vec3.set(_max, -99, -99, -99);
-            for (var i = 0; i < 8; i++) {
-                var v = this.vertices[i];
-                vec4.transformMat4(v, v, m4);
-                v[0] /= v[3];
-                v[1] /= v[3];
-                v[2] /= v[3];
+
+            var v = this.vertices[0];
+            vec3.transformMat4(v, v, m4);
+            vec3.copy(_min, v);
+            vec3.copy(_max, v);
+
+            for (var i = 1; i < 8; i++) {
+                v = this.vertices[i];
+                vec3.transformMat4(v, v, m4);
 
                 _min[0] = Math.min(v[0], _min[0]);
                 _min[1] = Math.min(v[1], _min[1]);
@@ -13066,20 +13068,62 @@ define('3d/BoundingBox',['require','core/Base','core/Vector3','glmatrix'],functi
                 _max[1] = Math.max(v[1], _max[1]);
                 _max[2] = Math.max(v[2], _max[2]);
             }
+
+            this.min._dirty = true;
+            this.max._dirty = true;
+        },
+
+        applyProjection : function(matrix) {
+            if (this.min._dirty || this.max._dirty) {
+                this.updateVertices();
+                this.min._dirty = false;
+                this.max._dirty = false;
+            }
+
+            var m = matrix._array;
+            // min in near plane
+            var v1 = this.vertices[0];
+            // max in near plane
+            var v2 = this.vertices[3];
+            // max in far plane
+            var v3 = this.vertices[7];
+
+            var _min = this.min._array;
+            var _max = this.max._array;
+
+            var w = 1 / (m[3] * v1[0] + m[7] * v1[1] + m[11] * v1[2] + m[15]);
+            _min[0] = (m[0] * v1[0] + m[4] * v1[1] + m[8] * v1[2] + m[12]) * w;
+            _min[1] = (m[1] * v1[0] + m[5] * v1[1] + m[9] * v1[2] + m[13]) * w;
+            _min[2] = (m[2] * v1[0] + m[6] * v1[1] + m[10] * v1[2] + m[14]) * w;
+
+            w = 1 / (m[3] * v2[0] + m[7] * v2[1] + m[11] * v2[2] + m[15]);
+            _max[0] = (m[0] * v2[0] + m[4] * v2[1] + m[8] * v2[2] + m[12]) * w;
+            _max[1] = (m[1] * v2[0] + m[5] * v2[1] + m[9] * v2[2] + m[13]) * w;
+
+            w = 1 / (m[3] * v3[0] + m[7] * v3[1] + m[11] * v3[2] + m[15]);
+            _max[2] = (m[2] * v3[0] + m[6] * v3[1] + m[10] * v3[2] + m[14]) * w;
+
+            this.min._dirty = true;
+            this.max._dirty = true;
         },
 
         updateVertices : function() {
             var min = this.min._array;
             var max = this.max._array;
             var vertices = this.vertices;
-            vec4.set(vertices[0], min[0], min[1], min[2], 1);
-            vec4.set(vertices[1], min[0], min[1], max[2], 1);
-            vec4.set(vertices[2], min[0], max[1], max[2], 1);
-            vec4.set(vertices[3], min[0], max[1], min[2], 1);
-            vec4.set(vertices[4], max[0], max[1], min[2], 1);
-            vec4.set(vertices[5], max[0], min[1], min[2], 1);
-            vec4.set(vertices[6], max[0], min[1], max[2], 1);
-            vec4.set(vertices[7], max[0], max[1], max[2], 1);
+            //--- new z
+            // min x
+            vec3.set(vertices[0], min[0], min[1], min[2]);
+            vec3.set(vertices[1], min[0], max[1], min[2]);
+            // max x
+            vec3.set(vertices[2], max[0], min[1], min[2]);
+            vec3.set(vertices[3], max[0], max[1], min[2]);
+
+            //-- far z
+            vec3.set(vertices[4], min[0], min[1], max[2]);
+            vec3.set(vertices[5], min[0], max[1], max[2]);
+            vec3.set(vertices[6], max[0], min[1], max[2]);
+            vec3.set(vertices[7], max[0], max[1], max[2]);
         },
 
         copy : function(boundingBox) {
@@ -15009,6 +15053,95 @@ define('3d/FrameBuffer',['require','core/Base','./texture/Texture2D','./texture/
 
     return FrameBuffer;
 });
+define('3d/Plane',['require','core/Vector3','glmatrix'],function(require) {
+
+    var Vector3 = require('core/Vector3');
+    var glmatrix = require('glmatrix');
+    var vec3 = glmatrix.vec3;
+
+    var Plane = function(normal, distance) {
+        this.normal = normal || new Vector3();
+        this.distance = distance;
+    }
+
+    Plane.prototype = {
+
+        constructor : Plane,
+
+        distanceToPoint : function(point) {
+            return vec3.dot(point._array, this.normal._array) - this.distance;
+        },
+
+        normalize : function() {
+            var invLen = 1 / vec3.len(this.normal._array);
+            vec3.scale(this.normal._array, invLen);
+            this.distance *= invLen;
+        }
+    }
+
+    return Plane;
+});
+define('3d/Frustum',['require','core/Vector3','glmatrix','./Plane'],function(require) {
+
+    var Vector3 = require('core/Vector3');
+    var glmatrix = require('glmatrix');
+    var Plane = require('./Plane');
+    var vec3 = glmatrix.vec3;
+
+    var Frustum = function() {
+        this.planes = [];
+
+        for (var i = 0; i < 6; i++) {
+            this.planes.push(new Plane);
+        }
+    };
+
+    Frustum.prototype = {
+
+        // http://web.archive.org/web/20120531231005/http://crazyjoke.free.fr/doc/3D/plane%20extraction.pdf
+        setFromProjection : function(projectionMatrix) {
+
+            var planes = this.planes;
+            var m = projectionMatrix._array;
+            var m0 = m[0], m1 = m[1], m2 = m[2], m3 = m[3];
+            var m4 = m[4], m5 = m[5], m6 = m[6], m7 = m[7];
+            var m8 = m[8], m9 = m[9], m10 = m[10], m11 = m[11];
+            var m12 = m[12], m13 = m[13], m14 = m[14], m15 = m[15];
+
+            vec3.set(planes[0].normal._array, m3 - m0, m7 - m4, m11 - m8);
+            planes[0].distance = m15 - m12;
+            planes[0].normalize();
+
+            vec3.set(planes[1].normal._array, m3 + m0, m7 + m4, m11 + m8);
+            planes[1].distance = m15 + m12;
+            planes[1].normalize();
+            
+            vec3.set(planes[2].normal._array, m3 + m1, m7 + m5, m11 + m9);
+            planes[2].distance = m15 + m13;
+            planes[2].normalize();
+            
+            vec3.set(planes[3].normal._array, m3 - m1, m7 - m5, m11 - m9);
+            planes[3].distance = m15 - m13;
+            planes[3].normalize();
+            
+            vec3.set(planes[4].normal._array, m3 - m2, m7 - m6, m11 - m10);
+            planes[4].distance = m15 - m14;
+            planes[4].normalize();
+            
+            vec3.set(planes[5].normal._array, m3 + m2, m7 + m6, m11 + m10);
+            planes[5].distance = m15 + m14;
+            planes[5].normalize();
+            
+            return this;
+        },
+
+        intersectBoundingBox : function() {
+
+        }
+    }
+
+    return Frustum;
+});
 /**
  *
  * PENDING: use perfermance hint and remove the array after the data is transfered?
@@ -15800,7 +15933,7 @@ define('3d/Geometry',['require','core/Base','core/Vector3','./BoundingBox','./gl
             }
         })(),
         // TODO : tangent
-        applyMatrix : function(matrix) {
+        applyTransform : function(matrix) {
             var positions = this.attributes.position.value;
             var normals = this.attributes.normal.value;
 
@@ -16238,8 +16371,8 @@ define('3d/Shader',['require','core/Base','glmatrix','util/util','_'],function(r
         },
 
         setUniform : function(_gl, type, symbol, value) {
-            var locationsMap = this.cache.get("locations");
-            var location = locationsMap[symbol];
+            var locationMap = this.cache.get("locations");
+            var location = locationMap[symbol];
             // Uniform is not existed in the shader
             if (location === null || location === undefined) {
                 return;
@@ -16683,8 +16816,8 @@ define('3d/Shader',['require','core/Base','glmatrix','util/util','_'],function(r
                 // Cache uniform locations
                 for (var i = 0; i < this._uniformList.length; i++) {
                     var uniformSymbol = this._uniformList[i];
-                    var locationsMap = this.cache.get("locations");
-                    locationsMap[uniformSymbol] = _gl.getUniformLocation(program, uniformSymbol);
+                    var locationMap = this.cache.get("locations");
+                    locationMap[uniformSymbol] = _gl.getUniformLocation(program, uniformSymbol);
                 }
 
             } catch(e) {
@@ -17299,6 +17432,7 @@ define('3d/Renderer',['require','core/Base','util/util','./Light','./Mesh','./Te
     var glenum = require('./glenum');
     var mat4 = glMatrix.mat4;
     var vec3 = glMatrix.vec3;
+    var vec4 = glMatrix.vec4;
     var BoundingBox = require('./BoundingBox');
     var Matrix4 = require('core/Matrix4');
 
@@ -17532,13 +17666,17 @@ define('3d/Renderer',['require','core/Base','util/util','./Light','./Mesh','./Te
                     mat4.invert(matrices['WORLDVIEWPROJECTIONINVERSE'], matrices['WORLDVIEWPROJECTION']);
                 }
                 // Frustum culling
+                // http://www.cse.chalmers.se/~uffe/vfc_bbox.pdf
                 if (geometry.boundingBox && renderable.frustumCulling) {
-                    cullingMatrix._array = matrices['WORLDVIEWPROJECTION'];
+                    cullingMatrix._array = matrices['WORLDVIEW'];
                     cullingBoundingBox.copy(geometry.boundingBox);
                     cullingBoundingBox.applyTransform(cullingMatrix);
+                    cullingMatrix._array = matrices['PROJECTION'];
+                    cullingBoundingBox.applyProjection(cullingMatrix);
 
                     var min = cullingBoundingBox.min._array;
                     var max = cullingBoundingBox.max._array;
+                    
                     if (
                         max[0] < -1 || min[0] > 1
                         || max[1] < -1 || min[1] > 1
@@ -19134,7 +19272,7 @@ define('3d/geometry/Cube',['require','../Geometry','./Plane','core/Matrix4','cor
                 planeMatrix.rotateY(Math.PI);
                 break;
         }
-        plane.applyMatrix(planeMatrix);
+        plane.applyTransform(planeMatrix);
         return plane;
     }
 
@@ -22530,7 +22668,7 @@ define('animation/Animation',['require','./Clip','core/Base'],function(require) 
     var Clip = require('./Clip');
     var Base = require('core/Base');
 
-    var requrestAnimationFrame = window.requrestAnimationFrame
+    var requestAnimationFrame = window.requestAnimationFrame
                                 || window.msRequestAnimationFrame
                                 || window.mozRequestAnimationFrame
                                 || window.webkitRequestAnimationFrame
@@ -22613,13 +22751,13 @@ define('animation/Animation',['require','./Clip','core/Base'],function(require) 
             function step() {
                 if (self._running) {
                     
-                    requrestAnimationFrame(step);
+                    requestAnimationFrame(step);
 
                     self.update();
                 }
             }
 
-            requrestAnimationFrame(step);
+            requestAnimationFrame(step);
         },
         stop : function() {
             this._running = false;
@@ -25374,7 +25512,7 @@ define('util/color',['require'],function(require){
 
 	
 });
-define('qtek',['require','2d/Camera','2d/Gradient','2d/LinearGradient','2d/Node','2d/Pattern','2d/RadialGradient','2d/Renderer','2d/Scene','2d/Style','2d/picking/Box','2d/picking/Pixel','2d/shape/Arc','2d/shape/Circle','2d/shape/Ellipse','2d/shape/HTML','2d/shape/Image','2d/shape/Line','2d/shape/Path','2d/shape/Polygon','2d/shape/Rectangle','2d/shape/RoundedRectangle','2d/shape/SVGPath','2d/shape/Sector','2d/shape/Text','2d/shape/TextBox','2d/util','3d/BoundingBox','3d/Camera','3d/FrameBuffer','3d/Geometry','3d/Joint','3d/Light','3d/Material','3d/Mesh','3d/Node','3d/Ray','3d/Renderer','3d/Scene','3d/Shader','3d/Skeleton','3d/Texture','3d/WebGLInfo','3d/camera/Orthographic','3d/camera/Perspective','3d/compositor/Compositor','3d/compositor/Graph','3d/compositor/Group','3d/compositor/Node','3d/compositor/Pass','3d/compositor/SceneNode','3d/compositor/TextureNode','3d/compositor/texturePool','3d/debug/PointLight','3d/geometry/Cube','3d/geometry/Plane','3d/geometry/Sphere','3d/glenum','3d/light/Ambient','3d/light/Directional','3d/light/Point','3d/light/Spot','3d/particleSystem/Emitter','3d/particleSystem/ForceField','3d/particleSystem/GravityField','3d/particleSystem/Particle','3d/particleSystem/ParticleSystem','3d/picking/Pixel','3d/plugin/FirstPersonControl','3d/plugin/OrbitControl','3d/plugin/Skybox','3d/plugin/Skydome','3d/prePass/EnvironmentMap','3d/prePass/Reflection','3d/prePass/ShadowMap','3d/shader/library','3d/texture/Texture2D','3d/texture/TextureCube','3d/util/dds','3d/util/hdr','3d/util/mesh','3d/util/texture','Layer','Stage','animation/Animation','animation/Clip','animation/easing','core/Base','core/Cache','core/Event','core/Matrix2','core/Matrix2d','core/Matrix3','core/Matrix4','core/Quaternion','core/Value','core/Vector2','core/Vector3','core/Vector4','core/mixin/derive','core/mixin/notifier','core/request','loader/FX','loader/GLTF','loader/InstantGeometry','loader/SVG','loader/three/Model','util/color','util/util','glmatrix'], function(require){
+define('qtek',['require','2d/Camera','2d/Gradient','2d/LinearGradient','2d/Node','2d/Pattern','2d/RadialGradient','2d/Renderer','2d/Scene','2d/Style','2d/picking/Box','2d/picking/Pixel','2d/shape/Arc','2d/shape/Circle','2d/shape/Ellipse','2d/shape/HTML','2d/shape/Image','2d/shape/Line','2d/shape/Path','2d/shape/Polygon','2d/shape/Rectangle','2d/shape/RoundedRectangle','2d/shape/SVGPath','2d/shape/Sector','2d/shape/Text','2d/shape/TextBox','2d/util','3d/BoundingBox','3d/Camera','3d/FrameBuffer','3d/Frustum','3d/Geometry','3d/Joint','3d/Light','3d/Material','3d/Mesh','3d/Node','3d/Plane','3d/Ray','3d/Renderer','3d/Scene','3d/Shader','3d/Skeleton','3d/Texture','3d/WebGLInfo','3d/camera/Orthographic','3d/camera/Perspective','3d/compositor/Compositor','3d/compositor/Graph','3d/compositor/Group','3d/compositor/Node','3d/compositor/Pass','3d/compositor/SceneNode','3d/compositor/TextureNode','3d/compositor/texturePool','3d/debug/PointLight','3d/geometry/Cube','3d/geometry/Plane','3d/geometry/Sphere','3d/glenum','3d/light/Ambient','3d/light/Directional','3d/light/Point','3d/light/Spot','3d/particleSystem/Emitter','3d/particleSystem/ForceField','3d/particleSystem/GravityField','3d/particleSystem/Particle','3d/particleSystem/ParticleSystem','3d/picking/Pixel','3d/plugin/FirstPersonControl','3d/plugin/OrbitControl','3d/plugin/Skybox','3d/plugin/Skydome','3d/prePass/EnvironmentMap','3d/prePass/Reflection','3d/prePass/ShadowMap','3d/shader/library','3d/texture/Texture2D','3d/texture/TextureCube','3d/util/dds','3d/util/hdr','3d/util/mesh','3d/util/texture','Layer','Stage','animation/Animation','animation/Clip','animation/easing','core/Base','core/Cache','core/Event','core/Matrix2','core/Matrix2d','core/Matrix3','core/Matrix4','core/Quaternion','core/Value','core/Vector2','core/Vector3','core/Vector4','core/mixin/derive','core/mixin/notifier','core/request','loader/FX','loader/GLTF','loader/InstantGeometry','loader/SVG','loader/three/Model','util/color','util/util','glmatrix'], function(require){
 	
 	var exportsObject =  {
 	"2d": {
@@ -25413,12 +25551,14 @@ define('qtek',['require','2d/Camera','2d/Gradient','2d/LinearGradient','2d/Node'
 		"BoundingBox": require('3d/BoundingBox'),
 		"Camera": require('3d/Camera'),
 		"FrameBuffer": require('3d/FrameBuffer'),
+		"Frustum": require('3d/Frustum'),
 		"Geometry": require('3d/Geometry'),
 		"Joint": require('3d/Joint'),
 		"Light": require('3d/Light'),
 		"Material": require('3d/Material'),
 		"Mesh": require('3d/Mesh'),
 		"Node": require('3d/Node'),
+		"Plane": require('3d/Plane'),
 		"Ray": require('3d/Ray'),
 		"Renderer": require('3d/Renderer'),
 		"Scene": require('3d/Scene'),
