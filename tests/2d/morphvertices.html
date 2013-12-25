@@ -105,7 +105,7 @@
                 for (var i = 0; i < segs; i ++) {
                     var theta = 2 * Math.PI / segs * i;
                     var r = randomInRange(minRadius, maxRadius);
-                    points.push(new qtek.core.Vector2(r * Math.sin(theta), r * Math.cos(theta)));
+                    points.push(new qtek.math.Vector2(r * Math.sin(theta), r * Math.cos(theta)));
                 }
                 return points;
             }

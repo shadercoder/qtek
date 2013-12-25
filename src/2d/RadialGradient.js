@@ -6,7 +6,7 @@
 define(function(require) {
 
     var Gradient = require('./Gradient');
-    var Vector2 = require("core/Vector2");
+    var Vector2 = require("../math/Vector2");
 
     var RadialGradient = Gradient.derive(function(){
         return {

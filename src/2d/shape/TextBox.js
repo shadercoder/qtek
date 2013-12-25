@@ -10,7 +10,7 @@
 define(function(require) {
 
     var Node = require('../Node');
-    var Vector2 = require("core/Vector2");
+    var Vector2 = require("../../math/Vector2");
     var Text = require('./Text');
     var _ = require('_');
 

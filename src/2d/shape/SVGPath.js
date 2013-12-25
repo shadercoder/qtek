@@ -4,9 +4,9 @@
  */
 define(function(require) {
 
-    var Node = require("2d/Node");
-    var util = require("2d/util");
-    var Vector2 = require("core/Vector2");
+    var Node = require("../Node");
+    var util = require("../util");
+    var Vector2 = require("../../math/Vector2");
 
     var availableCommands = {'m':1,'M':1,'z':1,'Z':1,'l':1,'L':1,'h':1,'H':1,'v':1,'V':1,'c':1,'C':1,'s':1,'S':1,'q':1,'Q':1,'t':1,'T':1,'a':1,'A':1}
 

@@ -4,11 +4,11 @@
  */
 define(function(require) {
     
-    var Base = require("core/Base");
-    var Vector2 = require("core/Vector2");
-    var Matrix2d = require("core/Matrix2d");
+    var Base = require("../core/Base");
+    var util = require("../core/util");
+    var Vector2 = require("../math/Vector2");
+    var Matrix2d = require("../math/Matrix2d");
     var Style = require("./Style");
-    var util = require("util/util");
 
     var glMatrix = require('glmatrix');
     var mat2d = glMatrix.mat2d;
