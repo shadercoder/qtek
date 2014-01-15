@@ -7,6 +7,7 @@ define(function(require) {
 
     var Base = require('../core/Base');
     var Vector2 = require("../math/Vector2");
+    var Cache = require("../core/Cache");
 
     var Pattern = Base.derive(function(){
         return {
@@ -14,6 +15,8 @@ define(function(require) {
             // 'repeat', 'repeat-x', 'repeat-y', 'no-repeat'
             repetition : 'repeat'
         }
+    }, function() {
+        this.cache = new Cache();
     }, {
         getInstance : function(ctx){
             this.cache.use(ctx.__GUID__);

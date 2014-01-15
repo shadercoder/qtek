@@ -8,11 +8,14 @@ define(function(require) {
 
     var Base = require('../core/Base');
     var Vector2 = require("../math/Vector2");
+    var Cache = require("../core/Cache");
 
     var Gradient = Base.derive(function(){
         return {
             stops : []
         }
+    }, function() {
+        this.cache = new Cache();
     }, {
         addColorStop : function(offset, color){
             this.stops.push([offset, color]);

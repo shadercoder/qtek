@@ -16,8 +16,6 @@ define(function(require) {
 
     var Node = Base.derive(function() {
         return {
-
-            __GUID__ : util.genGUID(),
             
             name : '',
             
