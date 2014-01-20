@@ -2,24 +2,12 @@
 <head>
     <title></title>
     <script type="text/javascript" src="../../thirdparty/require.js"></script>
+    <script type="text/javascript" src="../js/config.js"></script>
 </head>
 <body>
     <canvas id="Main"></canvas>
     <script type="text/javascript">
-        requirejs.config({
-            'baseUrl' : '../../src',
-            'paths' : {
-                '_' : '../thirdparty/lodash.compat',
-                'glmatrix' : '../thirdparty/gl-matrix'
-            },
-            'shim' : {
-                '_' : {
-                    exports : '_'
-                }
-            }
-        })
-
-        require(['qtek'], function(qtek){
+        require(['qtek/qtek'], function(qtek){
             var qtek2d = qtek['2d'];
 
             var canvas = document.getElementById("Main");

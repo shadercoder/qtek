@@ -3,24 +3,12 @@
     <title></title>
     <meta charset="utf-8">
     <script type="text/javascript" src="../../thirdparty/require.js"></script>
+    <script type="text/javascript" src="../js/config.js"></script>
 </head>
 <body>
     <div id="Main"></div>
     <script type="text/javascript">
-        requirejs.config({
-            'baseUrl' : '../../src',
-            'paths' : {
-                '_' : '../thirdparty/lodash.compat',
-                'glmatrix' : '../thirdparty/gl-matrix'
-            },
-            'shim' : {
-                '_' : {
-                    exports : '_'
-                }
-            }
-        })
-
-        require(['qtek',
+        require(['qtek/qtek',
                 'text!../tests/2d/assets/tiger.svg'], function(qtek, svgData){
             var qtek2d = qtek['2d'];
 
