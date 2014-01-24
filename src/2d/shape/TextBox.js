@@ -12,7 +12,6 @@ define(function(require) {
     var Node = require('../Node');
     var Vector2 = require("../../math/Vector2");
     var Text = require('./Text');
-    var _ = require('_');
 
     var TextBox = Node.derive(function() {
         return {
@@ -57,9 +56,10 @@ define(function(require) {
 
             ctx.save();
             ctx.textBaseline = 'top';
-            _.each(this._texts, function(_text) {
+            for (var i = 0; i < this._texts.length; i++) {
+                var _text = this._texts[i];
                 _text.draw(ctx);
-            })
+            }
             ctx.restore();
         },
         computeWordWrap : function(ctx) {

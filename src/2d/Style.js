@@ -20,7 +20,6 @@
 define(function(require) {
     
     var Base = require('../core/Base');
-    var _ = require('_');
 
     var shadowSyntaxRegex = /([0-9\-]+)\s+([0-9\-]+)\s+([0-9]+)\s+(.+)/;
     

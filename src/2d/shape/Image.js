@@ -2,7 +2,6 @@ define(function(require) {
 
     var Node = require('../Node');
     var Vector2 = require("../../math/Vector2");
-    var _ = require("_");
 
     var _imageCache = {};
     
@@ -45,7 +44,7 @@ define(function(require) {
             _imageCache[src] = [callback];
             var img = new Image();
             img.onload = function() {
-                _.each(_imageCache[src], function(cb) {
+                _imageCache[src].forEach(function(cb) {
                     cb(img);
                 });
                 _imageCache[src] = img;
