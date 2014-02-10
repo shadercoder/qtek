@@ -61,7 +61,7 @@ define(function(require) {
                 var tmp = bal * ba.scale(1/bal).dot(bcl.scale(1/bcl));
 
                 var distSquare = bal * bal -  tmp * tmp;
-                return distance < this.width * this.width * 0.25;
+                return distSquare < this.width * this.width * 0.25;
             }
         }
     });
