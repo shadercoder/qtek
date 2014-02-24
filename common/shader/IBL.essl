@@ -184,12 +184,18 @@ void main()
 uniform mat4 viewInverse : VIEWINVERSE;
 
 varying vec2 v_Texcoord;
-varying vec3 v_LocalNormal;
 varying vec3 v_Normal;
 varying vec3 v_WorldPosition;
+
+#ifdef NORMALMAP_ENABLED
 varying vec3 v_Tangent;
 varying vec3 v_Bitangent;
+#endif
+
+#ifdef SKINNING
 varying vec3 v_Weight;
+#endif
+
 varying vec3 v_Barycentric;
 
 uniform sampler2D diffuseMap;
@@ -245,7 +251,7 @@ void main()
     #endif
 
 
-    vec3 diffuseItem = textureCube(diffuseEnvMap, N).rgb * diffuseFactor;
+    vec3 diffuseTerm = textureCube(diffuseEnvMap, N).rgb * diffuseFactor;
     float shadowContrib = 1.0;
     #ifdef DIRECTIONAL_LIGHT_NUMBER
         vec3 L = -directionalLightDirection[0];
@@ -268,11 +274,11 @@ void main()
         // vec3 H = normalize(L + V);
         // float NoH = dot(N, H);
         // Sun light
-        diffuseItem += lightColor * NoL * shadowContrib;
+        diffuseTerm += lightColor * NoL * shadowContrib;
     #endif
 
     #ifdef RENDER_DIFFUSE
-        gl_FragColor.rgb = diffuseItem;
+        gl_FragColor.rgb = diffuseTerm;
         gl_FragColor.a = alpha;
         return;
     #endif
@@ -288,7 +294,7 @@ void main()
     #ifdef SPECULAR_SHADOW
         specularItem *= shadowContrib;
     #endif
-    gl_FragColor.rgb = albedo.rgb * diffuseItem + specularFactor * specularItem;
+    gl_FragColor.rgb = albedo.rgb * diffuseTerm + specularFactor * specularItem;
 
     if(lineWidth > 0.01)
     {

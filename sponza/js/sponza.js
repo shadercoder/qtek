@@ -1,8 +1,6 @@
 define(['qtek', 'knockout', 'ko.mapping'], function(qtek, ko, koMapping){
-
-    var qtek3d = qtek['3d'];
-    var Vector3 = qtek.core.Vector3;
-    var Shader = qtek3d.Shader;
+    var Vector3 = qtek.math.Vector3;
+    var Shader = qtek.Shader;
 
     function getUrlVars(){
         var vars = [], hash;
@@ -18,7 +16,7 @@ define(['qtek', 'knockout', 'ko.mapping'], function(qtek, ko, koMapping){
     var textureResolution = env.texture || "high";
     var shadowResolution = parseInt(env.shadow || 512);
 
-    var renderer = new qtek3d.Renderer({
+    var renderer = new qtek.Renderer({
         canvas : document.getElementById( "Main"),
         // devicePixelRatio : 1.0
     });
@@ -28,8 +26,8 @@ define(['qtek', 'knockout', 'ko.mapping'], function(qtek, ko, koMapping){
 
     var scene;
     var camera;
-    window.shadowMapPass = new qtek3d.prePass.ShadowMap({
-        useVSM : true
+    window.shadowMapPass = new qtek.prePass.ShadowMap({
+        softShadow : qtek.prePass.ShadowMap.VSM
     });
 
     if( textureResolution === "high"){
@@ -43,54 +41,49 @@ define(['qtek', 'knockout', 'ko.mapping'], function(qtek, ko, koMapping){
     loader.load("assets/sponza.json");
 
     loader.on("success", function(res){
-        camera = new qtek3d.camera.Perspective({
+        camera = new qtek.camera.Perspective({
             aspect : window.innerWidth / window.innerHeight
         });
         camera.position.set(10, 10, 0);
-        camera.lookAt(new qtek.core.Vector3(0, 10, 0))
+        camera.lookAt(new qtek.math.Vector3(0, 10, 0))
         scene = res.scene;
-        var firstPersonControl = new qtek3d.plugin.FirstPersonControl({
+        var firstPersonControl = new qtek.plugin.FirstPersonControl({
             target : camera,
             domElement : renderer.canvas
         });
-        firstPersonControl.enable();
 
-        window.light = new qtek3d.light.Point({
-            intensity : 0.9,
-            // shadowCamera : {
-            //     left : -50,
-            //     right : 50,
-            //     top : 50,
-            //     bottom : -50,
-            //     near : 0,
-            //     far : 200
-            // },
+        light = new qtek.light.Point({
+            intensity : 0.5,
             castShadow : true,
             shadowResolution : 512,
             shadowBias : 0.01,
             range : 100
         });
-        light.position.set(10, 10, 0);
-        light.lookAt(new qtek.core.Vector3(0, 0, 0));
+        light.position.set(10, 20, 0);
+        // light.color = [0.4, 0.2, 0.0];
+        light.lookAt(new qtek.math.Vector3(0, 0, 0));
         scene.add(light);
-        scene.add(new qtek3d.light.Ambient({
+        scene.add(new qtek.light.Ambient({
             intensity : 0.2
         }));
 
         scene.traverse(function(node) {
             if (node.material) {
-                // node.material.shader.define('fragment', 'RENDER_NORMAL');
-                // node.material.shader.disableTexture('diffuseMap');
-                // node.material.shader.disableTexture('normalMap');
+                node.material.get('diffuseMap').anisotropic = 8;
+                if (node.material.get('normapMap')) {
+                    node.material.get('normapMap').anisotropic = 8;
+                }
             }
         });
         var renderInfo;
+
         animation.on('frame', function(deltaTime) {
+            firstPersonControl.update(deltaTime);
             var time = performance.now();
             shadowMapPass.render(renderer, scene);
             var shadowPassTime = performance.now() - time;
             time = performance.now();
-            renderInfo = renderer.render(scene, camera);
+            renderInfo = renderer.render(scene, camera, true, false);
             var renderTime = performance.now() - time;
             // shadowMapPass.renderDebug(renderer);
             // Update debug render info
@@ -121,16 +114,16 @@ define(['qtek', 'knockout', 'ko.mapping'], function(qtek, ko, koMapping){
     debugInfoVM.useWireframe = ko.observable(false);
 
     debugInfoVM.useWireframe.subscribe(function(value){
-        if(value){
+        if (value) {
             scene.traverse(function(node){
                 if(node.geometry){
-                    node.mode = qtek3d.Mesh.LINES
+                    node.mode = qtek.Mesh.LINES
                 }
             });
-        }else{
+        } else {
             scene.traverse(function(node){
                 if(node.geometry){
-                    node.mode = qtek3d.Mesh.TRIANGLES
+                    node.mode = qtek.Mesh.TRIANGLES
                 }
             });
         }

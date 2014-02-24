@@ -3,13 +3,12 @@ define(function(require) {
     var ko = require('knockout');
     ko.mapping = require('ko.mapping');
     var qtek = require('qtek');
-    var qtek3d = qtek['3d'];
     var $ = require('$');
     var editor = require('js/editor');
     var environment = require('js/environment');
 
-    var shadowMapPass = new qtek3d.prePass.ShadowMap({
-        useVSM : true
+    var shadowMapPass = new qtek.prePass.ShadowMap({
+        softShadow : qtek.prePass.ShadowMap.VSM
     });
 
     var stage;
@@ -56,44 +55,42 @@ define(function(require) {
         for (var i = 0; i < children.length; i++) {
             scene.add(children[i]);
         }
-        var control = new qtek3d.plugin.OrbitControl({
+        var control = new qtek.plugin.OrbitControl({
             target : camera,
             domElement : stage.container,
             sensitivity : 0.4,
             // maxPolarAngle : Math.PI / 2 - 0.1
         });
-        // z up
-        control.up.set(0, 1, 0);
-        control.enable();
 
-        var planeMat = new qtek3d.Material({
+        var planeMat = new qtek.Material({
             name : 'Ground Mat',
-            shader : qtek3d.shader.library.get("buildin.lambert")
+            shader : qtek.shader.library.get("buildin.phong")
         });
         planeMat.set('uvRepeat', [100, 100]);
         planeMat.set('specularColor', [0.1, 0.1, 0.1]);
         planeMat.shader.enableTexture('diffuseMap');
         planeMat.shader.enableTexture('normalMap');
         // Add Plane
-        var planeGeo = new qtek3d.geometry.Plane({
+        var planeGeo = new qtek.geometry.Plane({
             widthSegments : 1,
             heightSegments : 1
         });
-        var planeMesh = new qtek3d.Mesh({
+        planeGeo.boundingBox = null;
+        var planeMesh = new qtek.Mesh({
             geometry : planeGeo,
             material : planeMat
         });
         planeMesh.rotation.rotateX(-Math.PI/2);
         planeMesh.scale.set(100, 100, 100);
-        var groundDiffuse = new qtek3d.texture.Texture2D({
-            wrapS : qtek3d.Texture.REPEAT,
-            wrapT : qtek3d.Texture.REPEAT,
-            anisotropic : 8
+        var groundDiffuse = new qtek.texture.Texture2D({
+            wrapS : qtek.Texture.REPEAT,
+            wrapT : qtek.Texture.REPEAT,
+            anisotropic : 16
         });
-        var groundNormal = new qtek3d.texture.Texture2D({
-            wrapS : qtek3d.Texture.REPEAT,
-            wrapT : qtek3d.Texture.REPEAT,
-            anisotropic : 8
+        var groundNormal = new qtek.texture.Texture2D({
+            wrapS : qtek.Texture.REPEAT,
+            wrapT : qtek.Texture.REPEAT,
+            anisotropic : 16
         });
         // Texture from http://www.rendertextures.com/pavers-21/
         groundDiffuse.load('assets/10_DIFFUSE.jpg');
@@ -126,7 +123,7 @@ define(function(require) {
         FXLoader.load('../common/assets/fx/hdr.json');
         FXLoader.on('success', function(_compositor) {
             compositor = _compositor;
-            var sceneNode = new qtek3d.compositor.SceneNode({
+            var sceneNode = new qtek.compositor.SceneNode({
                 name : "scene",
                 scene : scene,
                 camera : camera,
@@ -135,7 +132,7 @@ define(function(require) {
                         parameters : {
                             width : renderer.width,
                             height : renderer.height,
-                            type : qtek3d.Texture.FLOAT
+                            type : qtek.Texture.FLOAT
                         }
                     }
                 }
@@ -154,9 +151,10 @@ define(function(require) {
             ko.applyBindings(renderInfoVM, renderInfoDom);
         }
         stage.on('frame', function(frameTime) {
+            control.update(frameTime);
             var start = performance.now();
             if (compositor) {
-                shadowMapPass.render(renderer, scene);
+                shadowMapPass.render(renderer, scene, camera);
                 compositor.render(renderer);
             }
             var renderTime = performance.now() - start;

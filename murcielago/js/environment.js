@@ -1,15 +1,14 @@
 define(function(require) {
 
     var qtek = require('qtek');
-    var qtek3d = qtek['3d'];
-    var Vector3 = qtek.core.Vector3;
+    var Vector3 = qtek.math.Vector3;
 
     var Atmosphere = require('../../common/Atmosphere');
     var IBLClazz = require('../../common/IBL');
 
-    var IBLShader = new qtek3d.Shader({
-        vertex : qtek3d.Shader.source('buildin.phong.vertex'),
-        fragment : qtek3d.Shader.source('IBL.fragment')
+    var IBLShader = new qtek.Shader({
+        vertex : qtek.Shader.source('buildin.phong.vertex'),
+        fragment : qtek.Shader.source('IBL.fragment')
     });
     IBLShader.enableTexture('diffuseMap');
     var IBLShaderNoDiffuse = IBLShader.clone();
@@ -23,15 +22,15 @@ define(function(require) {
 
     var environment = {
 
-        useCubeMap : false,
-        // cubeMapUrl : '../../tests/assets/textures/hdr/old_industrial_hall.hdr',
+        // useCubeMap : true,
+        cubeMapUrl : 'assets/OpenfootageNET_Gerlos_low.hdr',
         time : 8,
         kr : 0,
         km : 0,
 
         IBL : null,
 
-        light : new qtek3d.light.Directional({
+        light : new qtek.light.Directional({
             shadowResolution : 512,
             shadowBias : 0.002,
             shadowCamera : {
@@ -43,12 +42,12 @@ define(function(require) {
                 far : 30
             }
         }),
-        skybox : new qtek3d.plugin.Skybox(),
+        skybox : new qtek.plugin.Skybox(),
 
-        atmosphereEnvMap : new qtek3d.texture.TextureCube({
+        atmosphereEnvMap : new qtek.texture.TextureCube({
             width : 128,
             height : 128,
-            type :  qtek3d.Texture.FLOAT
+            type :  qtek.Texture.FLOAT
         }),
 
         materials : {},
@@ -77,6 +76,7 @@ define(function(require) {
             intensity = Math.pow(intensity, 0.7);
             light.intensity = intensity;
             light.lookAt(Vector3.ZERO, Vector3.UP);
+            light.color = [182 / 255,126 / 255,91 / 255];
             light.update();
             // Prefilter environment map
             var envMap;

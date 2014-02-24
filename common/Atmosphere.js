@@ -1,14 +1,13 @@
 define(function(require) {
 
     var qtek = require('qtek');
-    var qtek3d = qtek['3d'];
 
-    qtek3d.Shader.import(require('text!./shader/atmosphere.essl'));
-    var sphereGeo = new qtek3d.geometry.Sphere({
+    qtek.Shader.import(require('text!./shader/atmosphere.essl'));
+    var sphereGeo = new qtek.geometry.Sphere({
         widthSegments : 100,
         heightSegments : 100
     });
-    var environmentMapPass = new qtek3d.prePass.EnvironmentMap();
+    var environmentMapPass = new qtek.prePass.EnvironmentMap();
 
     var Atmosphere = qtek.core.Base.derive(function() {
         return {
@@ -30,23 +29,23 @@ define(function(require) {
             _camera : null
         }
     }, function() {
-        var material = new qtek3d.Material({
-            shader : new qtek3d.Shader({
-                vertex : qtek3d.Shader.source('atmosphere.vertex'),
-                fragment : qtek3d.Shader.source('atmosphere.fragment')
+        var material = new qtek.Material({
+            shader : new qtek.Shader({
+                vertex : qtek.Shader.source('atmosphere.vertex'),
+                fragment : qtek.Shader.source('atmosphere.fragment')
             })
         });
-        this._mesh = new qtek3d.Mesh({
+        this._mesh = new qtek.Mesh({
             geometry : sphereGeo,
             material : material
         });
         this._mesh.culling = false;
         this._mesh.scale.set(this.outerRadius, this.outerRadius, this.outerRadius);
 
-        this._scene = new qtek3d.Scene();
+        this._scene = new qtek.Scene();
         this._scene.add(this._mesh);
 
-        this._camera = new qtek3d.camera.Perspective();
+        this._camera = new qtek.camera.Perspective();
         this._camera.position.set(0, 10.0001, 0);
     }, {
         render : function(renderer) {
@@ -56,6 +55,8 @@ define(function(require) {
             this._mesh.material.set('lightDirection', this.light.worldTransform.forward._array);
             this._mesh.material.set('cameraPos', this._camera.position._array);
             this._mesh.material.set('invWavelength', [1 / Math.pow(0.65, 4), 1 / Math.pow(0.57, 4), 1 / Math.pow(0.475, 4)]);
+            this._mesh.material.set('kr', this.kr);
+            this._mesh.material.set('km', this.km);
             environmentMapPass.texture = this.texture;
             environmentMapPass.position.copy(this._camera.position);
             environmentMapPass.render(renderer, this._scene);
