@@ -259,7 +259,7 @@ define('qtek/core/util',['require'],function(require){
     
     var guid = 0;
 
-	return {
+	var util = {
 
 		genGUID : function() {
 			return ++guid;
@@ -281,5459 +281,117 @@ define('qtek/core/util',['require'],function(require){
                 item = pathParts[0];
             }
             return basePathParts.join('/') + '/' + pathParts.join('/');
+        },
+
+        extend : function(target, source) {
+            if (source) {
+                for (var name in source) {
+                    if (source.hasOwnProperty(name)) {
+                        target[name] = source[name];
+                    }
+                }
+            }
+            return target;
+        },
+
+        defaults : function(target, source) {
+            if (source) {
+                for (var propName in source) {
+                    if (target[propName] === undefined) {
+                        target[propName] = source[propName];
+                    }
+                }
+            }
+        },
+
+        extendWithPropList : function(target, source, propList) {
+            if (source) {
+                for (var i = 0; i < propList.length; i++) {
+                    var propName = propList[i];
+                    target[propName] = source[propName];
+                }
+            }
+            return target;
+        },
+
+        defaultsWithPropList : function(target, source, propList) {
+            if (source) {
+                for (var i = 0; i < propList.length; i++) {
+                    var propName = propList[i];
+                    if (target[propName] === undefined) {
+                        target[propName] = source[propName];
+                    }
+                }
+            }
+            return target;
+        },
+
+        each : function(obj, iterator, context) {
+            if (!(obj && iterator)) {
+                return;
+            }
+            if (obj.forEach) {
+                obj.forEach(iterator, context);
+            } else if (obj.length === + obj.length) {
+                for (var i = 0, len = obj.length; i < len; i++) {
+                    iterator.call(context, obj[i], i, obj);
+                }
+            } else {
+                for (var key in obj) {
+                    if (obj.hasOwnProperty(key)) {
+                        iterator.call(context, obj[key], key, obj);
+                    }
+                }
+            }
+        },
+
+        isObject : function(obj) {
+            return obj === Object(obj);
+        },
+
+        isArray : function(obj) {
+            return obj instanceof Array;
+        },
+
+        // Can be TypedArray
+        isArrayLike : function(obj) {
+            if (!obj) {
+                return false;
+            } else {
+                return obj.length === + obj.length;
+            }
+        },
+
+        clone : function(obj) {
+            if (!util.isObject(obj)) {
+                return obj;
+            } else if (util.isArray(obj)) {
+                return obj.slice();
+            } else if (util.isArrayLike(obj)) { // is typed array
+                var ret = new obj.constructor(obj.length);
+                for (var i = 0; i < obj.length; i++) {
+                    ret[i] = obj[i];
+                }
+                return ret;
+            } else {
+                return util.extend({}, obj);
+            }
         }
 	}
+
+    return util;
 });
-/**
- * @license
- * Lo-Dash 1.1.1 (Custom Build) <http://lodash.com/>
- * Build: `lodash -o ./dist/lodash.compat.js`
- * Copyright 2012-2013 The Dojo Foundation <http://dojofoundation.org/>
- * Based on Underscore.js 1.4.4 <http://underscorejs.org/>
- * Copyright 2009-2013 Jeremy Ashkenas, DocumentCloud Inc.
- * Available under MIT license <http://lodash.com/license>
- */
-;(function(window) {
-
-  /** Used as a safe reference for `undefined` in pre ES5 environments */
-  var undefined;
-
-  /** Detect free variable `exports` */
-  var freeExports = typeof exports == 'object' && exports;
-
-  /** Detect free variable `module` */
-  var freeModule = typeof module == 'object' && module && module.exports == freeExports && module;
-
-  /** Detect free variable `global` and use it as `window` */
-  var freeGlobal = typeof global == 'object' && global;
-  if (freeGlobal.global === freeGlobal) {
-    window = freeGlobal;
-  }
-
-  /** Used to generate unique IDs */
-  var idCounter = 0;
-
-  /** Used internally to indicate various things */
-  var indicatorObject = {};
-
-  /** Used to match empty string literals in compiled template source */
-  var reEmptyStringLeading = /\b__p \+= '';/g,
-      reEmptyStringMiddle = /\b(__p \+=) '' \+/g,
-      reEmptyStringTrailing = /(__e\(.*?\)|\b__t\)) \+\n'';/g;
-
-  /** Used to match HTML entities */
-  var reEscapedHtml = /&(?:amp|lt|gt|quot|#39);/g;
-
-  /**
-   * Used to match ES6 template delimiters
-   * http://people.mozilla.org/~jorendorff/es6-draft.html#sec-7.8.6
-   */
-  var reEsTemplate = /\$\{([^\\}]*(?:\\.[^\\}]*)*)\}/g;
-
-  /** Used to match regexp flags from their coerced string values */
-  var reFlags = /\w*$/;
-
-  /** Used to match "interpolate" template delimiters */
-  var reInterpolate = /<%=([\s\S]+?)%>/g;
-
-  /** Used to match leading zeros to be removed */
-  var reLeadingZeros = /^0+(?=.$)/;
-
-  /** Used to ensure capturing order of template delimiters */
-  var reNoMatch = /($^)/;
-
-  /** Used to match HTML characters */
-  var reUnescapedHtml = /[&<>"']/g;
-
-  /** Used to match unescaped characters in compiled string literals */
-  var reUnescapedString = /['\n\r\t\u2028\u2029\\]/g;
-
-  /** Used to assign default `context` object properties */
-  var contextProps = [
-    'Array', 'Boolean', 'Date', 'Function', 'Math', 'Number', 'Object', 'RegExp',
-    'String', '_', 'attachEvent', 'clearTimeout', 'isFinite', 'isNaN', 'parseInt',
-    'setImmediate', 'setTimeout'
-  ];
-
-  /** Used to fix the JScript [[DontEnum]] bug */
-  var shadowedProps = [
-    'constructor', 'hasOwnProperty', 'isPrototypeOf', 'propertyIsEnumerable',
-    'toLocaleString', 'toString', 'valueOf'
-  ];
-
-  /** Used to make template sourceURLs easier to identify */
-  var templateCounter = 0;
-
-  /** `Object#toString` result shortcuts */
-  var argsClass = '[object Arguments]',
-      arrayClass = '[object Array]',
-      boolClass = '[object Boolean]',
-      dateClass = '[object Date]',
-      funcClass = '[object Function]',
-      numberClass = '[object Number]',
-      objectClass = '[object Object]',
-      regexpClass = '[object RegExp]',
-      stringClass = '[object String]';
-
-  /** Used to identify object classifications that `_.clone` supports */
-  var cloneableClasses = {};
-  cloneableClasses[funcClass] = false;
-  cloneableClasses[argsClass] = cloneableClasses[arrayClass] =
-  cloneableClasses[boolClass] = cloneableClasses[dateClass] =
-  cloneableClasses[numberClass] = cloneableClasses[objectClass] =
-  cloneableClasses[regexpClass] = cloneableClasses[stringClass] = true;
-
-  /** Used to determine if values are of the language type Object */
-  var objectTypes = {
-    'boolean': false,
-    'function': true,
-    'object': true,
-    'number': false,
-    'string': false,
-    'undefined': false
-  };
-
-  /** Used to escape characters for inclusion in compiled string literals */
-  var stringEscapes = {
-    '\\': '\\',
-    "'": "'",
-    '\n': 'n',
-    '\r': 'r',
-    '\t': 't',
-    '\u2028': 'u2028',
-    '\u2029': 'u2029'
-  };
-
-  /*--------------------------------------------------------------------------*/
-
-  /**
-   * Create a new `lodash` function using the given `context` object.
-   *
-   * @static
-   * @memberOf _
-   * @category Utilities
-   * @param {Object} [context=window] The context object.
-   * @returns {Function} Returns the `lodash` function.
-   */
-  function runInContext(context) {
-    // Avoid issues with some ES3 environments that attempt to use values, named
-    // after built-in constructors like `Object`, for the creation of literals.
-    // ES5 clears this up by stating that literals must use built-in constructors.
-    // See http://es5.github.com/#x11.1.5.
-    context = context ? _.defaults(window.Object(), context, _.pick(window, contextProps)) : window;
-
-    /** Native constructor references */
-    var Array = context.Array,
-        Boolean = context.Boolean,
-        Date = context.Date,
-        Function = context.Function,
-        Math = context.Math,
-        Number = context.Number,
-        Object = context.Object,
-        RegExp = context.RegExp,
-        String = context.String,
-        TypeError = context.TypeError;
-
-    /** Used for `Array` and `Object` method references */
-    var arrayRef = Array(),
-        objectRef = Object();
-
-    /** Used to restore the original `_` reference in `noConflict` */
-    var oldDash = context._;
-
-    /** Used to detect if a method is native */
-    var reNative = RegExp('^' +
-      String(objectRef.valueOf)
-        .replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
-        .replace(/valueOf|for [^\]]+/g, '.+?') + '$'
-    );
-
-    /** Native method shortcuts */
-    var ceil = Math.ceil,
-        clearTimeout = context.clearTimeout,
-        concat = arrayRef.concat,
-        floor = Math.floor,
-        getPrototypeOf = reNative.test(getPrototypeOf = Object.getPrototypeOf) && getPrototypeOf,
-        hasOwnProperty = objectRef.hasOwnProperty,
-        push = arrayRef.push,
-        setImmediate = context.setImmediate,
-        setTimeout = context.setTimeout,
-        toString = objectRef.toString;
-
-    /* Native method shortcuts for methods with the same name as other `lodash` methods */
-    var nativeBind = reNative.test(nativeBind = slice.bind) && nativeBind,
-        nativeIsArray = reNative.test(nativeIsArray = Array.isArray) && nativeIsArray,
-        nativeIsFinite = context.isFinite,
-        nativeIsNaN = context.isNaN,
-        nativeKeys = reNative.test(nativeKeys = Object.keys) && nativeKeys,
-        nativeMax = Math.max,
-        nativeMin = Math.min,
-        nativeParseInt = context.parseInt,
-        nativeRandom = Math.random;
-
-    /** Detect various environments */
-    var isIeOpera = reNative.test(context.attachEvent),
-        isV8 = nativeBind && !/\n|true/.test(nativeBind + isIeOpera);
-
-    /** Used to lookup a built-in constructor by [[Class]] */
-    var ctorByClass = {};
-    ctorByClass[arrayClass] = Array;
-    ctorByClass[boolClass] = Boolean;
-    ctorByClass[dateClass] = Date;
-    ctorByClass[objectClass] = Object;
-    ctorByClass[numberClass] = Number;
-    ctorByClass[regexpClass] = RegExp;
-    ctorByClass[stringClass] = String;
-
-    /*--------------------------------------------------------------------------*/
-
-    /**
-     * Creates a `lodash` object, that wraps the given `value`, to enable method
-     * chaining.
-     *
-     * In addition to Lo-Dash methods, wrappers also have the following `Array` methods:
-     * `concat`, `join`, `pop`, `push`, `reverse`, `shift`, `slice`, `sort`, `splice`,
-     * and `unshift`
-     *
-     * Chaining is supported in custom builds as long as the `value` method is
-     * implicitly or explicitly included in the build.
-     *
-     * The chainable wrapper functions are:
-     * `after`, `assign`, `bind`, `bindAll`, `bindKey`, `chain`, `compact`,
-     * `compose`, `concat`, `countBy`, `createCallback`, `debounce`, `defaults`,
-     * `defer`, `delay`, `difference`, `filter`, `flatten`, `forEach`, `forIn`,
-     * `forOwn`, `functions`, `groupBy`, `initial`, `intersection`, `invert`,
-     * `invoke`, `keys`, `map`, `max`, `memoize`, `merge`, `min`, `object`, `omit`,
-     * `once`, `pairs`, `partial`, `partialRight`, `pick`, `pluck`, `push`, `range`,
-     * `reject`, `rest`, `reverse`, `shuffle`, `slice`, `sort`, `sortBy`, `splice`,
-     * `tap`, `throttle`, `times`, `toArray`, `union`, `uniq`, `unshift`, `values`,
-     * `where`, `without`, `wrap`, and `zip`
-     *
-     * The non-chainable wrapper functions are:
-     * `clone`, `cloneDeep`, `contains`, `escape`, `every`, `find`, `has`,
-     * `identity`, `indexOf`, `isArguments`, `isArray`, `isBoolean`, `isDate`,
-     * `isElement`, `isEmpty`, `isEqual`, `isFinite`, `isFunction`, `isNaN`,
-     * `isNull`, `isNumber`, `isObject`, `isPlainObject`, `isRegExp`, `isString`,
-     * `isUndefined`, `join`, `lastIndexOf`, `mixin`, `noConflict`, `parseInt`,
-     * `pop`, `random`, `reduce`, `reduceRight`, `result`, `shift`, `size`, `some`,
-     * `sortedIndex`, `runInContext`, `template`, `unescape`, `uniqueId`, and `value`
-     *
-     * The wrapper functions `first` and `last` return wrapped values when `n` is
-     * passed, otherwise they return unwrapped values.
-     *
-     * @name _
-     * @constructor
-     * @category Chaining
-     * @param {Mixed} value The value to wrap in a `lodash` instance.
-     * @returns {Object} Returns a `lodash` instance.
-     */
-    function lodash(value) {
-      // don't wrap if already wrapped, even if wrapped by a different `lodash` constructor
-      return (value && typeof value == 'object' && !isArray(value) && hasOwnProperty.call(value, '__wrapped__'))
-       ? value
-       : new lodashWrapper(value);
-    }
-
-    /**
-     * An object used to flag environments features.
-     *
-     * @static
-     * @memberOf _
-     * @type Object
-     */
-    var support = lodash.support = {};
-
-    (function() {
-      var ctor = function() { this.x = 1; },
-          object = { '0': 1, 'length': 1 },
-          props = [];
-
-      ctor.prototype = { 'valueOf': 1, 'y': 1 };
-      for (var prop in new ctor) { props.push(prop); }
-      for (prop in arguments) { }
-
-      /**
-       * Detect if `arguments` objects are `Object` objects (all but Opera < 10.5).
-       *
-       * @memberOf _.support
-       * @type Boolean
-       */
-      support.argsObject = arguments.constructor == Object;
-
-      /**
-       * Detect if an `arguments` object's [[Class]] is resolvable (all but Firefox < 4, IE < 9).
-       *
-       * @memberOf _.support
-       * @type Boolean
-       */
-      support.argsClass = isArguments(arguments);
-
-      /**
-       * Detect if `prototype` properties are enumerable by default.
-       *
-       * Firefox < 3.6, Opera > 9.50 - Opera < 11.60, and Safari < 5.1
-       * (if the prototype or a property on the prototype has been set)
-       * incorrectly sets a function's `prototype` property [[Enumerable]]
-       * value to `true`.
-       *
-       * @memberOf _.support
-       * @type Boolean
-       */
-      support.enumPrototypes = ctor.propertyIsEnumerable('prototype');
-
-      /**
-       * Detect if `Function#bind` exists and is inferred to be fast (all but V8).
-       *
-       * @memberOf _.support
-       * @type Boolean
-       */
-      support.fastBind = nativeBind && !isV8;
-
-      /**
-       * Detect if own properties are iterated after inherited properties (all but IE < 9).
-       *
-       * @memberOf _.support
-       * @type Boolean
-       */
-      support.ownLast = props[0] != 'x';
-
-      /**
-       * Detect if `arguments` object indexes are non-enumerable
-       * (Firefox < 4, IE < 9, PhantomJS, Safari < 5.1).
-       *
-       * @memberOf _.support
-       * @type Boolean
-       */
-      support.nonEnumArgs = prop != 0;
-
-      /**
-       * Detect if properties shadowing those on `Object.prototype` are non-enumerable.
-       *
-       * In IE < 9 an objects own properties, shadowing non-enumerable ones, are
-       * made non-enumerable as well (a.k.a the JScript [[DontEnum]] bug).
-       *
-       * @memberOf _.support
-       * @type Boolean
-       */
-      support.nonEnumShadows = !/valueOf/.test(props);
-
-      /**
-       * Detect if `Array#shift` and `Array#splice` augment array-like objects correctly.
-       *
-       * Firefox < 10, IE compatibility mode, and IE < 9 have buggy Array `shift()`
-       * and `splice()` functions that fail to remove the last element, `value[0]`,
-       * of array-like objects even though the `length` property is set to `0`.
-       * The `shift()` method is buggy in IE 8 compatibility mode, while `splice()`
-       * is buggy regardless of mode in IE < 9 and buggy in compatibility mode in IE 9.
-       *
-       * @memberOf _.support
-       * @type Boolean
-       */
-      support.spliceObjects = (arrayRef.splice.call(object, 0, 1), !object[0]);
-
-      /**
-       * Detect lack of support for accessing string characters by index.
-       *
-       * IE < 8 can't access characters by index and IE 8 can only access
-       * characters by index on string literals.
-       *
-       * @memberOf _.support
-       * @type Boolean
-       */
-      support.unindexedChars = ('x'[0] + Object('x')[0]) != 'xx';
-
-      /**
-       * Detect if a DOM node's [[Class]] is resolvable (all but IE < 9)
-       * and that the JS engine errors when attempting to coerce an object to
-       * a string without a `toString` function.
-       *
-       * @memberOf _.support
-       * @type Boolean
-       */
-      try {
-        support.nodeClass = !(toString.call(document) == objectClass && !({ 'toString': 0 } + ''));
-      } catch(e) {
-        support.nodeClass = true;
-      }
-    }(1));
-
-    /**
-     * By default, the template delimiters used by Lo-Dash are similar to those in
-     * embedded Ruby (ERB). Change the following template settings to use alternative
-     * delimiters.
-     *
-     * @static
-     * @memberOf _
-     * @type Object
-     */
-    lodash.templateSettings = {
-
-      /**
-       * Used to detect `data` property values to be HTML-escaped.
-       *
-       * @memberOf _.templateSettings
-       * @type RegExp
-       */
-      'escape': /<%-([\s\S]+?)%>/g,
-
-      /**
-       * Used to detect code to be evaluated.
-       *
-       * @memberOf _.templateSettings
-       * @type RegExp
-       */
-      'evaluate': /<%([\s\S]+?)%>/g,
-
-      /**
-       * Used to detect `data` property values to inject.
-       *
-       * @memberOf _.templateSettings
-       * @type RegExp
-       */
-      'interpolate': reInterpolate,
-
-      /**
-       * Used to reference the data object in the template text.
-       *
-       * @memberOf _.templateSettings
-       * @type String
-       */
-      'variable': '',
-
-      /**
-       * Used to import variables into the compiled template.
-       *
-       * @memberOf _.templateSettings
-       * @type Object
-       */
-      'imports': {
-
-        /**
-         * A reference to the `lodash` function.
-         *
-         * @memberOf _.templateSettings.imports
-         * @type Function
-         */
-        '_': lodash
-      }
-    };
-
-    /*--------------------------------------------------------------------------*/
-
-    /**
-     * The template used to create iterator functions.
-     *
-     * @private
-     * @param {Obect} data The data object used to populate the text.
-     * @returns {String} Returns the interpolated text.
-     */
-    var iteratorTemplate = function(obj) {
-
-      var __p = 'var index, iterable = ' +
-      (obj.firstArg) +
-      ', result = ' +
-      (obj.init) +
-      ';\nif (!iterable) return result;\n' +
-      (obj.top) +
-      ';\n';
-       if (obj.arrays) {
-      __p += 'var length = iterable.length; index = -1;\nif (' +
-      (obj.arrays) +
-      ') {  ';
-       if (support.unindexedChars) {
-      __p += '\n  if (isString(iterable)) {\n    iterable = iterable.split(\'\')\n  }  ';
-       }
-      __p += '\n  while (++index < length) {\n    ' +
-      (obj.loop) +
-      '\n  }\n}\nelse {  ';
-        } else if (support.nonEnumArgs) {
-      __p += '\n  var length = iterable.length; index = -1;\n  if (length && isArguments(iterable)) {\n    while (++index < length) {\n      index += \'\';\n      ' +
-      (obj.loop) +
-      '\n    }\n  } else {  ';
-       }
-
-       if (support.enumPrototypes) {
-      __p += '\n  var skipProto = typeof iterable == \'function\';\n  ';
-       }
-
-       if (obj.useHas && obj.useKeys) {
-      __p += '\n  var ownIndex = -1,\n      ownProps = objectTypes[typeof iterable] ? keys(iterable) : [],\n      length = ownProps.length;\n\n  while (++ownIndex < length) {\n    index = ownProps[ownIndex];\n    ';
-       if (support.enumPrototypes) {
-      __p += 'if (!(skipProto && index == \'prototype\')) {\n  ';
-       }
-      __p += 
-      (obj.loop);
-       if (support.enumPrototypes) {
-      __p += '}\n';
-       }
-      __p += '  }  ';
-       } else {
-      __p += '\n  for (index in iterable) {';
-          if (support.enumPrototypes || obj.useHas) {
-      __p += '\n    if (';
-            if (support.enumPrototypes) {
-      __p += '!(skipProto && index == \'prototype\')';
-       }      if (support.enumPrototypes && obj.useHas) {
-      __p += ' && ';
-       }      if (obj.useHas) {
-      __p += 'hasOwnProperty.call(iterable, index)';
-       }
-      __p += ') {    ';
-       }
-      __p += 
-      (obj.loop) +
-      ';    ';
-       if (support.enumPrototypes || obj.useHas) {
-      __p += '\n    }';
-       }
-      __p += '\n  }    ';
-       if (support.nonEnumShadows) {
-      __p += '\n\n  var ctor = iterable.constructor;\n      ';
-       for (var k = 0; k < 7; k++) {
-      __p += '\n  index = \'' +
-      (obj.shadowedProps[k]) +
-      '\';\n  if (';
-            if (obj.shadowedProps[k] == 'constructor') {
-      __p += '!(ctor && ctor.prototype === iterable) && ';
-            }
-      __p += 'hasOwnProperty.call(iterable, index)) {\n    ' +
-      (obj.loop) +
-      '\n  }      ';
-       }
-
-       }
-
-       }
-
-       if (obj.arrays || support.nonEnumArgs) {
-      __p += '\n}';
-       }
-      __p += 
-      (obj.bottom) +
-      ';\nreturn result';
-
-      return __p
-    };
-
-    /** Reusable iterator options for `assign` and `defaults` */
-    var defaultsIteratorOptions = {
-      'args': 'object, source, guard',
-      'top':
-        'var args = arguments,\n' +
-        '    argsIndex = 0,\n' +
-        "    argsLength = typeof guard == 'number' ? 2 : args.length;\n" +
-        'while (++argsIndex < argsLength) {\n' +
-        '  iterable = args[argsIndex];\n' +
-        '  if (iterable && objectTypes[typeof iterable]) {',
-      'loop': "if (typeof result[index] == 'undefined') result[index] = iterable[index]",
-      'bottom': '  }\n}'
-    };
-
-    /** Reusable iterator options shared by `each`, `forIn`, and `forOwn` */
-    var eachIteratorOptions = {
-      'args': 'collection, callback, thisArg',
-      'top': "callback = callback && typeof thisArg == 'undefined' ? callback : lodash.createCallback(callback, thisArg)",
-      'arrays': "typeof length == 'number'",
-      'loop': 'if (callback(iterable[index], index, collection) === false) return result'
-    };
-
-    /** Reusable iterator options for `forIn` and `forOwn` */
-    var forOwnIteratorOptions = {
-      'top': 'if (!objectTypes[typeof iterable]) return result;\n' + eachIteratorOptions.top,
-      'arrays': false
-    };
-
-    /*--------------------------------------------------------------------------*/
-
-    /**
-     * Creates a function optimized to search large arrays for a given `value`,
-     * starting at `fromIndex`, using strict equality for comparisons, i.e. `===`.
-     *
-     * @private
-     * @param {Array} array The array to search.
-     * @param {Mixed} value The value to search for.
-     * @param {Number} fromIndex The index to search from.
-     * @param {Number} largeSize The length at which an array is considered large.
-     * @returns {Boolean} Returns `true`, if `value` is found, else `false`.
-     */
-    function cachedContains(array, fromIndex, largeSize) {
-      var length = array.length,
-          isLarge = (length - fromIndex) >= largeSize;
-
-      if (isLarge) {
-        var cache = {},
-            index = fromIndex - 1;
-
-        while (++index < length) {
-          // manually coerce `value` to a string because `hasOwnProperty`, in some
-          // older versions of Firefox, coerces objects incorrectly
-          var key = String(array[index]);
-          (hasOwnProperty.call(cache, key) ? cache[key] : (cache[key] = [])).push(array[index]);
-        }
-      }
-      return function(value) {
-        if (isLarge) {
-          var key = String(value);
-          return hasOwnProperty.call(cache, key) && indexOf(cache[key], value) > -1;
-        }
-        return indexOf(array, value, fromIndex) > -1;
-      }
-    }
-
-    /**
-     * Used by `_.max` and `_.min` as the default `callback` when a given
-     * `collection` is a string value.
-     *
-     * @private
-     * @param {String} value The character to inspect.
-     * @returns {Number} Returns the code unit of given character.
-     */
-    function charAtCallback(value) {
-      return value.charCodeAt(0);
-    }
-
-    /**
-     * Used by `sortBy` to compare transformed `collection` values, stable sorting
-     * them in ascending order.
-     *
-     * @private
-     * @param {Object} a The object to compare to `b`.
-     * @param {Object} b The object to compare to `a`.
-     * @returns {Number} Returns the sort order indicator of `1` or `-1`.
-     */
-    function compareAscending(a, b) {
-      var ai = a.index,
-          bi = b.index;
-
-      a = a.criteria;
-      b = b.criteria;
-
-      // ensure a stable sort in V8 and other engines
-      // http://code.google.com/p/v8/issues/detail?id=90
-      if (a !== b) {
-        if (a > b || typeof a == 'undefined') {
-          return 1;
-        }
-        if (a < b || typeof b == 'undefined') {
-          return -1;
-        }
-      }
-      return ai < bi ? -1 : 1;
-    }
-
-    /**
-     * Creates a function that, when called, invokes `func` with the `this` binding
-     * of `thisArg` and prepends any `partialArgs` to the arguments passed to the
-     * bound function.
-     *
-     * @private
-     * @param {Function|String} func The function to bind or the method name.
-     * @param {Mixed} [thisArg] The `this` binding of `func`.
-     * @param {Array} partialArgs An array of arguments to be partially applied.
-     * @param {Object} [idicator] Used to indicate binding by key or partially
-     *  applying arguments from the right.
-     * @returns {Function} Returns the new bound function.
-     */
-    function createBound(func, thisArg, partialArgs, indicator) {
-      var isFunc = isFunction(func),
-          isPartial = !partialArgs,
-          key = thisArg;
-
-      // juggle arguments
-      if (isPartial) {
-        var rightIndicator = indicator;
-        partialArgs = thisArg;
-      }
-      else if (!isFunc) {
-        if (!indicator) {
-          throw new TypeError;
-        }
-        thisArg = func;
-      }
-
-      function bound() {
-        // `Function#bind` spec
-        // http://es5.github.com/#x15.3.4.5
-        var args = arguments,
-            thisBinding = isPartial ? this : thisArg;
-
-        if (!isFunc) {
-          func = thisArg[key];
-        }
-        if (partialArgs.length) {
-          args = args.length
-            ? (args = slice(args), rightIndicator ? args.concat(partialArgs) : partialArgs.concat(args))
-            : partialArgs;
-        }
-        if (this instanceof bound) {
-          // ensure `new bound` is an instance of `func`
-          noop.prototype = func.prototype;
-          thisBinding = new noop;
-          noop.prototype = null;
-
-          // mimic the constructor's `return` behavior
-          // http://es5.github.com/#x13.2.2
-          var result = func.apply(thisBinding, args);
-          return isObject(result) ? result : thisBinding;
-        }
-        return func.apply(thisBinding, args);
-      }
-      return bound;
-    }
-
-    /**
-     * Creates compiled iteration functions.
-     *
-     * @private
-     * @param {Object} [options1, options2, ...] The compile options object(s).
-     *  arrays - A string of code to determine if the iterable is an array or array-like.
-     *  useHas - A boolean to specify using `hasOwnProperty` checks in the object loop.
-     *  args - A string of comma separated arguments the iteration function will accept.
-     *  top - A string of code to execute before the iteration branches.
-     *  loop - A string of code to execute in the object loop.
-     *  bottom - A string of code to execute after the iteration branches.
-     * @returns {Function} Returns the compiled function.
-     */
-    function createIterator() {
-      var data = {
-        // data properties
-        'shadowedProps': shadowedProps,
-        // iterator options
-        'arrays': 'isArray(iterable)',
-        'bottom': '',
-        'init': 'iterable',
-        'loop': '',
-        'top': '',
-        'useHas': true,
-        'useKeys': !!keys
-      };
-
-      // merge options into a template data object
-      for (var object, index = 0; object = arguments[index]; index++) {
-        for (var key in object) {
-          data[key] = object[key];
-        }
-      }
-      var args = data.args;
-      data.firstArg = /^[^,]+/.exec(args)[0];
-
-      // create the function factory
-      var factory = Function(
-          'hasOwnProperty, isArguments, isArray, isString, keys, ' +
-          'lodash, objectTypes',
-        'return function(' + args + ') {\n' + iteratorTemplate(data) + '\n}'
-      );
-      // return the compiled function
-      return factory(
-        hasOwnProperty, isArguments, isArray, isString, keys,
-        lodash, objectTypes
-      );
-    }
-
-    /**
-     * Used by `template` to escape characters for inclusion in compiled
-     * string literals.
-     *
-     * @private
-     * @param {String} match The matched character to escape.
-     * @returns {String} Returns the escaped character.
-     */
-    function escapeStringChar(match) {
-      return '\\' + stringEscapes[match];
-    }
-
-    /**
-     * Used by `escape` to convert characters to HTML entities.
-     *
-     * @private
-     * @param {String} match The matched character to escape.
-     * @returns {String} Returns the escaped character.
-     */
-    function escapeHtmlChar(match) {
-      return htmlEscapes[match];
-    }
-
-    /**
-     * Checks if `value` is a DOM node in IE < 9.
-     *
-     * @private
-     * @param {Mixed} value The value to check.
-     * @returns {Boolean} Returns `true` if the `value` is a DOM node, else `false`.
-     */
-    function isNode(value) {
-      // IE < 9 presents DOM nodes as `Object` objects except they have `toString`
-      // methods that are `typeof` "string" and still can coerce nodes to strings
-      return typeof value.toString != 'function' && typeof (value + '') == 'string';
-    }
-
-    /**
-     * A fast path for creating `lodash` wrapper objects.
-     *
-     * @private
-     * @param {Mixed} value The value to wrap in a `lodash` instance.
-     * @returns {Object} Returns a `lodash` instance.
-     */
-    function lodashWrapper(value) {
-      this.__wrapped__ = value;
-    }
-    // ensure `new lodashWrapper` is an instance of `lodash`
-    lodashWrapper.prototype = lodash.prototype;
-
-    /**
-     * A no-operation function.
-     *
-     * @private
-     */
-    function noop() {
-      // no operation performed
-    }
-
-    /**
-     * A fallback implementation of `isPlainObject` that checks if a given `value`
-     * is an object created by the `Object` constructor, assuming objects created
-     * by the `Object` constructor have no inherited enumerable properties and that
-     * there are no `Object.prototype` extensions.
-     *
-     * @private
-     * @param {Mixed} value The value to check.
-     * @returns {Boolean} Returns `true`, if `value` is a plain object, else `false`.
-     */
-    function shimIsPlainObject(value) {
-      // avoid non-objects and false positives for `arguments` objects
-      var result = false;
-      if (!(value && toString.call(value) == objectClass) || (!support.argsClass && isArguments(value))) {
-        return result;
-      }
-      // check that the constructor is `Object` (i.e. `Object instanceof Object`)
-      var ctor = value.constructor;
-
-      if (isFunction(ctor) ? ctor instanceof ctor : (support.nodeClass || !isNode(value))) {
-        // IE < 9 iterates inherited properties before own properties. If the first
-        // iterated property is an object's own property then there are no inherited
-        // enumerable properties.
-        if (support.ownLast) {
-          forIn(value, function(value, key, object) {
-            result = hasOwnProperty.call(object, key);
-            return false;
-          });
-          return result === true;
-        }
-        // In most environments an object's own properties are iterated before
-        // its inherited properties. If the last iterated property is an object's
-        // own property then there are no inherited enumerable properties.
-        forIn(value, function(value, key) {
-          result = key;
-        });
-        return result === false || hasOwnProperty.call(value, result);
-      }
-      return result;
-    }
-
-    /**
-     * Slices the `collection` from the `start` index up to, but not including,
-     * the `end` index.
-     *
-     * Note: This function is used, instead of `Array#slice`, to support node lists
-     * in IE < 9 and to ensure dense arrays are returned.
-     *
-     * @private
-     * @param {Array|Object|String} collection The collection to slice.
-     * @param {Number} start The start index.
-     * @param {Number} end The end index.
-     * @returns {Array} Returns the new array.
-     */
-    function slice(array, start, end) {
-      start || (start = 0);
-      if (typeof end == 'undefined') {
-        end = array ? array.length : 0;
-      }
-      var index = -1,
-          length = end - start || 0,
-          result = Array(length < 0 ? 0 : length);
-
-      while (++index < length) {
-        result[index] = array[start + index];
-      }
-      return result;
-    }
-
-    /**
-     * Used by `unescape` to convert HTML entities to characters.
-     *
-     * @private
-     * @param {String} match The matched character to unescape.
-     * @returns {String} Returns the unescaped character.
-     */
-    function unescapeHtmlChar(match) {
-      return htmlUnescapes[match];
-    }
-
-    /*--------------------------------------------------------------------------*/
-
-    /**
-     * Checks if `value` is an `arguments` object.
-     *
-     * @static
-     * @memberOf _
-     * @category Objects
-     * @param {Mixed} value The value to check.
-     * @returns {Boolean} Returns `true`, if the `value` is an `arguments` object, else `false`.
-     * @example
-     *
-     * (function() { return _.isArguments(arguments); })(1, 2, 3);
-     * // => true
-     *
-     * _.isArguments([1, 2, 3]);
-     * // => false
-     */
-    function isArguments(value) {
-      return toString.call(value) == argsClass;
-    }
-    // fallback for browsers that can't detect `arguments` objects by [[Class]]
-    if (!support.argsClass) {
-      isArguments = function(value) {
-        return value ? hasOwnProperty.call(value, 'callee') : false;
-      };
-    }
-
-    /**
-     * Checks if `value` is an array.
-     *
-     * @static
-     * @memberOf _
-     * @category Objects
-     * @param {Mixed} value The value to check.
-     * @returns {Boolean} Returns `true`, if the `value` is an array, else `false`.
-     * @example
-     *
-     * (function() { return _.isArray(arguments); })();
-     * // => false
-     *
-     * _.isArray([1, 2, 3]);
-     * // => true
-     */
-    var isArray = nativeIsArray || function(value) {
-      // `instanceof` may cause a memory leak in IE 7 if `value` is a host object
-      // http://ajaxian.com/archives/working-aroung-the-instanceof-memory-leak
-      return (support.argsObject && value instanceof Array) || toString.call(value) == arrayClass;
-    };
-
-    /**
-     * A fallback implementation of `Object.keys` that produces an array of the
-     * given object's own enumerable property names.
-     *
-     * @private
-     * @type Function
-     * @param {Object} object The object to inspect.
-     * @returns {Array} Returns a new array of property names.
-     */
-    var shimKeys = createIterator({
-      'args': 'object',
-      'init': '[]',
-      'top': 'if (!(objectTypes[typeof object])) return result',
-      'loop': 'result.push(index)',
-      'arrays': false
-    });
-
-    /**
-     * Creates an array composed of the own enumerable property names of `object`.
-     *
-     * @static
-     * @memberOf _
-     * @category Objects
-     * @param {Object} object The object to inspect.
-     * @returns {Array} Returns a new array of property names.
-     * @example
-     *
-     * _.keys({ 'one': 1, 'two': 2, 'three': 3 });
-     * // => ['one', 'two', 'three'] (order is not guaranteed)
-     */
-    var keys = !nativeKeys ? shimKeys : function(object) {
-      if (!isObject(object)) {
-        return [];
-      }
-      if ((support.enumPrototypes && typeof object == 'function') ||
-          (support.nonEnumArgs && object.length && isArguments(object))) {
-        return shimKeys(object);
-      }
-      return nativeKeys(object);
-    };
-
-    /**
-     * A function compiled to iterate `arguments` objects, arrays, objects, and
-     * strings consistenly across environments, executing the `callback` for each
-     * element in the `collection`. The `callback` is bound to `thisArg` and invoked
-     * with three arguments; (value, index|key, collection). Callbacks may exit
-     * iteration early by explicitly returning `false`.
-     *
-     * @private
-     * @type Function
-     * @param {Array|Object|String} collection The collection to iterate over.
-     * @param {Function} [callback=identity] The function called per iteration.
-     * @param {Mixed} [thisArg] The `this` binding of `callback`.
-     * @returns {Array|Object|String} Returns `collection`.
-     */
-    var each = createIterator(eachIteratorOptions);
-
-    /**
-     * Used to convert characters to HTML entities:
-     *
-     * Though the `>` character is escaped for symmetry, characters like `>` and `/`
-     * don't require escaping in HTML and have no special meaning unless they're part
-     * of a tag or an unquoted attribute value.
-     * http://mathiasbynens.be/notes/ambiguous-ampersands (under "semi-related fun fact")
-     */
-    var htmlEscapes = {
-      '&': '&amp;',
-      '<': '&lt;',
-      '>': '&gt;',
-      '"': '&quot;',
-      "'": '&#39;'
-    };
-
-    /** Used to convert HTML entities to characters */
-    var htmlUnescapes = invert(htmlEscapes);
-
-    /*--------------------------------------------------------------------------*/
-
-    /**
-     * Assigns own enumerable properties of source object(s) to the destination
-     * object. Subsequent sources will overwrite property assignments of previous
-     * sources. If a `callback` function is passed, it will be executed to produce
-     * the assigned values. The `callback` is bound to `thisArg` and invoked with
-     * two arguments; (objectValue, sourceValue).
-     *
-     * @static
-     * @memberOf _
-     * @type Function
-     * @alias extend
-     * @category Objects
-     * @param {Object} object The destination object.
-     * @param {Object} [source1, source2, ...] The source objects.
-     * @param {Function} [callback] The function to customize assigning values.
-     * @param {Mixed} [thisArg] The `this` binding of `callback`.
-     * @returns {Object} Returns the destination object.
-     * @example
-     *
-     * _.assign({ 'name': 'moe' }, { 'age': 40 });
-     * // => { 'name': 'moe', 'age': 40 }
-     *
-     * var defaults = _.partialRight(_.assign, function(a, b) {
-     *   return typeof a == 'undefined' ? b : a;
-     * });
-     *
-     * var food = { 'name': 'apple' };
-     * defaults(food, { 'name': 'banana', 'type': 'fruit' });
-     * // => { 'name': 'apple', 'type': 'fruit' }
-     */
-    var assign = createIterator(defaultsIteratorOptions, {
-      'top':
-        defaultsIteratorOptions.top.replace(';',
-          ';\n' +
-          "if (argsLength > 3 && typeof args[argsLength - 2] == 'function') {\n" +
-          '  var callback = lodash.createCallback(args[--argsLength - 1], args[argsLength--], 2);\n' +
-          "} else if (argsLength > 2 && typeof args[argsLength - 1] == 'function') {\n" +
-          '  callback = args[--argsLength];\n' +
-          '}'
-        ),
-      'loop': 'result[index] = callback ? callback(result[index], iterable[index]) : iterable[index]'
-    });
-
-    /**
-     * Creates a clone of `value`. If `deep` is `true`, nested objects will also
-     * be cloned, otherwise they will be assigned by reference. If a `callback`
-     * function is passed, it will be executed to produce the cloned values. If
-     * `callback` returns `undefined`, cloning will be handled by the method instead.
-     * The `callback` is bound to `thisArg` and invoked with one argument; (value).
-     *
-     * @static
-     * @memberOf _
-     * @category Objects
-     * @param {Mixed} value The value to clone.
-     * @param {Boolean} [deep=false] A flag to indicate a deep clone.
-     * @param {Function} [callback] The function to customize cloning values.
-     * @param {Mixed} [thisArg] The `this` binding of `callback`.
-     * @param- {Array} [stackA=[]] Tracks traversed source objects.
-     * @param- {Array} [stackB=[]] Associates clones with source counterparts.
-     * @returns {Mixed} Returns the cloned `value`.
-     * @example
-     *
-     * var stooges = [
-     *   { 'name': 'moe', 'age': 40 },
-     *   { 'name': 'larry', 'age': 50 }
-     * ];
-     *
-     * var shallow = _.clone(stooges);
-     * shallow[0] === stooges[0];
-     * // => true
-     *
-     * var deep = _.clone(stooges, true);
-     * deep[0] === stooges[0];
-     * // => false
-     *
-     * _.mixin({
-     *   'clone': _.partialRight(_.clone, function(value) {
-     *     return _.isElement(value) ? value.cloneNode(false) : undefined;
-     *   })
-     * });
-     *
-     * var clone = _.clone(document.body);
-     * clone.childNodes.length;
-     * // => 0
-     */
-    function clone(value, deep, callback, thisArg, stackA, stackB) {
-      var result = value;
-
-      // allows working with "Collections" methods without using their `callback`
-      // argument, `index|key`, for this method's `callback`
-      if (typeof deep == 'function') {
-        thisArg = callback;
-        callback = deep;
-        deep = false;
-      }
-      if (typeof callback == 'function') {
-        callback = (typeof thisArg == 'undefined')
-          ? callback
-          : lodash.createCallback(callback, thisArg, 1);
-
-        result = callback(result);
-        if (typeof result != 'undefined') {
-          return result;
-        }
-        result = value;
-      }
-      // inspect [[Class]]
-      var isObj = isObject(result);
-      if (isObj) {
-        var className = toString.call(result);
-        if (!cloneableClasses[className] || (!support.nodeClass && isNode(result))) {
-          return result;
-        }
-        var isArr = isArray(result);
-      }
-      // shallow clone
-      if (!isObj || !deep) {
-        return isObj
-          ? (isArr ? slice(result) : assign({}, result))
-          : result;
-      }
-      var ctor = ctorByClass[className];
-      switch (className) {
-        case boolClass:
-        case dateClass:
-          return new ctor(+result);
-
-        case numberClass:
-        case stringClass:
-          return new ctor(result);
-
-        case regexpClass:
-          return ctor(result.source, reFlags.exec(result));
-      }
-      // check for circular references and return corresponding clone
-      stackA || (stackA = []);
-      stackB || (stackB = []);
-
-      var length = stackA.length;
-      while (length--) {
-        if (stackA[length] == value) {
-          return stackB[length];
-        }
-      }
-      // init cloned object
-      result = isArr ? ctor(result.length) : {};
-
-      // add array properties assigned by `RegExp#exec`
-      if (isArr) {
-        if (hasOwnProperty.call(value, 'index')) {
-          result.index = value.index;
-        }
-        if (hasOwnProperty.call(value, 'input')) {
-          result.input = value.input;
-        }
-      }
-      // add the source value to the stack of traversed objects
-      // and associate it with its clone
-      stackA.push(value);
-      stackB.push(result);
-
-      // recursively populate clone (susceptible to call stack limits)
-      (isArr ? forEach : forOwn)(value, function(objValue, key) {
-        result[key] = clone(objValue, deep, callback, undefined, stackA, stackB);
-      });
-
-      return result;
-    }
-
-    /**
-     * Creates a deep clone of `value`. If a `callback` function is passed,
-     * it will be executed to produce the cloned values. If `callback` returns
-     * `undefined`, cloning will be handled by the method instead. The `callback`
-     * is bound to `thisArg` and invoked with one argument; (value).
-     *
-     * Note: This function is loosely based on the structured clone algorithm. Functions
-     * and DOM nodes are **not** cloned. The enumerable properties of `arguments` objects and
-     * objects created by constructors other than `Object` are cloned to plain `Object` objects.
-     * See http://www.w3.org/TR/html5/infrastructure.html#internal-structured-cloning-algorithm.
-     *
-     * @static
-     * @memberOf _
-     * @category Objects
-     * @param {Mixed} value The value to deep clone.
-     * @param {Function} [callback] The function to customize cloning values.
-     * @param {Mixed} [thisArg] The `this` binding of `callback`.
-     * @returns {Mixed} Returns the deep cloned `value`.
-     * @example
-     *
-     * var stooges = [
-     *   { 'name': 'moe', 'age': 40 },
-     *   { 'name': 'larry', 'age': 50 }
-     * ];
-     *
-     * var deep = _.cloneDeep(stooges);
-     * deep[0] === stooges[0];
-     * // => false
-     *
-     * var view = {
-     *   'label': 'docs',
-     *   'node': element
-     * };
-     *
-     * var clone = _.cloneDeep(view, function(value) {
-     *   return _.isElement(value) ? value.cloneNode(true) : undefined;
-     * });
-     *
-     * clone.node == view.node;
-     * // => false
-     */
-    function cloneDeep(value, callback, thisArg) {
-      return clone(value, true, callback, thisArg);
-    }
-
-    /**
-     * Assigns own enumerable properties of source object(s) to the destination
-     * object for all destination properties that resolve to `undefined`. Once a
-     * property is set, additional defaults of the same property will be ignored.
-     *
-     * @static
-     * @memberOf _
-     * @type Function
-     * @category Objects
-     * @param {Object} object The destination object.
-     * @param {Object} [source1, source2, ...] The source objects.
-     * @param- {Object} [guard] Allows working with `_.reduce` without using its
-     *  callback's `key` and `object` arguments as sources.
-     * @returns {Object} Returns the destination object.
-     * @example
-     *
-     * var food = { 'name': 'apple' };
-     * _.defaults(food, { 'name': 'banana', 'type': 'fruit' });
-     * // => { 'name': 'apple', 'type': 'fruit' }
-     */
-    var defaults = createIterator(defaultsIteratorOptions);
-
-    /**
-     * This method is similar to `_.find`, except that it returns the key of the
-     * element that passes the callback check, instead of the element itself.
-     *
-     * @static
-     * @memberOf _
-     * @category Objects
-     * @param {Array|Object|String} collection The collection to iterate over.
-     * @param {Function|Object|String} [callback=identity] The function called per
-     *  iteration. If a property name or object is passed, it will be used to create
-     *  a "_.pluck" or "_.where" style callback, respectively.
-     * @param {Mixed} [thisArg] The `this` binding of `callback`.
-     * @returns {Mixed} Returns the key of the found element, else `undefined`.
-     * @example
-     *
-     * _.findKey({ 'a': 1, 'b': 2, 'c': 3, 'd': 4 }, function(num) { return num % 2 == 0; });
-     * // => 'b'
-     */
-    function findKey(collection, callback, thisArg) {
-      var result;
-      callback = lodash.createCallback(callback, thisArg);
-      forOwn(collection, function(value, key, collection) {
-        if (callback(value, key, collection)) {
-          result = key;
-          return false;
-        }
-      });
-      return result;
-    }
-
-    /**
-     * Iterates over `object`'s own and inherited enumerable properties, executing
-     * the `callback` for each property. The `callback` is bound to `thisArg` and
-     * invoked with three arguments; (value, key, object). Callbacks may exit iteration
-     * early by explicitly returning `false`.
-     *
-     * @static
-     * @memberOf _
-     * @type Function
-     * @category Objects
-     * @param {Object} object The object to iterate over.
-     * @param {Function} [callback=identity] The function called per iteration.
-     * @param {Mixed} [thisArg] The `this` binding of `callback`.
-     * @returns {Object} Returns `object`.
-     * @example
-     *
-     * function Dog(name) {
-     *   this.name = name;
-     * }
-     *
-     * Dog.prototype.bark = function() {
-     *   alert('Woof, woof!');
-     * };
-     *
-     * _.forIn(new Dog('Dagny'), function(value, key) {
-     *   alert(key);
-     * });
-     * // => alerts 'name' and 'bark' (order is not guaranteed)
-     */
-    var forIn = createIterator(eachIteratorOptions, forOwnIteratorOptions, {
-      'useHas': false
-    });
-
-    /**
-     * Iterates over an object's own enumerable properties, executing the `callback`
-     * for each property. The `callback` is bound to `thisArg` and invoked with three
-     * arguments; (value, key, object). Callbacks may exit iteration early by explicitly
-     * returning `false`.
-     *
-     * @static
-     * @memberOf _
-     * @type Function
-     * @category Objects
-     * @param {Object} object The object to iterate over.
-     * @param {Function} [callback=identity] The function called per iteration.
-     * @param {Mixed} [thisArg] The `this` binding of `callback`.
-     * @returns {Object} Returns `object`.
-     * @example
-     *
-     * _.forOwn({ '0': 'zero', '1': 'one', 'length': 2 }, function(num, key) {
-     *   alert(key);
-     * });
-     * // => alerts '0', '1', and 'length' (order is not guaranteed)
-     */
-    var forOwn = createIterator(eachIteratorOptions, forOwnIteratorOptions);
-
-    /**
-     * Creates a sorted array of all enumerable properties, own and inherited,
-     * of `object` that have function values.
-     *
-     * @static
-     * @memberOf _
-     * @alias methods
-     * @category Objects
-     * @param {Object} object The object to inspect.
-     * @returns {Array} Returns a new array of property names that have function values.
-     * @example
-     *
-     * _.functions(_);
-     * // => ['all', 'any', 'bind', 'bindAll', 'clone', 'compact', 'compose', ...]
-     */
-    function functions(object) {
-      var result = [];
-      forIn(object, function(value, key) {
-        if (isFunction(value)) {
-          result.push(key);
-        }
-      });
-      return result.sort();
-    }
-
-    /**
-     * Checks if the specified object `property` exists and is a direct property,
-     * instead of an inherited property.
-     *
-     * @static
-     * @memberOf _
-     * @category Objects
-     * @param {Object} object The object to check.
-     * @param {String} property The property to check for.
-     * @returns {Boolean} Returns `true` if key is a direct property, else `false`.
-     * @example
-     *
-     * _.has({ 'a': 1, 'b': 2, 'c': 3 }, 'b');
-     * // => true
-     */
-    function has(object, property) {
-      return object ? hasOwnProperty.call(object, property) : false;
-    }
-
-    /**
-     * Creates an object composed of the inverted keys and values of the given `object`.
-     *
-     * @static
-     * @memberOf _
-     * @category Objects
-     * @param {Object} object The object to invert.
-     * @returns {Object} Returns the created inverted object.
-     * @example
-     *
-     *  _.invert({ 'first': 'moe', 'second': 'larry' });
-     * // => { 'moe': 'first', 'larry': 'second' }
-     */
-    function invert(object) {
-      var index = -1,
-          props = keys(object),
-          length = props.length,
-          result = {};
-
-      while (++index < length) {
-        var key = props[index];
-        result[object[key]] = key;
-      }
-      return result;
-    }
-
-    /**
-     * Checks if `value` is a boolean value.
-     *
-     * @static
-     * @memberOf _
-     * @category Objects
-     * @param {Mixed} value The value to check.
-     * @returns {Boolean} Returns `true`, if the `value` is a boolean value, else `false`.
-     * @example
-     *
-     * _.isBoolean(null);
-     * // => false
-     */
-    function isBoolean(value) {
-      return value === true || value === false || toString.call(value) == boolClass;
-    }
-
-    /**
-     * Checks if `value` is a date.
-     *
-     * @static
-     * @memberOf _
-     * @category Objects
-     * @param {Mixed} value The value to check.
-     * @returns {Boolean} Returns `true`, if the `value` is a date, else `false`.
-     * @example
-     *
-     * _.isDate(new Date);
-     * // => true
-     */
-    function isDate(value) {
-      return value instanceof Date || toString.call(value) == dateClass;
-    }
-
-    /**
-     * Checks if `value` is a DOM element.
-     *
-     * @static
-     * @memberOf _
-     * @category Objects
-     * @param {Mixed} value The value to check.
-     * @returns {Boolean} Returns `true`, if the `value` is a DOM element, else `false`.
-     * @example
-     *
-     * _.isElement(document.body);
-     * // => true
-     */
-    function isElement(value) {
-      return value ? value.nodeType === 1 : false;
-    }
-
-    /**
-     * Checks if `value` is empty. Arrays, strings, or `arguments` objects with a
-     * length of `0` and objects with no own enumerable properties are considered
-     * "empty".
-     *
-     * @static
-     * @memberOf _
-     * @category Objects
-     * @param {Array|Object|String} value The value to inspect.
-     * @returns {Boolean} Returns `true`, if the `value` is empty, else `false`.
-     * @example
-     *
-     * _.isEmpty([1, 2, 3]);
-     * // => false
-     *
-     * _.isEmpty({});
-     * // => true
-     *
-     * _.isEmpty('');
-     * // => true
-     */
-    function isEmpty(value) {
-      var result = true;
-      if (!value) {
-        return result;
-      }
-      var className = toString.call(value),
-          length = value.length;
-
-      if ((className == arrayClass || className == stringClass ||
-          (support.argsClass ? className == argsClass : isArguments(value))) ||
-          (className == objectClass && typeof length == 'number' && isFunction(value.splice))) {
-        return !length;
-      }
-      forOwn(value, function() {
-        return (result = false);
-      });
-      return result;
-    }
-
-    /**
-     * Performs a deep comparison between two values to determine if they are
-     * equivalent to each other. If `callback` is passed, it will be executed to
-     * compare values. If `callback` returns `undefined`, comparisons will be handled
-     * by the method instead. The `callback` is bound to `thisArg` and invoked with
-     * two arguments; (a, b).
-     *
-     * @static
-     * @memberOf _
-     * @category Objects
-     * @param {Mixed} a The value to compare.
-     * @param {Mixed} b The other value to compare.
-     * @param {Function} [callback] The function to customize comparing values.
-     * @param {Mixed} [thisArg] The `this` binding of `callback`.
-     * @param- {Array} [stackA=[]] Tracks traversed `a` objects.
-     * @param- {Array} [stackB=[]] Tracks traversed `b` objects.
-     * @returns {Boolean} Returns `true`, if the values are equivalent, else `false`.
-     * @example
-     *
-     * var moe = { 'name': 'moe', 'age': 40 };
-     * var copy = { 'name': 'moe', 'age': 40 };
-     *
-     * moe == copy;
-     * // => false
-     *
-     * _.isEqual(moe, copy);
-     * // => true
-     *
-     * var words = ['hello', 'goodbye'];
-     * var otherWords = ['hi', 'goodbye'];
-     *
-     * _.isEqual(words, otherWords, function(a, b) {
-     *   var reGreet = /^(?:hello|hi)$/i,
-     *       aGreet = _.isString(a) && reGreet.test(a),
-     *       bGreet = _.isString(b) && reGreet.test(b);
-     *
-     *   return (aGreet || bGreet) ? (aGreet == bGreet) : undefined;
-     * });
-     * // => true
-     */
-    function isEqual(a, b, callback, thisArg, stackA, stackB) {
-      // used to indicate that when comparing objects, `a` has at least the properties of `b`
-      var whereIndicator = callback === indicatorObject;
-      if (callback && !whereIndicator) {
-        callback = (typeof thisArg == 'undefined')
-          ? callback
-          : lodash.createCallback(callback, thisArg, 2);
-
-        var result = callback(a, b);
-        if (typeof result != 'undefined') {
-          return !!result;
-        }
-      }
-      // exit early for identical values
-      if (a === b) {
-        // treat `+0` vs. `-0` as not equal
-        return a !== 0 || (1 / a == 1 / b);
-      }
-      var type = typeof a,
-          otherType = typeof b;
-
-      // exit early for unlike primitive values
-      if (a === a &&
-          (!a || (type != 'function' && type != 'object')) &&
-          (!b || (otherType != 'function' && otherType != 'object'))) {
-        return false;
-      }
-      // exit early for `null` and `undefined`, avoiding ES3's Function#call behavior
-      // http://es5.github.com/#x15.3.4.4
-      if (a == null || b == null) {
-        return a === b;
-      }
-      // compare [[Class]] names
-      var className = toString.call(a),
-          otherClass = toString.call(b);
-
-      if (className == argsClass) {
-        className = objectClass;
-      }
-      if (otherClass == argsClass) {
-        otherClass = objectClass;
-      }
-      if (className != otherClass) {
-        return false;
-      }
-      switch (className) {
-        case boolClass:
-        case dateClass:
-          // coerce dates and booleans to numbers, dates to milliseconds and booleans
-          // to `1` or `0`, treating invalid dates coerced to `NaN` as not equal
-          return +a == +b;
-
-        case numberClass:
-          // treat `NaN` vs. `NaN` as equal
-          return (a != +a)
-            ? b != +b
-            // but treat `+0` vs. `-0` as not equal
-            : (a == 0 ? (1 / a == 1 / b) : a == +b);
-
-        case regexpClass:
-        case stringClass:
-          // coerce regexes to strings (http://es5.github.com/#x15.10.6.4)
-          // treat string primitives and their corresponding object instances as equal
-          return a == String(b);
-      }
-      var isArr = className == arrayClass;
-      if (!isArr) {
-        // unwrap any `lodash` wrapped values
-        if (hasOwnProperty.call(a, '__wrapped__ ') || hasOwnProperty.call(b, '__wrapped__')) {
-          return isEqual(a.__wrapped__ || a, b.__wrapped__ || b, callback, thisArg, stackA, stackB);
-        }
-        // exit for functions and DOM nodes
-        if (className != objectClass || (!support.nodeClass && (isNode(a) || isNode(b)))) {
-          return false;
-        }
-        // in older versions of Opera, `arguments` objects have `Array` constructors
-        var ctorA = !support.argsObject && isArguments(a) ? Object : a.constructor,
-            ctorB = !support.argsObject && isArguments(b) ? Object : b.constructor;
-
-        // non `Object` object instances with different constructors are not equal
-        if (ctorA != ctorB && !(
-              isFunction(ctorA) && ctorA instanceof ctorA &&
-              isFunction(ctorB) && ctorB instanceof ctorB
-            )) {
-          return false;
-        }
-      }
-      // assume cyclic structures are equal
-      // the algorithm for detecting cyclic structures is adapted from ES 5.1
-      // section 15.12.3, abstract operation `JO` (http://es5.github.com/#x15.12.3)
-      stackA || (stackA = []);
-      stackB || (stackB = []);
-
-      var length = stackA.length;
-      while (length--) {
-        if (stackA[length] == a) {
-          return stackB[length] == b;
-        }
-      }
-      var size = 0;
-      result = true;
-
-      // add `a` and `b` to the stack of traversed objects
-      stackA.push(a);
-      stackB.push(b);
-
-      // recursively compare objects and arrays (susceptible to call stack limits)
-      if (isArr) {
-        length = a.length;
-        size = b.length;
-
-        // compare lengths to determine if a deep comparison is necessary
-        result = size == a.length;
-        if (!result && !whereIndicator) {
-          return result;
-        }
-        // deep compare the contents, ignoring non-numeric properties
-        while (size--) {
-          var index = length,
-              value = b[size];
-
-          if (whereIndicator) {
-            while (index--) {
-              if ((result = isEqual(a[index], value, callback, thisArg, stackA, stackB))) {
-                break;
-              }
-            }
-          } else if (!(result = isEqual(a[size], value, callback, thisArg, stackA, stackB))) {
-            break;
-          }
-        }
-        return result;
-      }
-      // deep compare objects using `forIn`, instead of `forOwn`, to avoid `Object.keys`
-      // which, in this case, is more costly
-      forIn(b, function(value, key, b) {
-        if (hasOwnProperty.call(b, key)) {
-          // count the number of properties.
-          size++;
-          // deep compare each property value.
-          return (result = hasOwnProperty.call(a, key) && isEqual(a[key], value, callback, thisArg, stackA, stackB));
-        }
-      });
-
-      if (result && !whereIndicator) {
-        // ensure both objects have the same number of properties
-        forIn(a, function(value, key, a) {
-          if (hasOwnProperty.call(a, key)) {
-            // `size` will be `-1` if `a` has more properties than `b`
-            return (result = --size > -1);
-          }
-        });
-      }
-      return result;
-    }
-
-    /**
-     * Checks if `value` is, or can be coerced to, a finite number.
-     *
-     * Note: This is not the same as native `isFinite`, which will return true for
-     * booleans and empty strings. See http://es5.github.com/#x15.1.2.5.
-     *
-     * @static
-     * @memberOf _
-     * @category Objects
-     * @param {Mixed} value The value to check.
-     * @returns {Boolean} Returns `true`, if the `value` is finite, else `false`.
-     * @example
-     *
-     * _.isFinite(-101);
-     * // => true
-     *
-     * _.isFinite('10');
-     * // => true
-     *
-     * _.isFinite(true);
-     * // => false
-     *
-     * _.isFinite('');
-     * // => false
-     *
-     * _.isFinite(Infinity);
-     * // => false
-     */
-    function isFinite(value) {
-      return nativeIsFinite(value) && !nativeIsNaN(parseFloat(value));
-    }
-
-    /**
-     * Checks if `value` is a function.
-     *
-     * @static
-     * @memberOf _
-     * @category Objects
-     * @param {Mixed} value The value to check.
-     * @returns {Boolean} Returns `true`, if the `value` is a function, else `false`.
-     * @example
-     *
-     * _.isFunction(_);
-     * // => true
-     */
-    function isFunction(value) {
-      return typeof value == 'function';
-    }
-    // fallback for older versions of Chrome and Safari
-    if (isFunction(/x/)) {
-      isFunction = function(value) {
-        return value instanceof Function || toString.call(value) == funcClass;
-      };
-    }
-
-    /**
-     * Checks if `value` is the language type of Object.
-     * (e.g. arrays, functions, objects, regexes, `new Number(0)`, and `new String('')`)
-     *
-     * @static
-     * @memberOf _
-     * @category Objects
-     * @param {Mixed} value The value to check.
-     * @returns {Boolean} Returns `true`, if the `value` is an object, else `false`.
-     * @example
-     *
-     * _.isObject({});
-     * // => true
-     *
-     * _.isObject([1, 2, 3]);
-     * // => true
-     *
-     * _.isObject(1);
-     * // => false
-     */
-    function isObject(value) {
-      // check if the value is the ECMAScript language type of Object
-      // http://es5.github.com/#x8
-      // and avoid a V8 bug
-      // http://code.google.com/p/v8/issues/detail?id=2291
-      return value ? objectTypes[typeof value] : false;
-    }
-
-    /**
-     * Checks if `value` is `NaN`.
-     *
-     * Note: This is not the same as native `isNaN`, which will return `true` for
-     * `undefined` and other values. See http://es5.github.com/#x15.1.2.4.
-     *
-     * @static
-     * @memberOf _
-     * @category Objects
-     * @param {Mixed} value The value to check.
-     * @returns {Boolean} Returns `true`, if the `value` is `NaN`, else `false`.
-     * @example
-     *
-     * _.isNaN(NaN);
-     * // => true
-     *
-     * _.isNaN(new Number(NaN));
-     * // => true
-     *
-     * isNaN(undefined);
-     * // => true
-     *
-     * _.isNaN(undefined);
-     * // => false
-     */
-    function isNaN(value) {
-      // `NaN` as a primitive is the only value that is not equal to itself
-      // (perform the [[Class]] check first to avoid errors with some host objects in IE)
-      return isNumber(value) && value != +value
-    }
-
-    /**
-     * Checks if `value` is `null`.
-     *
-     * @static
-     * @memberOf _
-     * @category Objects
-     * @param {Mixed} value The value to check.
-     * @returns {Boolean} Returns `true`, if the `value` is `null`, else `false`.
-     * @example
-     *
-     * _.isNull(null);
-     * // => true
-     *
-     * _.isNull(undefined);
-     * // => false
-     */
-    function isNull(value) {
-      return value === null;
-    }
-
-    /**
-     * Checks if `value` is a number.
-     *
-     * @static
-     * @memberOf _
-     * @category Objects
-     * @param {Mixed} value The value to check.
-     * @returns {Boolean} Returns `true`, if the `value` is a number, else `false`.
-     * @example
-     *
-     * _.isNumber(8.4 * 5);
-     * // => true
-     */
-    function isNumber(value) {
-      return typeof value == 'number' || toString.call(value) == numberClass;
-    }
-
-    /**
-     * Checks if a given `value` is an object created by the `Object` constructor.
-     *
-     * @static
-     * @memberOf _
-     * @category Objects
-     * @param {Mixed} value The value to check.
-     * @returns {Boolean} Returns `true`, if `value` is a plain object, else `false`.
-     * @example
-     *
-     * function Stooge(name, age) {
-     *   this.name = name;
-     *   this.age = age;
-     * }
-     *
-     * _.isPlainObject(new Stooge('moe', 40));
-     * // => false
-     *
-     * _.isPlainObject([1, 2, 3]);
-     * // => false
-     *
-     * _.isPlainObject({ 'name': 'moe', 'age': 40 });
-     * // => true
-     */
-    var isPlainObject = !getPrototypeOf ? shimIsPlainObject : function(value) {
-      if (!(value && toString.call(value) == objectClass) || (!support.argsClass && isArguments(value))) {
-        return false;
-      }
-      var valueOf = value.valueOf,
-          objProto = typeof valueOf == 'function' && (objProto = getPrototypeOf(valueOf)) && getPrototypeOf(objProto);
-
-      return objProto
-        ? (value == objProto || getPrototypeOf(value) == objProto)
-        : shimIsPlainObject(value);
-    };
-
-    /**
-     * Checks if `value` is a regular expression.
-     *
-     * @static
-     * @memberOf _
-     * @category Objects
-     * @param {Mixed} value The value to check.
-     * @returns {Boolean} Returns `true`, if the `value` is a regular expression, else `false`.
-     * @example
-     *
-     * _.isRegExp(/moe/);
-     * // => true
-     */
-    function isRegExp(value) {
-      return value instanceof RegExp || toString.call(value) == regexpClass;
-    }
-
-    /**
-     * Checks if `value` is a string.
-     *
-     * @static
-     * @memberOf _
-     * @category Objects
-     * @param {Mixed} value The value to check.
-     * @returns {Boolean} Returns `true`, if the `value` is a string, else `false`.
-     * @example
-     *
-     * _.isString('moe');
-     * // => true
-     */
-    function isString(value) {
-      return typeof value == 'string' || toString.call(value) == stringClass;
-    }
-
-    /**
-     * Checks if `value` is `undefined`.
-     *
-     * @static
-     * @memberOf _
-     * @category Objects
-     * @param {Mixed} value The value to check.
-     * @returns {Boolean} Returns `true`, if the `value` is `undefined`, else `false`.
-     * @example
-     *
-     * _.isUndefined(void 0);
-     * // => true
-     */
-    function isUndefined(value) {
-      return typeof value == 'undefined';
-    }
-
-    /**
-     * Recursively merges own enumerable properties of the source object(s), that
-     * don't resolve to `undefined`, into the destination object. Subsequent sources
-     * will overwrite property assignments of previous sources. If a `callback` function
-     * is passed, it will be executed to produce the merged values of the destination
-     * and source properties. If `callback` returns `undefined`, merging will be
-     * handled by the method instead. The `callback` is bound to `thisArg` and
-     * invoked with two arguments; (objectValue, sourceValue).
-     *
-     * @static
-     * @memberOf _
-     * @category Objects
-     * @param {Object} object The destination object.
-     * @param {Object} [source1, source2, ...] The source objects.
-     * @param {Function} [callback] The function to customize merging properties.
-     * @param {Mixed} [thisArg] The `this` binding of `callback`.
-     * @param- {Object} [deepIndicator] Indicates that `stackA` and `stackB` are
-     *  arrays of traversed objects, instead of source objects.
-     * @param- {Array} [stackA=[]] Tracks traversed source objects.
-     * @param- {Array} [stackB=[]] Associates values with source counterparts.
-     * @returns {Object} Returns the destination object.
-     * @example
-     *
-     * var names = {
-     *   'stooges': [
-     *     { 'name': 'moe' },
-     *     { 'name': 'larry' }
-     *   ]
-     * };
-     *
-     * var ages = {
-     *   'stooges': [
-     *     { 'age': 40 },
-     *     { 'age': 50 }
-     *   ]
-     * };
-     *
-     * _.merge(names, ages);
-     * // => { 'stooges': [{ 'name': 'moe', 'age': 40 }, { 'name': 'larry', 'age': 50 }] }
-     *
-     * var food = {
-     *   'fruits': ['apple'],
-     *   'vegetables': ['beet']
-     * };
-     *
-     * var otherFood = {
-     *   'fruits': ['banana'],
-     *   'vegetables': ['carrot']
-     * };
-     *
-     * _.merge(food, otherFood, function(a, b) {
-     *   return _.isArray(a) ? a.concat(b) : undefined;
-     * });
-     * // => { 'fruits': ['apple', 'banana'], 'vegetables': ['beet', 'carrot] }
-     */
-    function merge(object, source, deepIndicator) {
-      var args = arguments,
-          index = 0,
-          length = 2;
-
-      if (!isObject(object)) {
-        return object;
-      }
-      if (deepIndicator === indicatorObject) {
-        var callback = args[3],
-            stackA = args[4],
-            stackB = args[5];
-      } else {
-        stackA = [];
-        stackB = [];
-
-        // allows working with `_.reduce` and `_.reduceRight` without
-        // using their `callback` arguments, `index|key` and `collection`
-        if (typeof deepIndicator != 'number') {
-          length = args.length;
-        }
-        if (length > 3 && typeof args[length - 2] == 'function') {
-          callback = lodash.createCallback(args[--length - 1], args[length--], 2);
-        } else if (length > 2 && typeof args[length - 1] == 'function') {
-          callback = args[--length];
-        }
-      }
-      while (++index < length) {
-        (isArray(args[index]) ? forEach : forOwn)(args[index], function(source, key) {
-          var found,
-              isArr,
-              result = source,
-              value = object[key];
-
-          if (source && ((isArr = isArray(source)) || isPlainObject(source))) {
-            // avoid merging previously merged cyclic sources
-            var stackLength = stackA.length;
-            while (stackLength--) {
-              if ((found = stackA[stackLength] == source)) {
-                value = stackB[stackLength];
-                break;
-              }
-            }
-            if (!found) {
-              value = isArr
-                ? (isArray(value) ? value : [])
-                : (isPlainObject(value) ? value : {});
-
-              if (callback) {
-                result = callback(value, source);
-                if (typeof result != 'undefined') {
-                  value = result;
-                }
-              }
-              // add `source` and associated `value` to the stack of traversed objects
-              stackA.push(source);
-              stackB.push(value);
-
-              // recursively merge objects and arrays (susceptible to call stack limits)
-              if (!callback) {
-                value = merge(value, source, indicatorObject, callback, stackA, stackB);
-              }
-            }
-          }
-          else {
-            if (callback) {
-              result = callback(value, source);
-              if (typeof result == 'undefined') {
-                result = source;
-              }
-            }
-            if (typeof result != 'undefined') {
-              value = result;
-            }
-          }
-          object[key] = value;
-        });
-      }
-      return object;
-    }
-
-    /**
-     * Creates a shallow clone of `object` excluding the specified properties.
-     * Property names may be specified as individual arguments or as arrays of
-     * property names. If a `callback` function is passed, it will be executed
-     * for each property in the `object`, omitting the properties `callback`
-     * returns truthy for. The `callback` is bound to `thisArg` and invoked
-     * with three arguments; (value, key, object).
-     *
-     * @static
-     * @memberOf _
-     * @category Objects
-     * @param {Object} object The source object.
-     * @param {Function|String} callback|[prop1, prop2, ...] The properties to omit
-     *  or the function called per iteration.
-     * @param {Mixed} [thisArg] The `this` binding of `callback`.
-     * @returns {Object} Returns an object without the omitted properties.
-     * @example
-     *
-     * _.omit({ 'name': 'moe', 'age': 40 }, 'age');
-     * // => { 'name': 'moe' }
-     *
-     * _.omit({ 'name': 'moe', 'age': 40 }, function(value) {
-     *   return typeof value == 'number';
-     * });
-     * // => { 'name': 'moe' }
-     */
-    function omit(object, callback, thisArg) {
-      var isFunc = typeof callback == 'function',
-          result = {};
-
-      if (isFunc) {
-        callback = lodash.createCallback(callback, thisArg);
-      } else {
-        var props = concat.apply(arrayRef, arguments);
-      }
-      forIn(object, function(value, key, object) {
-        if (isFunc
-              ? !callback(value, key, object)
-              : indexOf(props, key, 1) < 0
-            ) {
-          result[key] = value;
-        }
-      });
-      return result;
-    }
-
-    /**
-     * Creates a two dimensional array of the given object's key-value pairs,
-     * i.e. `[[key1, value1], [key2, value2]]`.
-     *
-     * @static
-     * @memberOf _
-     * @category Objects
-     * @param {Object} object The object to inspect.
-     * @returns {Array} Returns new array of key-value pairs.
-     * @example
-     *
-     * _.pairs({ 'moe': 30, 'larry': 40 });
-     * // => [['moe', 30], ['larry', 40]] (order is not guaranteed)
-     */
-    function pairs(object) {
-      var index = -1,
-          props = keys(object),
-          length = props.length,
-          result = Array(length);
-
-      while (++index < length) {
-        var key = props[index];
-        result[index] = [key, object[key]];
-      }
-      return result;
-    }
-
-    /**
-     * Creates a shallow clone of `object` composed of the specified properties.
-     * Property names may be specified as individual arguments or as arrays of property
-     * names. If `callback` is passed, it will be executed for each property in the
-     * `object`, picking the properties `callback` returns truthy for. The `callback`
-     * is bound to `thisArg` and invoked with three arguments; (value, key, object).
-     *
-     * @static
-     * @memberOf _
-     * @category Objects
-     * @param {Object} object The source object.
-     * @param {Array|Function|String} callback|[prop1, prop2, ...] The function called
-     *  per iteration or properties to pick, either as individual arguments or arrays.
-     * @param {Mixed} [thisArg] The `this` binding of `callback`.
-     * @returns {Object} Returns an object composed of the picked properties.
-     * @example
-     *
-     * _.pick({ 'name': 'moe', '_userid': 'moe1' }, 'name');
-     * // => { 'name': 'moe' }
-     *
-     * _.pick({ 'name': 'moe', '_userid': 'moe1' }, function(value, key) {
-     *   return key.charAt(0) != '_';
-     * });
-     * // => { 'name': 'moe' }
-     */
-    function pick(object, callback, thisArg) {
-      var result = {};
-      if (typeof callback != 'function') {
-        var index = 0,
-            props = concat.apply(arrayRef, arguments),
-            length = isObject(object) ? props.length : 0;
-
-        while (++index < length) {
-          var key = props[index];
-          if (key in object) {
-            result[key] = object[key];
-          }
-        }
-      } else {
-        callback = lodash.createCallback(callback, thisArg);
-        forIn(object, function(value, key, object) {
-          if (callback(value, key, object)) {
-            result[key] = value;
-          }
-        });
-      }
-      return result;
-    }
-
-    /**
-     * Creates an array composed of the own enumerable property values of `object`.
-     *
-     * @static
-     * @memberOf _
-     * @category Objects
-     * @param {Object} object The object to inspect.
-     * @returns {Array} Returns a new array of property values.
-     * @example
-     *
-     * _.values({ 'one': 1, 'two': 2, 'three': 3 });
-     * // => [1, 2, 3] (order is not guaranteed)
-     */
-    function values(object) {
-      var index = -1,
-          props = keys(object),
-          length = props.length,
-          result = Array(length);
-
-      while (++index < length) {
-        result[index] = object[props[index]];
-      }
-      return result;
-    }
-
-    /*--------------------------------------------------------------------------*/
-
-    /**
-     * Creates an array of elements from the specified indexes, or keys, of the
-     * `collection`. Indexes may be specified as individual arguments or as arrays
-     * of indexes.
-     *
-     * @static
-     * @memberOf _
-     * @category Collections
-     * @param {Array|Object|String} collection The collection to iterate over.
-     * @param {Array|Number|String} [index1, index2, ...] The indexes of
-     *  `collection` to retrieve, either as individual arguments or arrays.
-     * @returns {Array} Returns a new array of elements corresponding to the
-     *  provided indexes.
-     * @example
-     *
-     * _.at(['a', 'b', 'c', 'd', 'e'], [0, 2, 4]);
-     * // => ['a', 'c', 'e']
-     *
-     * _.at(['moe', 'larry', 'curly'], 0, 2);
-     * // => ['moe', 'curly']
-     */
-    function at(collection) {
-      var index = -1,
-          props = concat.apply(arrayRef, slice(arguments, 1)),
-          length = props.length,
-          result = Array(length);
-
-      if (support.unindexedChars && isString(collection)) {
-        collection = collection.split('');
-      }
-      while(++index < length) {
-        result[index] = collection[props[index]];
-      }
-      return result;
-    }
-
-    /**
-     * Checks if a given `target` element is present in a `collection` using strict
-     * equality for comparisons, i.e. `===`. If `fromIndex` is negative, it is used
-     * as the offset from the end of the collection.
-     *
-     * @static
-     * @memberOf _
-     * @alias include
-     * @category Collections
-     * @param {Array|Object|String} collection The collection to iterate over.
-     * @param {Mixed} target The value to check for.
-     * @param {Number} [fromIndex=0] The index to search from.
-     * @returns {Boolean} Returns `true` if the `target` element is found, else `false`.
-     * @example
-     *
-     * _.contains([1, 2, 3], 1);
-     * // => true
-     *
-     * _.contains([1, 2, 3], 1, 2);
-     * // => false
-     *
-     * _.contains({ 'name': 'moe', 'age': 40 }, 'moe');
-     * // => true
-     *
-     * _.contains('curly', 'ur');
-     * // => true
-     */
-    function contains(collection, target, fromIndex) {
-      var index = -1,
-          length = collection ? collection.length : 0,
-          result = false;
-
-      fromIndex = (fromIndex < 0 ? nativeMax(0, length + fromIndex) : fromIndex) || 0;
-      if (typeof length == 'number') {
-        result = (isString(collection)
-          ? collection.indexOf(target, fromIndex)
-          : indexOf(collection, target, fromIndex)
-        ) > -1;
-      } else {
-        each(collection, function(value) {
-          if (++index >= fromIndex) {
-            return !(result = value === target);
-          }
-        });
-      }
-      return result;
-    }
-
-    /**
-     * Creates an object composed of keys returned from running each element of the
-     * `collection` through the given `callback`. The corresponding value of each key
-     * is the number of times the key was returned by the `callback`. The `callback`
-     * is bound to `thisArg` and invoked with three arguments; (value, index|key, collection).
-     *
-     * If a property name is passed for `callback`, the created "_.pluck" style
-     * callback will return the property value of the given element.
-     *
-     * If an object is passed for `callback`, the created "_.where" style callback
-     * will return `true` for elements that have the properties of the given object,
-     * else `false`.
-     *
-     * @static
-     * @memberOf _
-     * @category Collections
-     * @param {Array|Object|String} collection The collection to iterate over.
-     * @param {Function|Object|String} [callback=identity] The function called per
-     *  iteration. If a property name or object is passed, it will be used to create
-     *  a "_.pluck" or "_.where" style callback, respectively.
-     * @param {Mixed} [thisArg] The `this` binding of `callback`.
-     * @returns {Object} Returns the composed aggregate object.
-     * @example
-     *
-     * _.countBy([4.3, 6.1, 6.4], function(num) { return Math.floor(num); });
-     * // => { '4': 1, '6': 2 }
-     *
-     * _.countBy([4.3, 6.1, 6.4], function(num) { return this.floor(num); }, Math);
-     * // => { '4': 1, '6': 2 }
-     *
-     * _.countBy(['one', 'two', 'three'], 'length');
-     * // => { '3': 2, '5': 1 }
-     */
-    function countBy(collection, callback, thisArg) {
-      var result = {};
-      callback = lodash.createCallback(callback, thisArg);
-
-      forEach(collection, function(value, key, collection) {
-        key = String(callback(value, key, collection));
-        (hasOwnProperty.call(result, key) ? result[key]++ : result[key] = 1);
-      });
-      return result;
-    }
-
-    /**
-     * Checks if the `callback` returns a truthy value for **all** elements of a
-     * `collection`. The `callback` is bound to `thisArg` and invoked with three
-     * arguments; (value, index|key, collection).
-     *
-     * If a property name is passed for `callback`, the created "_.pluck" style
-     * callback will return the property value of the given element.
-     *
-     * If an object is passed for `callback`, the created "_.where" style callback
-     * will return `true` for elements that have the properties of the given object,
-     * else `false`.
-     *
-     * @static
-     * @memberOf _
-     * @alias all
-     * @category Collections
-     * @param {Array|Object|String} collection The collection to iterate over.
-     * @param {Function|Object|String} [callback=identity] The function called per
-     *  iteration. If a property name or object is passed, it will be used to create
-     *  a "_.pluck" or "_.where" style callback, respectively.
-     * @param {Mixed} [thisArg] The `this` binding of `callback`.
-     * @returns {Boolean} Returns `true` if all elements pass the callback check,
-     *  else `false`.
-     * @example
-     *
-     * _.every([true, 1, null, 'yes'], Boolean);
-     * // => false
-     *
-     * var stooges = [
-     *   { 'name': 'moe', 'age': 40 },
-     *   { 'name': 'larry', 'age': 50 }
-     * ];
-     *
-     * // using "_.pluck" callback shorthand
-     * _.every(stooges, 'age');
-     * // => true
-     *
-     * // using "_.where" callback shorthand
-     * _.every(stooges, { 'age': 50 });
-     * // => false
-     */
-    function every(collection, callback, thisArg) {
-      var result = true;
-      callback = lodash.createCallback(callback, thisArg);
-
-      if (isArray(collection)) {
-        var index = -1,
-            length = collection.length;
-
-        while (++index < length) {
-          if (!(result = !!callback(collection[index], index, collection))) {
-            break;
-          }
-        }
-      } else {
-        each(collection, function(value, index, collection) {
-          return (result = !!callback(value, index, collection));
-        });
-      }
-      return result;
-    }
-
-    /**
-     * Examines each element in a `collection`, returning an array of all elements
-     * the `callback` returns truthy for. The `callback` is bound to `thisArg` and
-     * invoked with three arguments; (value, index|key, collection).
-     *
-     * If a property name is passed for `callback`, the created "_.pluck" style
-     * callback will return the property value of the given element.
-     *
-     * If an object is passed for `callback`, the created "_.where" style callback
-     * will return `true` for elements that have the properties of the given object,
-     * else `false`.
-     *
-     * @static
-     * @memberOf _
-     * @alias select
-     * @category Collections
-     * @param {Array|Object|String} collection The collection to iterate over.
-     * @param {Function|Object|String} [callback=identity] The function called per
-     *  iteration. If a property name or object is passed, it will be used to create
-     *  a "_.pluck" or "_.where" style callback, respectively.
-     * @param {Mixed} [thisArg] The `this` binding of `callback`.
-     * @returns {Array} Returns a new array of elements that passed the callback check.
-     * @example
-     *
-     * var evens = _.filter([1, 2, 3, 4, 5, 6], function(num) { return num % 2 == 0; });
-     * // => [2, 4, 6]
-     *
-     * var food = [
-     *   { 'name': 'apple',  'organic': false, 'type': 'fruit' },
-     *   { 'name': 'carrot', 'organic': true,  'type': 'vegetable' }
-     * ];
-     *
-     * // using "_.pluck" callback shorthand
-     * _.filter(food, 'organic');
-     * // => [{ 'name': 'carrot', 'organic': true, 'type': 'vegetable' }]
-     *
-     * // using "_.where" callback shorthand
-     * _.filter(food, { 'type': 'fruit' });
-     * // => [{ 'name': 'apple', 'organic': false, 'type': 'fruit' }]
-     */
-    function filter(collection, callback, thisArg) {
-      var result = [];
-      callback = lodash.createCallback(callback, thisArg);
-
-      if (isArray(collection)) {
-        var index = -1,
-            length = collection.length;
-
-        while (++index < length) {
-          var value = collection[index];
-          if (callback(value, index, collection)) {
-            result.push(value);
-          }
-        }
-      } else {
-        each(collection, function(value, index, collection) {
-          if (callback(value, index, collection)) {
-            result.push(value);
-          }
-        });
-      }
-      return result;
-    }
-
-    /**
-     * Examines each element in a `collection`, returning the first that the `callback`
-     * returns truthy for. The `callback` is bound to `thisArg` and invoked with three
-     * arguments; (value, index|key, collection).
-     *
-     * If a property name is passed for `callback`, the created "_.pluck" style
-     * callback will return the property value of the given element.
-     *
-     * If an object is passed for `callback`, the created "_.where" style callback
-     * will return `true` for elements that have the properties of the given object,
-     * else `false`.
-     *
-     * @static
-     * @memberOf _
-     * @alias detect
-     * @category Collections
-     * @param {Array|Object|String} collection The collection to iterate over.
-     * @param {Function|Object|String} [callback=identity] The function called per
-     *  iteration. If a property name or object is passed, it will be used to create
-     *  a "_.pluck" or "_.where" style callback, respectively.
-     * @param {Mixed} [thisArg] The `this` binding of `callback`.
-     * @returns {Mixed} Returns the found element, else `undefined`.
-     * @example
-     *
-     * _.find([1, 2, 3, 4], function(num) { return num % 2 == 0; });
-     * // => 2
-     *
-     * var food = [
-     *   { 'name': 'apple',  'organic': false, 'type': 'fruit' },
-     *   { 'name': 'banana', 'organic': true,  'type': 'fruit' },
-     *   { 'name': 'beet',   'organic': false, 'type': 'vegetable' }
-     * ];
-     *
-     * // using "_.where" callback shorthand
-     * _.find(food, { 'type': 'vegetable' });
-     * // => { 'name': 'beet', 'organic': false, 'type': 'vegetable' }
-     *
-     * // using "_.pluck" callback shorthand
-     * _.find(food, 'organic');
-     * // => { 'name': 'banana', 'organic': true, 'type': 'fruit' }
-     */
-    function find(collection, callback, thisArg) {
-      callback = lodash.createCallback(callback, thisArg);
-
-      if (isArray(collection)) {
-        var index = -1,
-            length = collection.length;
-
-        while (++index < length) {
-          var value = collection[index];
-          if (callback(value, index, collection)) {
-            return value;
-          }
-        }
-      } else {
-        var result;
-        each(collection, function(value, index, collection) {
-          if (callback(value, index, collection)) {
-            result = value;
-            return false;
-          }
-        });
-        return result;
-      }
-    }
-
-    /**
-     * Iterates over a `collection`, executing the `callback` for each element in
-     * the `collection`. The `callback` is bound to `thisArg` and invoked with three
-     * arguments; (value, index|key, collection). Callbacks may exit iteration early
-     * by explicitly returning `false`.
-     *
-     * @static
-     * @memberOf _
-     * @alias each
-     * @category Collections
-     * @param {Array|Object|String} collection The collection to iterate over.
-     * @param {Function} [callback=identity] The function called per iteration.
-     * @param {Mixed} [thisArg] The `this` binding of `callback`.
-     * @returns {Array|Object|String} Returns `collection`.
-     * @example
-     *
-     * _([1, 2, 3]).forEach(alert).join(',');
-     * // => alerts each number and returns '1,2,3'
-     *
-     * _.forEach({ 'one': 1, 'two': 2, 'three': 3 }, alert);
-     * // => alerts each number value (order is not guaranteed)
-     */
-    function forEach(collection, callback, thisArg) {
-      if (callback && typeof thisArg == 'undefined' && isArray(collection)) {
-        var index = -1,
-            length = collection.length;
-
-        while (++index < length) {
-          if (callback(collection[index], index, collection) === false) {
-            break;
-          }
-        }
-      } else {
-        each(collection, callback, thisArg);
-      }
-      return collection;
-    }
-
-    /**
-     * Creates an object composed of keys returned from running each element of the
-     * `collection` through the `callback`. The corresponding value of each key is
-     * an array of elements passed to `callback` that returned the key. The `callback`
-     * is bound to `thisArg` and invoked with three arguments; (value, index|key, collection).
-     *
-     * If a property name is passed for `callback`, the created "_.pluck" style
-     * callback will return the property value of the given element.
-     *
-     * If an object is passed for `callback`, the created "_.where" style callback
-     * will return `true` for elements that have the properties of the given object,
-     * else `false`
-     *
-     * @static
-     * @memberOf _
-     * @category Collections
-     * @param {Array|Object|String} collection The collection to iterate over.
-     * @param {Function|Object|String} [callback=identity] The function called per
-     *  iteration. If a property name or object is passed, it will be used to create
-     *  a "_.pluck" or "_.where" style callback, respectively.
-     * @param {Mixed} [thisArg] The `this` binding of `callback`.
-     * @returns {Object} Returns the composed aggregate object.
-     * @example
-     *
-     * _.groupBy([4.2, 6.1, 6.4], function(num) { return Math.floor(num); });
-     * // => { '4': [4.2], '6': [6.1, 6.4] }
-     *
-     * _.groupBy([4.2, 6.1, 6.4], function(num) { return this.floor(num); }, Math);
-     * // => { '4': [4.2], '6': [6.1, 6.4] }
-     *
-     * // using "_.pluck" callback shorthand
-     * _.groupBy(['one', 'two', 'three'], 'length');
-     * // => { '3': ['one', 'two'], '5': ['three'] }
-     */
-    function groupBy(collection, callback, thisArg) {
-      var result = {};
-      callback = lodash.createCallback(callback, thisArg);
-
-      forEach(collection, function(value, key, collection) {
-        key = String(callback(value, key, collection));
-        (hasOwnProperty.call(result, key) ? result[key] : result[key] = []).push(value);
-      });
-      return result;
-    }
-
-    /**
-     * Invokes the method named by `methodName` on each element in the `collection`,
-     * returning an array of the results of each invoked method. Additional arguments
-     * will be passed to each invoked method. If `methodName` is a function, it will
-     * be invoked for, and `this` bound to, each element in the `collection`.
-     *
-     * @static
-     * @memberOf _
-     * @category Collections
-     * @param {Array|Object|String} collection The collection to iterate over.
-     * @param {Function|String} methodName The name of the method to invoke or
-     *  the function invoked per iteration.
-     * @param {Mixed} [arg1, arg2, ...] Arguments to invoke the method with.
-     * @returns {Array} Returns a new array of the results of each invoked method.
-     * @example
-     *
-     * _.invoke([[5, 1, 7], [3, 2, 1]], 'sort');
-     * // => [[1, 5, 7], [1, 2, 3]]
-     *
-     * _.invoke([123, 456], String.prototype.split, '');
-     * // => [['1', '2', '3'], ['4', '5', '6']]
-     */
-    function invoke(collection, methodName) {
-      var args = slice(arguments, 2),
-          index = -1,
-          isFunc = typeof methodName == 'function',
-          length = collection ? collection.length : 0,
-          result = Array(typeof length == 'number' ? length : 0);
-
-      forEach(collection, function(value) {
-        result[++index] = (isFunc ? methodName : value[methodName]).apply(value, args);
-      });
-      return result;
-    }
-
-    /**
-     * Creates an array of values by running each element in the `collection`
-     * through the `callback`. The `callback` is bound to `thisArg` and invoked with
-     * three arguments; (value, index|key, collection).
-     *
-     * If a property name is passed for `callback`, the created "_.pluck" style
-     * callback will return the property value of the given element.
-     *
-     * If an object is passed for `callback`, the created "_.where" style callback
-     * will return `true` for elements that have the properties of the given object,
-     * else `false`.
-     *
-     * @static
-     * @memberOf _
-     * @alias collect
-     * @category Collections
-     * @param {Array|Object|String} collection The collection to iterate over.
-     * @param {Function|Object|String} [callback=identity] The function called per
-     *  iteration. If a property name or object is passed, it will be used to create
-     *  a "_.pluck" or "_.where" style callback, respectively.
-     * @param {Mixed} [thisArg] The `this` binding of `callback`.
-     * @returns {Array} Returns a new array of the results of each `callback` execution.
-     * @example
-     *
-     * _.map([1, 2, 3], function(num) { return num * 3; });
-     * // => [3, 6, 9]
-     *
-     * _.map({ 'one': 1, 'two': 2, 'three': 3 }, function(num) { return num * 3; });
-     * // => [3, 6, 9] (order is not guaranteed)
-     *
-     * var stooges = [
-     *   { 'name': 'moe', 'age': 40 },
-     *   { 'name': 'larry', 'age': 50 }
-     * ];
-     *
-     * // using "_.pluck" callback shorthand
-     * _.map(stooges, 'name');
-     * // => ['moe', 'larry']
-     */
-    function map(collection, callback, thisArg) {
-      var index = -1,
-          length = collection ? collection.length : 0,
-          result = Array(typeof length == 'number' ? length : 0);
-
-      callback = lodash.createCallback(callback, thisArg);
-      if (isArray(collection)) {
-        while (++index < length) {
-          result[index] = callback(collection[index], index, collection);
-        }
-      } else {
-        each(collection, function(value, key, collection) {
-          result[++index] = callback(value, key, collection);
-        });
-      }
-      return result;
-    }
-
-    /**
-     * Retrieves the maximum value of an `array`. If `callback` is passed,
-     * it will be executed for each value in the `array` to generate the
-     * criterion by which the value is ranked. The `callback` is bound to
-     * `thisArg` and invoked with three arguments; (value, index, collection).
-     *
-     * If a property name is passed for `callback`, the created "_.pluck" style
-     * callback will return the property value of the given element.
-     *
-     * If an object is passed for `callback`, the created "_.where" style callback
-     * will return `true` for elements that have the properties of the given object,
-     * else `false`.
-     *
-     * @static
-     * @memberOf _
-     * @category Collections
-     * @param {Array|Object|String} collection The collection to iterate over.
-     * @param {Function|Object|String} [callback=identity] The function called per
-     *  iteration. If a property name or object is passed, it will be used to create
-     *  a "_.pluck" or "_.where" style callback, respectively.
-     * @param {Mixed} [thisArg] The `this` binding of `callback`.
-     * @returns {Mixed} Returns the maximum value.
-     * @example
-     *
-     * _.max([4, 2, 8, 6]);
-     * // => 8
-     *
-     * var stooges = [
-     *   { 'name': 'moe', 'age': 40 },
-     *   { 'name': 'larry', 'age': 50 }
-     * ];
-     *
-     * _.max(stooges, function(stooge) { return stooge.age; });
-     * // => { 'name': 'larry', 'age': 50 };
-     *
-     * // using "_.pluck" callback shorthand
-     * _.max(stooges, 'age');
-     * // => { 'name': 'larry', 'age': 50 };
-     */
-    function max(collection, callback, thisArg) {
-      var computed = -Infinity,
-          result = computed;
-
-      if (!callback && isArray(collection)) {
-        var index = -1,
-            length = collection.length;
-
-        while (++index < length) {
-          var value = collection[index];
-          if (value > result) {
-            result = value;
-          }
-        }
-      } else {
-        callback = (!callback && isString(collection))
-          ? charAtCallback
-          : lodash.createCallback(callback, thisArg);
-
-        each(collection, function(value, index, collection) {
-          var current = callback(value, index, collection);
-          if (current > computed) {
-            computed = current;
-            result = value;
-          }
-        });
-      }
-      return result;
-    }
-
-    /**
-     * Retrieves the minimum value of an `array`. If `callback` is passed,
-     * it will be executed for each value in the `array` to generate the
-     * criterion by which the value is ranked. The `callback` is bound to `thisArg`
-     * and invoked with three arguments; (value, index, collection).
-     *
-     * If a property name is passed for `callback`, the created "_.pluck" style
-     * callback will return the property value of the given element.
-     *
-     * If an object is passed for `callback`, the created "_.where" style callback
-     * will return `true` for elements that have the properties of the given object,
-     * else `false`.
-     *
-     * @static
-     * @memberOf _
-     * @category Collections
-     * @param {Array|Object|String} collection The collection to iterate over.
-     * @param {Function|Object|String} [callback=identity] The function called per
-     *  iteration. If a property name or object is passed, it will be used to create
-     *  a "_.pluck" or "_.where" style callback, respectively.
-     * @param {Mixed} [thisArg] The `this` binding of `callback`.
-     * @returns {Mixed} Returns the minimum value.
-     * @example
-     *
-     * _.min([4, 2, 8, 6]);
-     * // => 2
-     *
-     * var stooges = [
-     *   { 'name': 'moe', 'age': 40 },
-     *   { 'name': 'larry', 'age': 50 }
-     * ];
-     *
-     * _.min(stooges, function(stooge) { return stooge.age; });
-     * // => { 'name': 'moe', 'age': 40 };
-     *
-     * // using "_.pluck" callback shorthand
-     * _.min(stooges, 'age');
-     * // => { 'name': 'moe', 'age': 40 };
-     */
-    function min(collection, callback, thisArg) {
-      var computed = Infinity,
-          result = computed;
-
-      if (!callback && isArray(collection)) {
-        var index = -1,
-            length = collection.length;
-
-        while (++index < length) {
-          var value = collection[index];
-          if (value < result) {
-            result = value;
-          }
-        }
-      } else {
-        callback = (!callback && isString(collection))
-          ? charAtCallback
-          : lodash.createCallback(callback, thisArg);
-
-        each(collection, function(value, index, collection) {
-          var current = callback(value, index, collection);
-          if (current < computed) {
-            computed = current;
-            result = value;
-          }
-        });
-      }
-      return result;
-    }
-
-    /**
-     * Retrieves the value of a specified property from all elements in the `collection`.
-     *
-     * @static
-     * @memberOf _
-     * @type Function
-     * @category Collections
-     * @param {Array|Object|String} collection The collection to iterate over.
-     * @param {String} property The property to pluck.
-     * @returns {Array} Returns a new array of property values.
-     * @example
-     *
-     * var stooges = [
-     *   { 'name': 'moe', 'age': 40 },
-     *   { 'name': 'larry', 'age': 50 }
-     * ];
-     *
-     * _.pluck(stooges, 'name');
-     * // => ['moe', 'larry']
-     */
-    var pluck = map;
-
-    /**
-     * Reduces a `collection` to a value that is the accumulated result of running
-     * each element in the `collection` through the `callback`, where each successive
-     * `callback` execution consumes the return value of the previous execution.
-     * If `accumulator` is not passed, the first element of the `collection` will be
-     * used as the initial `accumulator` value. The `callback` is bound to `thisArg`
-     * and invoked with four arguments; (accumulator, value, index|key, collection).
-     *
-     * @static
-     * @memberOf _
-     * @alias foldl, inject
-     * @category Collections
-     * @param {Array|Object|String} collection The collection to iterate over.
-     * @param {Function} [callback=identity] The function called per iteration.
-     * @param {Mixed} [accumulator] Initial value of the accumulator.
-     * @param {Mixed} [thisArg] The `this` binding of `callback`.
-     * @returns {Mixed} Returns the accumulated value.
-     * @example
-     *
-     * var sum = _.reduce([1, 2, 3], function(sum, num) {
-     *   return sum + num;
-     * });
-     * // => 6
-     *
-     * var mapped = _.reduce({ 'a': 1, 'b': 2, 'c': 3 }, function(result, num, key) {
-     *   result[key] = num * 3;
-     *   return result;
-     * }, {});
-     * // => { 'a': 3, 'b': 6, 'c': 9 }
-     */
-    function reduce(collection, callback, accumulator, thisArg) {
-      var noaccum = arguments.length < 3;
-      callback = lodash.createCallback(callback, thisArg, 4);
-
-      if (isArray(collection)) {
-        var index = -1,
-            length = collection.length;
-
-        if (noaccum) {
-          accumulator = collection[++index];
-        }
-        while (++index < length) {
-          accumulator = callback(accumulator, collection[index], index, collection);
-        }
-      } else {
-        each(collection, function(value, index, collection) {
-          accumulator = noaccum
-            ? (noaccum = false, value)
-            : callback(accumulator, value, index, collection)
-        });
-      }
-      return accumulator;
-    }
-
-    /**
-     * This method is similar to `_.reduce`, except that it iterates over a
-     * `collection` from right to left.
-     *
-     * @static
-     * @memberOf _
-     * @alias foldr
-     * @category Collections
-     * @param {Array|Object|String} collection The collection to iterate over.
-     * @param {Function} [callback=identity] The function called per iteration.
-     * @param {Mixed} [accumulator] Initial value of the accumulator.
-     * @param {Mixed} [thisArg] The `this` binding of `callback`.
-     * @returns {Mixed} Returns the accumulated value.
-     * @example
-     *
-     * var list = [[0, 1], [2, 3], [4, 5]];
-     * var flat = _.reduceRight(list, function(a, b) { return a.concat(b); }, []);
-     * // => [4, 5, 2, 3, 0, 1]
-     */
-    function reduceRight(collection, callback, accumulator, thisArg) {
-      var iterable = collection,
-          length = collection ? collection.length : 0,
-          noaccum = arguments.length < 3;
-
-      if (typeof length != 'number') {
-        var props = keys(collection);
-        length = props.length;
-      } else if (support.unindexedChars && isString(collection)) {
-        iterable = collection.split('');
-      }
-      callback = lodash.createCallback(callback, thisArg, 4);
-      forEach(collection, function(value, index, collection) {
-        index = props ? props[--length] : --length;
-        accumulator = noaccum
-          ? (noaccum = false, iterable[index])
-          : callback(accumulator, iterable[index], index, collection);
-      });
-      return accumulator;
-    }
-
-    /**
-     * The opposite of `_.filter`, this method returns the elements of a
-     * `collection` that `callback` does **not** return truthy for.
-     *
-     * If a property name is passed for `callback`, the created "_.pluck" style
-     * callback will return the property value of the given element.
-     *
-     * If an object is passed for `callback`, the created "_.where" style callback
-     * will return `true` for elements that have the properties of the given object,
-     * else `false`.
-     *
-     * @static
-     * @memberOf _
-     * @category Collections
-     * @param {Array|Object|String} collection The collection to iterate over.
-     * @param {Function|Object|String} [callback=identity] The function called per
-     *  iteration. If a property name or object is passed, it will be used to create
-     *  a "_.pluck" or "_.where" style callback, respectively.
-     * @param {Mixed} [thisArg] The `this` binding of `callback`.
-     * @returns {Array} Returns a new array of elements that did **not** pass the
-     *  callback check.
-     * @example
-     *
-     * var odds = _.reject([1, 2, 3, 4, 5, 6], function(num) { return num % 2 == 0; });
-     * // => [1, 3, 5]
-     *
-     * var food = [
-     *   { 'name': 'apple',  'organic': false, 'type': 'fruit' },
-     *   { 'name': 'carrot', 'organic': true,  'type': 'vegetable' }
-     * ];
-     *
-     * // using "_.pluck" callback shorthand
-     * _.reject(food, 'organic');
-     * // => [{ 'name': 'apple', 'organic': false, 'type': 'fruit' }]
-     *
-     * // using "_.where" callback shorthand
-     * _.reject(food, { 'type': 'fruit' });
-     * // => [{ 'name': 'carrot', 'organic': true, 'type': 'vegetable' }]
-     */
-    function reject(collection, callback, thisArg) {
-      callback = lodash.createCallback(callback, thisArg);
-      return filter(collection, function(value, index, collection) {
-        return !callback(value, index, collection);
-      });
-    }
-
-    /**
-     * Creates an array of shuffled `array` values, using a version of the
-     * Fisher-Yates shuffle. See http://en.wikipedia.org/wiki/Fisher-Yates_shuffle.
-     *
-     * @static
-     * @memberOf _
-     * @category Collections
-     * @param {Array|Object|String} collection The collection to shuffle.
-     * @returns {Array} Returns a new shuffled collection.
-     * @example
-     *
-     * _.shuffle([1, 2, 3, 4, 5, 6]);
-     * // => [4, 1, 6, 3, 5, 2]
-     */
-    function shuffle(collection) {
-      var index = -1,
-          length = collection ? collection.length : 0,
-          result = Array(typeof length == 'number' ? length : 0);
-
-      forEach(collection, function(value) {
-        var rand = floor(nativeRandom() * (++index + 1));
-        result[index] = result[rand];
-        result[rand] = value;
-      });
-      return result;
-    }
-
-    /**
-     * Gets the size of the `collection` by returning `collection.length` for arrays
-     * and array-like objects or the number of own enumerable properties for objects.
-     *
-     * @static
-     * @memberOf _
-     * @category Collections
-     * @param {Array|Object|String} collection The collection to inspect.
-     * @returns {Number} Returns `collection.length` or number of own enumerable properties.
-     * @example
-     *
-     * _.size([1, 2]);
-     * // => 2
-     *
-     * _.size({ 'one': 1, 'two': 2, 'three': 3 });
-     * // => 3
-     *
-     * _.size('curly');
-     * // => 5
-     */
-    function size(collection) {
-      var length = collection ? collection.length : 0;
-      return typeof length == 'number' ? length : keys(collection).length;
-    }
-
-    /**
-     * Checks if the `callback` returns a truthy value for **any** element of a
-     * `collection`. The function returns as soon as it finds passing value, and
-     * does not iterate over the entire `collection`. The `callback` is bound to
-     * `thisArg` and invoked with three arguments; (value, index|key, collection).
-     *
-     * If a property name is passed for `callback`, the created "_.pluck" style
-     * callback will return the property value of the given element.
-     *
-     * If an object is passed for `callback`, the created "_.where" style callback
-     * will return `true` for elements that have the properties of the given object,
-     * else `false`.
-     *
-     * @static
-     * @memberOf _
-     * @alias any
-     * @category Collections
-     * @param {Array|Object|String} collection The collection to iterate over.
-     * @param {Function|Object|String} [callback=identity] The function called per
-     *  iteration. If a property name or object is passed, it will be used to create
-     *  a "_.pluck" or "_.where" style callback, respectively.
-     * @param {Mixed} [thisArg] The `this` binding of `callback`.
-     * @returns {Boolean} Returns `true` if any element passes the callback check,
-     *  else `false`.
-     * @example
-     *
-     * _.some([null, 0, 'yes', false], Boolean);
-     * // => true
-     *
-     * var food = [
-     *   { 'name': 'apple',  'organic': false, 'type': 'fruit' },
-     *   { 'name': 'carrot', 'organic': true,  'type': 'vegetable' }
-     * ];
-     *
-     * // using "_.pluck" callback shorthand
-     * _.some(food, 'organic');
-     * // => true
-     *
-     * // using "_.where" callback shorthand
-     * _.some(food, { 'type': 'meat' });
-     * // => false
-     */
-    function some(collection, callback, thisArg) {
-      var result;
-      callback = lodash.createCallback(callback, thisArg);
-
-      if (isArray(collection)) {
-        var index = -1,
-            length = collection.length;
-
-        while (++index < length) {
-          if ((result = callback(collection[index], index, collection))) {
-            break;
-          }
-        }
-      } else {
-        each(collection, function(value, index, collection) {
-          return !(result = callback(value, index, collection));
-        });
-      }
-      return !!result;
-    }
-
-    /**
-     * Creates an array of elements, sorted in ascending order by the results of
-     * running each element in the `collection` through the `callback`. This method
-     * performs a stable sort, that is, it will preserve the original sort order of
-     * equal elements. The `callback` is bound to `thisArg` and invoked with three
-     * arguments; (value, index|key, collection).
-     *
-     * If a property name is passed for `callback`, the created "_.pluck" style
-     * callback will return the property value of the given element.
-     *
-     * If an object is passed for `callback`, the created "_.where" style callback
-     * will return `true` for elements that have the properties of the given object,
-     * else `false`.
-     *
-     * @static
-     * @memberOf _
-     * @category Collections
-     * @param {Array|Object|String} collection The collection to iterate over.
-     * @param {Function|Object|String} [callback=identity] The function called per
-     *  iteration. If a property name or object is passed, it will be used to create
-     *  a "_.pluck" or "_.where" style callback, respectively.
-     * @param {Mixed} [thisArg] The `this` binding of `callback`.
-     * @returns {Array} Returns a new array of sorted elements.
-     * @example
-     *
-     * _.sortBy([1, 2, 3], function(num) { return Math.sin(num); });
-     * // => [3, 1, 2]
-     *
-     * _.sortBy([1, 2, 3], function(num) { return this.sin(num); }, Math);
-     * // => [3, 1, 2]
-     *
-     * // using "_.pluck" callback shorthand
-     * _.sortBy(['banana', 'strawberry', 'apple'], 'length');
-     * // => ['apple', 'banana', 'strawberry']
-     */
-    function sortBy(collection, callback, thisArg) {
-      var index = -1,
-          length = collection ? collection.length : 0,
-          result = Array(typeof length == 'number' ? length : 0);
-
-      callback = lodash.createCallback(callback, thisArg);
-      forEach(collection, function(value, key, collection) {
-        result[++index] = {
-          'criteria': callback(value, key, collection),
-          'index': index,
-          'value': value
-        };
-      });
-
-      length = result.length;
-      result.sort(compareAscending);
-      while (length--) {
-        result[length] = result[length].value;
-      }
-      return result;
-    }
-
-    /**
-     * Converts the `collection` to an array.
-     *
-     * @static
-     * @memberOf _
-     * @category Collections
-     * @param {Array|Object|String} collection The collection to convert.
-     * @returns {Array} Returns the new converted array.
-     * @example
-     *
-     * (function() { return _.toArray(arguments).slice(1); })(1, 2, 3, 4);
-     * // => [2, 3, 4]
-     */
-    function toArray(collection) {
-      if (collection && typeof collection.length == 'number') {
-        return (support.unindexedChars && isString(collection))
-          ? collection.split('')
-          : slice(collection);
-      }
-      return values(collection);
-    }
-
-    /**
-     * Examines each element in a `collection`, returning an array of all elements
-     * that have the given `properties`. When checking `properties`, this method
-     * performs a deep comparison between values to determine if they are equivalent
-     * to each other.
-     *
-     * @static
-     * @memberOf _
-     * @type Function
-     * @category Collections
-     * @param {Array|Object|String} collection The collection to iterate over.
-     * @param {Object} properties The object of property values to filter by.
-     * @returns {Array} Returns a new array of elements that have the given `properties`.
-     * @example
-     *
-     * var stooges = [
-     *   { 'name': 'moe', 'age': 40 },
-     *   { 'name': 'larry', 'age': 50 }
-     * ];
-     *
-     * _.where(stooges, { 'age': 40 });
-     * // => [{ 'name': 'moe', 'age': 40 }]
-     */
-    var where = filter;
-
-    /*--------------------------------------------------------------------------*/
-
-    /**
-     * Creates an array with all falsey values of `array` removed. The values
-     * `false`, `null`, `0`, `""`, `undefined` and `NaN` are all falsey.
-     *
-     * @static
-     * @memberOf _
-     * @category Arrays
-     * @param {Array} array The array to compact.
-     * @returns {Array} Returns a new filtered array.
-     * @example
-     *
-     * _.compact([0, 1, false, 2, '', 3]);
-     * // => [1, 2, 3]
-     */
-    function compact(array) {
-      var index = -1,
-          length = array ? array.length : 0,
-          result = [];
-
-      while (++index < length) {
-        var value = array[index];
-        if (value) {
-          result.push(value);
-        }
-      }
-      return result;
-    }
-
-    /**
-     * Creates an array of `array` elements not present in the other arrays
-     * using strict equality for comparisons, i.e. `===`.
-     *
-     * @static
-     * @memberOf _
-     * @category Arrays
-     * @param {Array} array The array to process.
-     * @param {Array} [array1, array2, ...] Arrays to check.
-     * @returns {Array} Returns a new array of `array` elements not present in the
-     *  other arrays.
-     * @example
-     *
-     * _.difference([1, 2, 3, 4, 5], [5, 2, 10]);
-     * // => [1, 3, 4]
-     */
-    function difference(array) {
-      var index = -1,
-          length = array ? array.length : 0,
-          flattened = concat.apply(arrayRef, arguments),
-          contains = cachedContains(flattened, length, 100),
-          result = [];
-
-      while (++index < length) {
-        var value = array[index];
-        if (!contains(value)) {
-          result.push(value);
-        }
-      }
-      return result;
-    }
-
-    /**
-     * This method is similar to `_.find`, except that it returns the index of
-     * the element that passes the callback check, instead of the element itself.
-     *
-     * @static
-     * @memberOf _
-     * @category Arrays
-     * @param {Array|Object|String} collection The collection to iterate over.
-     * @param {Function|Object|String} [callback=identity] The function called per
-     *  iteration. If a property name or object is passed, it will be used to create
-     *  a "_.pluck" or "_.where" style callback, respectively.
-     * @param {Mixed} [thisArg] The `this` binding of `callback`.
-     * @returns {Mixed} Returns the index of the found element, else `-1`.
-     * @example
-     *
-     * _.findIndex(['apple', 'banana', 'beet'], function(food) { return /^b/.test(food); });
-     * // => 1
-     */
-    function findIndex(collection, callback, thisArg) {
-      var index = -1,
-          length = collection ? collection.length : 0;
-
-      callback = lodash.createCallback(callback, thisArg);
-      while (++index < length) {
-        if (callback(collection[index], index, collection)) {
-          return index;
-        }
-      }
-      return -1;
-    }
-
-    /**
-     * Gets the first element of the `array`. If a number `n` is passed, the first
-     * `n` elements of the `array` are returned. If a `callback` function is passed,
-     * elements at the beginning of the array are returned as long as the `callback`
-     * returns truthy. The `callback` is bound to `thisArg` and invoked with three
-     * arguments; (value, index, array).
-     *
-     * If a property name is passed for `callback`, the created "_.pluck" style
-     * callback will return the property value of the given element.
-     *
-     * If an object is passed for `callback`, the created "_.where" style callback
-     * will return `true` for elements that have the properties of the given object,
-     * else `false`.
-     *
-     * @static
-     * @memberOf _
-     * @alias head, take
-     * @category Arrays
-     * @param {Array} array The array to query.
-     * @param {Function|Object|Number|String} [callback|n] The function called
-     *  per element or the number of elements to return. If a property name or
-     *  object is passed, it will be used to create a "_.pluck" or "_.where"
-     *  style callback, respectively.
-     * @param {Mixed} [thisArg] The `this` binding of `callback`.
-     * @returns {Mixed} Returns the first element(s) of `array`.
-     * @example
-     *
-     * _.first([1, 2, 3]);
-     * // => 1
-     *
-     * _.first([1, 2, 3], 2);
-     * // => [1, 2]
-     *
-     * _.first([1, 2, 3], function(num) {
-     *   return num < 3;
-     * });
-     * // => [1, 2]
-     *
-     * var food = [
-     *   { 'name': 'banana', 'organic': true },
-     *   { 'name': 'beet',   'organic': false },
-     * ];
-     *
-     * // using "_.pluck" callback shorthand
-     * _.first(food, 'organic');
-     * // => [{ 'name': 'banana', 'organic': true }]
-     *
-     * var food = [
-     *   { 'name': 'apple',  'type': 'fruit' },
-     *   { 'name': 'banana', 'type': 'fruit' },
-     *   { 'name': 'beet',   'type': 'vegetable' }
-     * ];
-     *
-     * // using "_.where" callback shorthand
-     * _.first(food, { 'type': 'fruit' });
-     * // => [{ 'name': 'apple', 'type': 'fruit' }, { 'name': 'banana', 'type': 'fruit' }]
-     */
-    function first(array, callback, thisArg) {
-      if (array) {
-        var n = 0,
-            length = array.length;
-
-        if (typeof callback != 'number' && callback != null) {
-          var index = -1;
-          callback = lodash.createCallback(callback, thisArg);
-          while (++index < length && callback(array[index], index, array)) {
-            n++;
-          }
-        } else {
-          n = callback;
-          if (n == null || thisArg) {
-            return array[0];
-          }
-        }
-        return slice(array, 0, nativeMin(nativeMax(0, n), length));
-      }
-    }
-
-    /**
-     * Flattens a nested array (the nesting can be to any depth). If `isShallow`
-     * is truthy, `array` will only be flattened a single level. If `callback`
-     * is passed, each element of `array` is passed through a callback` before
-     * flattening. The `callback` is bound to `thisArg` and invoked with three
-     * arguments; (value, index, array).
-     *
-     * If a property name is passed for `callback`, the created "_.pluck" style
-     * callback will return the property value of the given element.
-     *
-     * If an object is passed for `callback`, the created "_.where" style callback
-     * will return `true` for elements that have the properties of the given object,
-     * else `false`.
-     *
-     * @static
-     * @memberOf _
-     * @category Arrays
-     * @param {Array} array The array to compact.
-     * @param {Boolean} [isShallow=false] A flag to indicate only flattening a single level.
-     * @param {Function|Object|String} [callback=identity] The function called per
-     *  iteration. If a property name or object is passed, it will be used to create
-     *  a "_.pluck" or "_.where" style callback, respectively.
-     * @param {Mixed} [thisArg] The `this` binding of `callback`.
-     * @returns {Array} Returns a new flattened array.
-     * @example
-     *
-     * _.flatten([1, [2], [3, [[4]]]]);
-     * // => [1, 2, 3, 4];
-     *
-     * _.flatten([1, [2], [3, [[4]]]], true);
-     * // => [1, 2, 3, [[4]]];
-     *
-     * var stooges = [
-     *   { 'name': 'curly', 'quotes': ['Oh, a wise guy, eh?', 'Poifect!'] },
-     *   { 'name': 'moe', 'quotes': ['Spread out!', 'You knucklehead!'] }
-     * ];
-     *
-     * // using "_.pluck" callback shorthand
-     * _.flatten(stooges, 'quotes');
-     * // => ['Oh, a wise guy, eh?', 'Poifect!', 'Spread out!', 'You knucklehead!']
-     */
-    function flatten(array, isShallow, callback, thisArg) {
-      var index = -1,
-          length = array ? array.length : 0,
-          result = [];
-
-      // juggle arguments
-      if (typeof isShallow != 'boolean' && isShallow != null) {
-        thisArg = callback;
-        callback = isShallow;
-        isShallow = false;
-      }
-      if (callback != null) {
-        callback = lodash.createCallback(callback, thisArg);
-      }
-      while (++index < length) {
-        var value = array[index];
-        if (callback) {
-          value = callback(value, index, array);
-        }
-        // recursively flatten arrays (susceptible to call stack limits)
-        if (isArray(value)) {
-          push.apply(result, isShallow ? value : flatten(value));
-        } else {
-          result.push(value);
-        }
-      }
-      return result;
-    }
-
-    /**
-     * Gets the index at which the first occurrence of `value` is found using
-     * strict equality for comparisons, i.e. `===`. If the `array` is already
-     * sorted, passing `true` for `fromIndex` will run a faster binary search.
-     *
-     * @static
-     * @memberOf _
-     * @category Arrays
-     * @param {Array} array The array to search.
-     * @param {Mixed} value The value to search for.
-     * @param {Boolean|Number} [fromIndex=0] The index to search from or `true` to
-     *  perform a binary search on a sorted `array`.
-     * @returns {Number} Returns the index of the matched value or `-1`.
-     * @example
-     *
-     * _.indexOf([1, 2, 3, 1, 2, 3], 2);
-     * // => 1
-     *
-     * _.indexOf([1, 2, 3, 1, 2, 3], 2, 3);
-     * // => 4
-     *
-     * _.indexOf([1, 1, 2, 2, 3, 3], 2, true);
-     * // => 2
-     */
-    function indexOf(array, value, fromIndex) {
-      var index = -1,
-          length = array ? array.length : 0;
-
-      if (typeof fromIndex == 'number') {
-        index = (fromIndex < 0 ? nativeMax(0, length + fromIndex) : fromIndex || 0) - 1;
-      } else if (fromIndex) {
-        index = sortedIndex(array, value);
-        return array[index] === value ? index : -1;
-      }
-      while (++index < length) {
-        if (array[index] === value) {
-          return index;
-        }
-      }
-      return -1;
-    }
-
-    /**
-     * Gets all but the last element of `array`. If a number `n` is passed, the
-     * last `n` elements are excluded from the result. If a `callback` function
-     * is passed, elements at the end of the array are excluded from the result
-     * as long as the `callback` returns truthy. The `callback` is bound to
-     * `thisArg` and invoked with three arguments; (value, index, array).
-     *
-     * If a property name is passed for `callback`, the created "_.pluck" style
-     * callback will return the property value of the given element.
-     *
-     * If an object is passed for `callback`, the created "_.where" style callback
-     * will return `true` for elements that have the properties of the given object,
-     * else `false`.
-     *
-     * @static
-     * @memberOf _
-     * @category Arrays
-     * @param {Array} array The array to query.
-     * @param {Function|Object|Number|String} [callback|n=1] The function called
-     *  per element or the number of elements to exclude. If a property name or
-     *  object is passed, it will be used to create a "_.pluck" or "_.where"
-     *  style callback, respectively.
-     * @param {Mixed} [thisArg] The `this` binding of `callback`.
-     * @returns {Array} Returns a slice of `array`.
-     * @example
-     *
-     * _.initial([1, 2, 3]);
-     * // => [1, 2]
-     *
-     * _.initial([1, 2, 3], 2);
-     * // => [1]
-     *
-     * _.initial([1, 2, 3], function(num) {
-     *   return num > 1;
-     * });
-     * // => [1]
-     *
-     * var food = [
-     *   { 'name': 'beet',   'organic': false },
-     *   { 'name': 'carrot', 'organic': true }
-     * ];
-     *
-     * // using "_.pluck" callback shorthand
-     * _.initial(food, 'organic');
-     * // => [{ 'name': 'beet',   'organic': false }]
-     *
-     * var food = [
-     *   { 'name': 'banana', 'type': 'fruit' },
-     *   { 'name': 'beet',   'type': 'vegetable' },
-     *   { 'name': 'carrot', 'type': 'vegetable' }
-     * ];
-     *
-     * // using "_.where" callback shorthand
-     * _.initial(food, { 'type': 'vegetable' });
-     * // => [{ 'name': 'banana', 'type': 'fruit' }]
-     */
-    function initial(array, callback, thisArg) {
-      if (!array) {
-        return [];
-      }
-      var n = 0,
-          length = array.length;
-
-      if (typeof callback != 'number' && callback != null) {
-        var index = length;
-        callback = lodash.createCallback(callback, thisArg);
-        while (index-- && callback(array[index], index, array)) {
-          n++;
-        }
-      } else {
-        n = (callback == null || thisArg) ? 1 : callback || n;
-      }
-      return slice(array, 0, nativeMin(nativeMax(0, length - n), length));
-    }
-
-    /**
-     * Computes the intersection of all the passed-in arrays using strict equality
-     * for comparisons, i.e. `===`.
-     *
-     * @static
-     * @memberOf _
-     * @category Arrays
-     * @param {Array} [array1, array2, ...] Arrays to process.
-     * @returns {Array} Returns a new array of unique elements that are present
-     *  in **all** of the arrays.
-     * @example
-     *
-     * _.intersection([1, 2, 3], [101, 2, 1, 10], [2, 1]);
-     * // => [1, 2]
-     */
-    function intersection(array) {
-      var args = arguments,
-          argsLength = args.length,
-          cache = { '0': {} },
-          index = -1,
-          length = array ? array.length : 0,
-          isLarge = length >= 100,
-          result = [],
-          seen = result;
-
-      outer:
-      while (++index < length) {
-        var value = array[index];
-        if (isLarge) {
-          var key = String(value);
-          var inited = hasOwnProperty.call(cache[0], key)
-            ? !(seen = cache[0][key])
-            : (seen = cache[0][key] = []);
-        }
-        if (inited || indexOf(seen, value) < 0) {
-          if (isLarge) {
-            seen.push(value);
-          }
-          var argsIndex = argsLength;
-          while (--argsIndex) {
-            if (!(cache[argsIndex] || (cache[argsIndex] = cachedContains(args[argsIndex], 0, 100)))(value)) {
-              continue outer;
-            }
-          }
-          result.push(value);
-        }
-      }
-      return result;
-    }
-
-    /**
-     * Gets the last element of the `array`. If a number `n` is passed, the
-     * last `n` elements of the `array` are returned. If a `callback` function
-     * is passed, elements at the end of the array are returned as long as the
-     * `callback` returns truthy. The `callback` is bound to `thisArg` and
-     * invoked with three arguments;(value, index, array).
-     *
-     *
-     * If a property name is passed for `callback`, the created "_.pluck" style
-     * callback will return the property value of the given element.
-     *
-     * If an object is passed for `callback`, the created "_.where" style callback
-     * will return `true` for elements that have the properties of the given object,
-     * else `false`.
-     *
-     * @static
-     * @memberOf _
-     * @category Arrays
-     * @param {Array} array The array to query.
-     * @param {Function|Object|Number|String} [callback|n] The function called
-     *  per element or the number of elements to return. If a property name or
-     *  object is passed, it will be used to create a "_.pluck" or "_.where"
-     *  style callback, respectively.
-     * @param {Mixed} [thisArg] The `this` binding of `callback`.
-     * @returns {Mixed} Returns the last element(s) of `array`.
-     * @example
-     *
-     * _.last([1, 2, 3]);
-     * // => 3
-     *
-     * _.last([1, 2, 3], 2);
-     * // => [2, 3]
-     *
-     * _.last([1, 2, 3], function(num) {
-     *   return num > 1;
-     * });
-     * // => [2, 3]
-     *
-     * var food = [
-     *   { 'name': 'beet',   'organic': false },
-     *   { 'name': 'carrot', 'organic': true }
-     * ];
-     *
-     * // using "_.pluck" callback shorthand
-     * _.last(food, 'organic');
-     * // => [{ 'name': 'carrot', 'organic': true }]
-     *
-     * var food = [
-     *   { 'name': 'banana', 'type': 'fruit' },
-     *   { 'name': 'beet',   'type': 'vegetable' },
-     *   { 'name': 'carrot', 'type': 'vegetable' }
-     * ];
-     *
-     * // using "_.where" callback shorthand
-     * _.last(food, { 'type': 'vegetable' });
-     * // => [{ 'name': 'beet', 'type': 'vegetable' }, { 'name': 'carrot', 'type': 'vegetable' }]
-     */
-    function last(array, callback, thisArg) {
-      if (array) {
-        var n = 0,
-            length = array.length;
-
-        if (typeof callback != 'number' && callback != null) {
-          var index = length;
-          callback = lodash.createCallback(callback, thisArg);
-          while (index-- && callback(array[index], index, array)) {
-            n++;
-          }
-        } else {
-          n = callback;
-          if (n == null || thisArg) {
-            return array[length - 1];
-          }
-        }
-        return slice(array, nativeMax(0, length - n));
-      }
-    }
-
-    /**
-     * Gets the index at which the last occurrence of `value` is found using strict
-     * equality for comparisons, i.e. `===`. If `fromIndex` is negative, it is used
-     * as the offset from the end of the collection.
-     *
-     * @static
-     * @memberOf _
-     * @category Arrays
-     * @param {Array} array The array to search.
-     * @param {Mixed} value The value to search for.
-     * @param {Number} [fromIndex=array.length-1] The index to search from.
-     * @returns {Number} Returns the index of the matched value or `-1`.
-     * @example
-     *
-     * _.lastIndexOf([1, 2, 3, 1, 2, 3], 2);
-     * // => 4
-     *
-     * _.lastIndexOf([1, 2, 3, 1, 2, 3], 2, 3);
-     * // => 1
-     */
-    function lastIndexOf(array, value, fromIndex) {
-      var index = array ? array.length : 0;
-      if (typeof fromIndex == 'number') {
-        index = (fromIndex < 0 ? nativeMax(0, index + fromIndex) : nativeMin(fromIndex, index - 1)) + 1;
-      }
-      while (index--) {
-        if (array[index] === value) {
-          return index;
-        }
-      }
-      return -1;
-    }
-
-    /**
-     * Creates an array of numbers (positive and/or negative) progressing from
-     * `start` up to but not including `end`.
-     *
-     * @static
-     * @memberOf _
-     * @category Arrays
-     * @param {Number} [start=0] The start of the range.
-     * @param {Number} end The end of the range.
-     * @param {Number} [step=1] The value to increment or decrement by.
-     * @returns {Array} Returns a new range array.
-     * @example
-     *
-     * _.range(10);
-     * // => [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]
-     *
-     * _.range(1, 11);
-     * // => [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
-     *
-     * _.range(0, 30, 5);
-     * // => [0, 5, 10, 15, 20, 25]
-     *
-     * _.range(0, -10, -1);
-     * // => [0, -1, -2, -3, -4, -5, -6, -7, -8, -9]
-     *
-     * _.range(0);
-     * // => []
-     */
-    function range(start, end, step) {
-      start = +start || 0;
-      step = +step || 1;
-
-      if (end == null) {
-        end = start;
-        start = 0;
-      }
-      // use `Array(length)` so V8 will avoid the slower "dictionary" mode
-      // http://youtu.be/XAqIpGU8ZZk#t=17m25s
-      var index = -1,
-          length = nativeMax(0, ceil((end - start) / step)),
-          result = Array(length);
-
-      while (++index < length) {
-        result[index] = start;
-        start += step;
-      }
-      return result;
-    }
-
-    /**
-     * The opposite of `_.initial`, this method gets all but the first value of
-     * `array`. If a number `n` is passed, the first `n` values are excluded from
-     * the result. If a `callback` function is passed, elements at the beginning
-     * of the array are excluded from the result as long as the `callback` returns
-     * truthy. The `callback` is bound to `thisArg` and invoked with three
-     * arguments; (value, index, array).
-     *
-     * If a property name is passed for `callback`, the created "_.pluck" style
-     * callback will return the property value of the given element.
-     *
-     * If an object is passed for `callback`, the created "_.where" style callback
-     * will return `true` for elements that have the properties of the given object,
-     * else `false`.
-     *
-     * @static
-     * @memberOf _
-     * @alias drop, tail
-     * @category Arrays
-     * @param {Array} array The array to query.
-     * @param {Function|Object|Number|String} [callback|n=1] The function called
-     *  per element or the number of elements to exclude. If a property name or
-     *  object is passed, it will be used to create a "_.pluck" or "_.where"
-     *  style callback, respectively.
-     * @param {Mixed} [thisArg] The `this` binding of `callback`.
-     * @returns {Array} Returns a slice of `array`.
-     * @example
-     *
-     * _.rest([1, 2, 3]);
-     * // => [2, 3]
-     *
-     * _.rest([1, 2, 3], 2);
-     * // => [3]
-     *
-     * _.rest([1, 2, 3], function(num) {
-     *   return num < 3;
-     * });
-     * // => [3]
-     *
-     * var food = [
-     *   { 'name': 'banana', 'organic': true },
-     *   { 'name': 'beet',   'organic': false },
-     * ];
-     *
-     * // using "_.pluck" callback shorthand
-     * _.rest(food, 'organic');
-     * // => [{ 'name': 'beet', 'organic': false }]
-     *
-     * var food = [
-     *   { 'name': 'apple',  'type': 'fruit' },
-     *   { 'name': 'banana', 'type': 'fruit' },
-     *   { 'name': 'beet',   'type': 'vegetable' }
-     * ];
-     *
-     * // using "_.where" callback shorthand
-     * _.rest(food, { 'type': 'fruit' });
-     * // => [{ 'name': 'beet', 'type': 'vegetable' }]
-     */
-    function rest(array, callback, thisArg) {
-      if (typeof callback != 'number' && callback != null) {
-        var n = 0,
-            index = -1,
-            length = array ? array.length : 0;
-
-        callback = lodash.createCallback(callback, thisArg);
-        while (++index < length && callback(array[index], index, array)) {
-          n++;
-        }
-      } else {
-        n = (callback == null || thisArg) ? 1 : nativeMax(0, callback);
-      }
-      return slice(array, n);
-    }
-
-    /**
-     * Uses a binary search to determine the smallest index at which the `value`
-     * should be inserted into `array` in order to maintain the sort order of the
-     * sorted `array`. If `callback` is passed, it will be executed for `value` and
-     * each element in `array` to compute their sort ranking. The `callback` is
-     * bound to `thisArg` and invoked with one argument; (value).
-     *
-     * If a property name is passed for `callback`, the created "_.pluck" style
-     * callback will return the property value of the given element.
-     *
-     * If an object is passed for `callback`, the created "_.where" style callback
-     * will return `true` for elements that have the properties of the given object,
-     * else `false`.
-     *
-     * @static
-     * @memberOf _
-     * @category Arrays
-     * @param {Array} array The array to iterate over.
-     * @param {Mixed} value The value to evaluate.
-     * @param {Function|Object|String} [callback=identity] The function called per
-     *  iteration. If a property name or object is passed, it will be used to create
-     *  a "_.pluck" or "_.where" style callback, respectively.
-     * @param {Mixed} [thisArg] The `this` binding of `callback`.
-     * @returns {Number} Returns the index at which the value should be inserted
-     *  into `array`.
-     * @example
-     *
-     * _.sortedIndex([20, 30, 50], 40);
-     * // => 2
-     *
-     * // using "_.pluck" callback shorthand
-     * _.sortedIndex([{ 'x': 20 }, { 'x': 30 }, { 'x': 50 }], { 'x': 40 }, 'x');
-     * // => 2
-     *
-     * var dict = {
-     *   'wordToNumber': { 'twenty': 20, 'thirty': 30, 'fourty': 40, 'fifty': 50 }
-     * };
-     *
-     * _.sortedIndex(['twenty', 'thirty', 'fifty'], 'fourty', function(word) {
-     *   return dict.wordToNumber[word];
-     * });
-     * // => 2
-     *
-     * _.sortedIndex(['twenty', 'thirty', 'fifty'], 'fourty', function(word) {
-     *   return this.wordToNumber[word];
-     * }, dict);
-     * // => 2
-     */
-    function sortedIndex(array, value, callback, thisArg) {
-      var low = 0,
-          high = array ? array.length : low;
-
-      // explicitly reference `identity` for better inlining in Firefox
-      callback = callback ? lodash.createCallback(callback, thisArg, 1) : identity;
-      value = callback(value);
-
-      while (low < high) {
-        var mid = (low + high) >>> 1;
-        (callback(array[mid]) < value)
-          ? low = mid + 1
-          : high = mid;
-      }
-      return low;
-    }
-
-    /**
-     * Computes the union of the passed-in arrays using strict equality for
-     * comparisons, i.e. `===`.
-     *
-     * @static
-     * @memberOf _
-     * @category Arrays
-     * @param {Array} [array1, array2, ...] Arrays to process.
-     * @returns {Array} Returns a new array of unique values, in order, that are
-     *  present in one or more of the arrays.
-     * @example
-     *
-     * _.union([1, 2, 3], [101, 2, 1, 10], [2, 1]);
-     * // => [1, 2, 3, 101, 10]
-     */
-    function union() {
-      return uniq(concat.apply(arrayRef, arguments));
-    }
-
-    /**
-     * Creates a duplicate-value-free version of the `array` using strict equality
-     * for comparisons, i.e. `===`. If the `array` is already sorted, passing `true`
-     * for `isSorted` will run a faster algorithm. If `callback` is passed, each
-     * element of `array` is passed through a callback` before uniqueness is computed.
-     * The `callback` is bound to `thisArg` and invoked with three arguments; (value, index, array).
-     *
-     * If a property name is passed for `callback`, the created "_.pluck" style
-     * callback will return the property value of the given element.
-     *
-     * If an object is passed for `callback`, the created "_.where" style callback
-     * will return `true` for elements that have the properties of the given object,
-     * else `false`.
-     *
-     * @static
-     * @memberOf _
-     * @alias unique
-     * @category Arrays
-     * @param {Array} array The array to process.
-     * @param {Boolean} [isSorted=false] A flag to indicate that the `array` is already sorted.
-     * @param {Function|Object|String} [callback=identity] The function called per
-     *  iteration. If a property name or object is passed, it will be used to create
-     *  a "_.pluck" or "_.where" style callback, respectively.
-     * @param {Mixed} [thisArg] The `this` binding of `callback`.
-     * @returns {Array} Returns a duplicate-value-free array.
-     * @example
-     *
-     * _.uniq([1, 2, 1, 3, 1]);
-     * // => [1, 2, 3]
-     *
-     * _.uniq([1, 1, 2, 2, 3], true);
-     * // => [1, 2, 3]
-     *
-     * _.uniq([1, 2, 1.5, 3, 2.5], function(num) { return Math.floor(num); });
-     * // => [1, 2, 3]
-     *
-     * _.uniq([1, 2, 1.5, 3, 2.5], function(num) { return this.floor(num); }, Math);
-     * // => [1, 2, 3]
-     *
-     * // using "_.pluck" callback shorthand
-     * _.uniq([{ 'x': 1 }, { 'x': 2 }, { 'x': 1 }], 'x');
-     * // => [{ 'x': 1 }, { 'x': 2 }]
-     */
-    function uniq(array, isSorted, callback, thisArg) {
-      var index = -1,
-          length = array ? array.length : 0,
-          result = [],
-          seen = result;
-
-      // juggle arguments
-      if (typeof isSorted != 'boolean' && isSorted != null) {
-        thisArg = callback;
-        callback = isSorted;
-        isSorted = false;
-      }
-      // init value cache for large arrays
-      var isLarge = !isSorted && length >= 75;
-      if (isLarge) {
-        var cache = {};
-      }
-      if (callback != null) {
-        seen = [];
-        callback = lodash.createCallback(callback, thisArg);
-      }
-      while (++index < length) {
-        var value = array[index],
-            computed = callback ? callback(value, index, array) : value;
-
-        if (isLarge) {
-          var key = String(computed);
-          var inited = hasOwnProperty.call(cache, key)
-            ? !(seen = cache[key])
-            : (seen = cache[key] = []);
-        }
-        if (isSorted
-              ? !index || seen[seen.length - 1] !== computed
-              : inited || indexOf(seen, computed) < 0
-            ) {
-          if (callback || isLarge) {
-            seen.push(computed);
-          }
-          result.push(value);
-        }
-      }
-      return result;
-    }
-
-    /**
-     * Creates an array with all occurrences of the passed values removed using
-     * strict equality for comparisons, i.e. `===`.
-     *
-     * @static
-     * @memberOf _
-     * @category Arrays
-     * @param {Array} array The array to filter.
-     * @param {Mixed} [value1, value2, ...] Values to remove.
-     * @returns {Array} Returns a new filtered array.
-     * @example
-     *
-     * _.without([1, 2, 1, 0, 3, 1, 4], 0, 1);
-     * // => [2, 3, 4]
-     */
-    function without(array) {
-      var index = -1,
-          length = array ? array.length : 0,
-          contains = cachedContains(arguments, 1, 30),
-          result = [];
-
-      while (++index < length) {
-        var value = array[index];
-        if (!contains(value)) {
-          result.push(value);
-        }
-      }
-      return result;
-    }
-
-    /**
-     * Groups the elements of each array at their corresponding indexes. Useful for
-     * separate data sources that are coordinated through matching array indexes.
-     * For a matrix of nested arrays, `_.zip.apply(...)` can transpose the matrix
-     * in a similar fashion.
-     *
-     * @static
-     * @memberOf _
-     * @category Arrays
-     * @param {Array} [array1, array2, ...] Arrays to process.
-     * @returns {Array} Returns a new array of grouped elements.
-     * @example
-     *
-     * _.zip(['moe', 'larry'], [30, 40], [true, false]);
-     * // => [['moe', 30, true], ['larry', 40, false]]
-     */
-    function zip(array) {
-      var index = -1,
-          length = array ? max(pluck(arguments, 'length')) : 0,
-          result = Array(length);
-
-      while (++index < length) {
-        result[index] = pluck(arguments, index);
-      }
-      return result;
-    }
-
-    /**
-     * Creates an object composed from arrays of `keys` and `values`. Pass either
-     * a single two dimensional array, i.e. `[[key1, value1], [key2, value2]]`, or
-     * two arrays, one of `keys` and one of corresponding `values`.
-     *
-     * @static
-     * @memberOf _
-     * @alias object
-     * @category Arrays
-     * @param {Array} keys The array of keys.
-     * @param {Array} [values=[]] The array of values.
-     * @returns {Object} Returns an object composed of the given keys and
-     *  corresponding values.
-     * @example
-     *
-     * _.zipObject(['moe', 'larry'], [30, 40]);
-     * // => { 'moe': 30, 'larry': 40 }
-     */
-    function zipObject(keys, values) {
-      var index = -1,
-          length = keys ? keys.length : 0,
-          result = {};
-
-      while (++index < length) {
-        var key = keys[index];
-        if (values) {
-          result[key] = values[index];
-        } else {
-          result[key[0]] = key[1];
-        }
-      }
-      return result;
-    }
-
-    /*--------------------------------------------------------------------------*/
-
-    /**
-     * If `n` is greater than `0`, a function is created that is restricted to
-     * executing `func`, with the `this` binding and arguments of the created
-     * function, only after it is called `n` times. If `n` is less than `1`,
-     * `func` is executed immediately, without a `this` binding or additional
-     * arguments, and its result is returned.
-     *
-     * @static
-     * @memberOf _
-     * @category Functions
-     * @param {Number} n The number of times the function must be called before
-     * it is executed.
-     * @param {Function} func The function to restrict.
-     * @returns {Function} Returns the new restricted function.
-     * @example
-     *
-     * var renderNotes = _.after(notes.length, render);
-     * _.forEach(notes, function(note) {
-     *   note.asyncSave({ 'success': renderNotes });
-     * });
-     * // `renderNotes` is run once, after all notes have saved
-     */
-    function after(n, func) {
-      if (n < 1) {
-        return func();
-      }
-      return function() {
-        if (--n < 1) {
-          return func.apply(this, arguments);
-        }
-      };
-    }
-
-    /**
-     * Creates a function that, when called, invokes `func` with the `this`
-     * binding of `thisArg` and prepends any additional `bind` arguments to those
-     * passed to the bound function.
-     *
-     * @static
-     * @memberOf _
-     * @category Functions
-     * @param {Function} func The function to bind.
-     * @param {Mixed} [thisArg] The `this` binding of `func`.
-     * @param {Mixed} [arg1, arg2, ...] Arguments to be partially applied.
-     * @returns {Function} Returns the new bound function.
-     * @example
-     *
-     * var func = function(greeting) {
-     *   return greeting + ' ' + this.name;
-     * };
-     *
-     * func = _.bind(func, { 'name': 'moe' }, 'hi');
-     * func();
-     * // => 'hi moe'
-     */
-    function bind(func, thisArg) {
-      // use `Function#bind` if it exists and is fast
-      // (in V8 `Function#bind` is slower except when partially applied)
-      return support.fastBind || (nativeBind && arguments.length > 2)
-        ? nativeBind.call.apply(nativeBind, arguments)
-        : createBound(func, thisArg, slice(arguments, 2));
-    }
-
-    /**
-     * Binds methods on `object` to `object`, overwriting the existing method.
-     * Method names may be specified as individual arguments or as arrays of method
-     * names. If no method names are provided, all the function properties of `object`
-     * will be bound.
-     *
-     * @static
-     * @memberOf _
-     * @category Functions
-     * @param {Object} object The object to bind and assign the bound methods to.
-     * @param {String} [methodName1, methodName2, ...] Method names on the object to bind.
-     * @returns {Object} Returns `object`.
-     * @example
-     *
-     * var view = {
-     *  'label': 'docs',
-     *  'onClick': function() { alert('clicked ' + this.label); }
-     * };
-     *
-     * _.bindAll(view);
-     * jQuery('#docs').on('click', view.onClick);
-     * // => alerts 'clicked docs', when the button is clicked
-     */
-    function bindAll(object) {
-      var funcs = concat.apply(arrayRef, arguments),
-          index = funcs.length > 1 ? 0 : (funcs = functions(object), -1),
-          length = funcs.length;
-
-      while (++index < length) {
-        var key = funcs[index];
-        object[key] = bind(object[key], object);
-      }
-      return object;
-    }
-
-    /**
-     * Creates a function that, when called, invokes the method at `object[key]`
-     * and prepends any additional `bindKey` arguments to those passed to the bound
-     * function. This method differs from `_.bind` by allowing bound functions to
-     * reference methods that will be redefined or don't yet exist.
-     * See http://michaux.ca/articles/lazy-function-definition-pattern.
-     *
-     * @static
-     * @memberOf _
-     * @category Functions
-     * @param {Object} object The object the method belongs to.
-     * @param {String} key The key of the method.
-     * @param {Mixed} [arg1, arg2, ...] Arguments to be partially applied.
-     * @returns {Function} Returns the new bound function.
-     * @example
-     *
-     * var object = {
-     *   'name': 'moe',
-     *   'greet': function(greeting) {
-     *     return greeting + ' ' + this.name;
-     *   }
-     * };
-     *
-     * var func = _.bindKey(object, 'greet', 'hi');
-     * func();
-     * // => 'hi moe'
-     *
-     * object.greet = function(greeting) {
-     *   return greeting + ', ' + this.name + '!';
-     * };
-     *
-     * func();
-     * // => 'hi, moe!'
-     */
-    function bindKey(object, key) {
-      return createBound(object, key, slice(arguments, 2), indicatorObject);
-    }
-
-    /**
-     * Creates a function that is the composition of the passed functions,
-     * where each function consumes the return value of the function that follows.
-     * For example, composing the functions `f()`, `g()`, and `h()` produces `f(g(h()))`.
-     * Each function is executed with the `this` binding of the composed function.
-     *
-     * @static
-     * @memberOf _
-     * @category Functions
-     * @param {Function} [func1, func2, ...] Functions to compose.
-     * @returns {Function} Returns the new composed function.
-     * @example
-     *
-     * var greet = function(name) { return 'hi ' + name; };
-     * var exclaim = function(statement) { return statement + '!'; };
-     * var welcome = _.compose(exclaim, greet);
-     * welcome('moe');
-     * // => 'hi moe!'
-     */
-    function compose() {
-      var funcs = arguments;
-      return function() {
-        var args = arguments,
-            length = funcs.length;
-
-        while (length--) {
-          args = [funcs[length].apply(this, args)];
-        }
-        return args[0];
-      };
-    }
-
-    /**
-     * Produces a callback bound to an optional `thisArg`. If `func` is a property
-     * name, the created callback will return the property value for a given element.
-     * If `func` is an object, the created callback will return `true` for elements
-     * that contain the equivalent object properties, otherwise it will return `false`.
-     *
-     * Note: All Lo-Dash methods, that accept a `callback` argument, use `_.createCallback`.
-     *
-     * @static
-     * @memberOf _
-     * @category Functions
-     * @param {Mixed} [func=identity] The value to convert to a callback.
-     * @param {Mixed} [thisArg] The `this` binding of the created callback.
-     * @param {Number} [argCount=3] The number of arguments the callback accepts.
-     * @returns {Function} Returns a callback function.
-     * @example
-     *
-     * var stooges = [
-     *   { 'name': 'moe', 'age': 40 },
-     *   { 'name': 'larry', 'age': 50 }
-     * ];
-     *
-     * // wrap to create custom callback shorthands
-     * _.createCallback = _.wrap(_.createCallback, function(func, callback, thisArg) {
-     *   var match = /^(.+?)__([gl]t)(.+)$/.exec(callback);
-     *   return !match ? func(callback, thisArg) : function(object) {
-     *     return match[2] == 'gt' ? object[match[1]] > match[3] : object[match[1]] < match[3];
-     *   };
-     * });
-     *
-     * _.filter(stooges, 'age__gt45');
-     * // => [{ 'name': 'larry', 'age': 50 }]
-     *
-     * // create mixins with support for "_.pluck" and "_.where" callback shorthands
-     * _.mixin({
-     *   'toLookup': function(collection, callback, thisArg) {
-     *     callback = _.createCallback(callback, thisArg);
-     *     return _.reduce(collection, function(result, value, index, collection) {
-     *       return (result[callback(value, index, collection)] = value, result);
-     *     }, {});
-     *   }
-     * });
-     *
-     * _.toLookup(stooges, 'name');
-     * // => { 'moe': { 'name': 'moe', 'age': 40 }, 'larry': { 'name': 'larry', 'age': 50 } }
-     */
-    function createCallback(func, thisArg, argCount) {
-      if (func == null) {
-        return identity;
-      }
-      var type = typeof func;
-      if (type != 'function') {
-        if (type != 'object') {
-          return function(object) {
-            return object[func];
-          };
-        }
-        var props = keys(func);
-        return function(object) {
-          var length = props.length,
-              result = false;
-          while (length--) {
-            if (!(result = isEqual(object[props[length]], func[props[length]], indicatorObject))) {
-              break;
-            }
-          }
-          return result;
-        };
-      }
-      if (typeof thisArg != 'undefined') {
-        if (argCount === 1) {
-          return function(value) {
-            return func.call(thisArg, value);
-          };
-        }
-        if (argCount === 2) {
-          return function(a, b) {
-            return func.call(thisArg, a, b);
-          };
-        }
-        if (argCount === 4) {
-          return function(accumulator, value, index, collection) {
-            return func.call(thisArg, accumulator, value, index, collection);
-          };
-        }
-        return function(value, index, collection) {
-          return func.call(thisArg, value, index, collection);
-        };
-      }
-      return func;
-    }
-
-    /**
-     * Creates a function that will delay the execution of `func` until after
-     * `wait` milliseconds have elapsed since the last time it was invoked. Pass
-     * `true` for `immediate` to cause debounce to invoke `func` on the leading,
-     * instead of the trailing, edge of the `wait` timeout. Subsequent calls to
-     * the debounced function will return the result of the last `func` call.
-     *
-     * @static
-     * @memberOf _
-     * @category Functions
-     * @param {Function} func The function to debounce.
-     * @param {Number} wait The number of milliseconds to delay.
-     * @param {Boolean} immediate A flag to indicate execution is on the leading
-     *  edge of the timeout.
-     * @returns {Function} Returns the new debounced function.
-     * @example
-     *
-     * var lazyLayout = _.debounce(calculateLayout, 300);
-     * jQuery(window).on('resize', lazyLayout);
-     */
-    function debounce(func, wait, immediate) {
-      var args,
-          result,
-          thisArg,
-          timeoutId;
-
-      function delayed() {
-        timeoutId = null;
-        if (!immediate) {
-          result = func.apply(thisArg, args);
-        }
-      }
-      return function() {
-        var isImmediate = immediate && !timeoutId;
-        args = arguments;
-        thisArg = this;
-
-        clearTimeout(timeoutId);
-        timeoutId = setTimeout(delayed, wait);
-
-        if (isImmediate) {
-          result = func.apply(thisArg, args);
-        }
-        return result;
-      };
-    }
-
-    /**
-     * Defers executing the `func` function until the current call stack has cleared.
-     * Additional arguments will be passed to `func` when it is invoked.
-     *
-     * @static
-     * @memberOf _
-     * @category Functions
-     * @param {Function} func The function to defer.
-     * @param {Mixed} [arg1, arg2, ...] Arguments to invoke the function with.
-     * @returns {Number} Returns the timer id.
-     * @example
-     *
-     * _.defer(function() { alert('deferred'); });
-     * // returns from the function before `alert` is called
-     */
-    function defer(func) {
-      var args = slice(arguments, 1);
-      return setTimeout(function() { func.apply(undefined, args); }, 1);
-    }
-    // use `setImmediate` if it's available in Node.js
-    if (isV8 && freeModule && typeof setImmediate == 'function') {
-      defer = bind(setImmediate, context);
-    }
-
-    /**
-     * Executes the `func` function after `wait` milliseconds. Additional arguments
-     * will be passed to `func` when it is invoked.
-     *
-     * @static
-     * @memberOf _
-     * @category Functions
-     * @param {Function} func The function to delay.
-     * @param {Number} wait The number of milliseconds to delay execution.
-     * @param {Mixed} [arg1, arg2, ...] Arguments to invoke the function with.
-     * @returns {Number} Returns the timer id.
-     * @example
-     *
-     * var log = _.bind(console.log, console);
-     * _.delay(log, 1000, 'logged later');
-     * // => 'logged later' (Appears after one second.)
-     */
-    function delay(func, wait) {
-      var args = slice(arguments, 2);
-      return setTimeout(function() { func.apply(undefined, args); }, wait);
-    }
-
-    /**
-     * Creates a function that memoizes the result of `func`. If `resolver` is
-     * passed, it will be used to determine the cache key for storing the result
-     * based on the arguments passed to the memoized function. By default, the first
-     * argument passed to the memoized function is used as the cache key. The `func`
-     * is executed with the `this` binding of the memoized function.
-     *
-     * @static
-     * @memberOf _
-     * @category Functions
-     * @param {Function} func The function to have its output memoized.
-     * @param {Function} [resolver] A function used to resolve the cache key.
-     * @returns {Function} Returns the new memoizing function.
-     * @example
-     *
-     * var fibonacci = _.memoize(function(n) {
-     *   return n < 2 ? n : fibonacci(n - 1) + fibonacci(n - 2);
-     * });
-     */
-    function memoize(func, resolver) {
-      var cache = {};
-      return function() {
-        var key = String(resolver ? resolver.apply(this, arguments) : arguments[0]);
-        return hasOwnProperty.call(cache, key)
-          ? cache[key]
-          : (cache[key] = func.apply(this, arguments));
-      };
-    }
-
-    /**
-     * Creates a function that is restricted to execute `func` once. Repeat calls to
-     * the function will return the value of the first call. The `func` is executed
-     * with the `this` binding of the created function.
-     *
-     * @static
-     * @memberOf _
-     * @category Functions
-     * @param {Function} func The function to restrict.
-     * @returns {Function} Returns the new restricted function.
-     * @example
-     *
-     * var initialize = _.once(createApplication);
-     * initialize();
-     * initialize();
-     * // `initialize` executes `createApplication` once
-     */
-    function once(func) {
-      var ran,
-          result;
-
-      return function() {
-        if (ran) {
-          return result;
-        }
-        ran = true;
-        result = func.apply(this, arguments);
-
-        // clear the `func` variable so the function may be garbage collected
-        func = null;
-        return result;
-      };
-    }
-
-    /**
-     * Creates a function that, when called, invokes `func` with any additional
-     * `partial` arguments prepended to those passed to the new function. This
-     * method is similar to `_.bind`, except it does **not** alter the `this` binding.
-     *
-     * @static
-     * @memberOf _
-     * @category Functions
-     * @param {Function} func The function to partially apply arguments to.
-     * @param {Mixed} [arg1, arg2, ...] Arguments to be partially applied.
-     * @returns {Function} Returns the new partially applied function.
-     * @example
-     *
-     * var greet = function(greeting, name) { return greeting + ' ' + name; };
-     * var hi = _.partial(greet, 'hi');
-     * hi('moe');
-     * // => 'hi moe'
-     */
-    function partial(func) {
-      return createBound(func, slice(arguments, 1));
-    }
-
-    /**
-     * This method is similar to `_.partial`, except that `partial` arguments are
-     * appended to those passed to the new function.
-     *
-     * @static
-     * @memberOf _
-     * @category Functions
-     * @param {Function} func The function to partially apply arguments to.
-     * @param {Mixed} [arg1, arg2, ...] Arguments to be partially applied.
-     * @returns {Function} Returns the new partially applied function.
-     * @example
-     *
-     * var defaultsDeep = _.partialRight(_.merge, _.defaults);
-     *
-     * var options = {
-     *   'variable': 'data',
-     *   'imports': { 'jq': $ }
-     * };
-     *
-     * defaultsDeep(options, _.templateSettings);
-     *
-     * options.variable
-     * // => 'data'
-     *
-     * options.imports
-     * // => { '_': _, 'jq': $ }
-     */
-    function partialRight(func) {
-      return createBound(func, slice(arguments, 1), null, indicatorObject);
-    }
-
-    /**
-     * Creates a function that, when executed, will only call the `func`
-     * function at most once per every `wait` milliseconds. If the throttled
-     * function is invoked more than once during the `wait` timeout, `func` will
-     * also be called on the trailing edge of the timeout. Subsequent calls to the
-     * throttled function will return the result of the last `func` call.
-     *
-     * @static
-     * @memberOf _
-     * @category Functions
-     * @param {Function} func The function to throttle.
-     * @param {Number} wait The number of milliseconds to throttle executions to.
-     * @returns {Function} Returns the new throttled function.
-     * @example
-     *
-     * var throttled = _.throttle(updatePosition, 100);
-     * jQuery(window).on('scroll', throttled);
-     */
-    function throttle(func, wait) {
-      var args,
-          result,
-          thisArg,
-          timeoutId,
-          lastCalled = 0;
-
-      function trailingCall() {
-        lastCalled = new Date;
-        timeoutId = null;
-        result = func.apply(thisArg, args);
-      }
-      return function() {
-        var now = new Date,
-            remaining = wait - (now - lastCalled);
-
-        args = arguments;
-        thisArg = this;
-
-        if (remaining <= 0) {
-          clearTimeout(timeoutId);
-          timeoutId = null;
-          lastCalled = now;
-          result = func.apply(thisArg, args);
-        }
-        else if (!timeoutId) {
-          timeoutId = setTimeout(trailingCall, remaining);
-        }
-        return result;
-      };
-    }
-
-    /**
-     * Creates a function that passes `value` to the `wrapper` function as its
-     * first argument. Additional arguments passed to the function are appended
-     * to those passed to the `wrapper` function. The `wrapper` is executed with
-     * the `this` binding of the created function.
-     *
-     * @static
-     * @memberOf _
-     * @category Functions
-     * @param {Mixed} value The value to wrap.
-     * @param {Function} wrapper The wrapper function.
-     * @returns {Function} Returns the new function.
-     * @example
-     *
-     * var hello = function(name) { return 'hello ' + name; };
-     * hello = _.wrap(hello, function(func) {
-     *   return 'before, ' + func('moe') + ', after';
-     * });
-     * hello();
-     * // => 'before, hello moe, after'
-     */
-    function wrap(value, wrapper) {
-      return function() {
-        var args = [value];
-        push.apply(args, arguments);
-        return wrapper.apply(this, args);
-      };
-    }
-
-    /*--------------------------------------------------------------------------*/
-
-    /**
-     * Converts the characters `&`, `<`, `>`, `"`, and `'` in `string` to their
-     * corresponding HTML entities.
-     *
-     * @static
-     * @memberOf _
-     * @category Utilities
-     * @param {String} string The string to escape.
-     * @returns {String} Returns the escaped string.
-     * @example
-     *
-     * _.escape('Moe, Larry & Curly');
-     * // => 'Moe, Larry &amp; Curly'
-     */
-    function escape(string) {
-      return string == null ? '' : String(string).replace(reUnescapedHtml, escapeHtmlChar);
-    }
-
-    /**
-     * This function returns the first argument passed to it.
-     *
-     * @static
-     * @memberOf _
-     * @category Utilities
-     * @param {Mixed} value Any value.
-     * @returns {Mixed} Returns `value`.
-     * @example
-     *
-     * var moe = { 'name': 'moe' };
-     * moe === _.identity(moe);
-     * // => true
-     */
-    function identity(value) {
-      return value;
-    }
-
-    /**
-     * Adds functions properties of `object` to the `lodash` function and chainable
-     * wrapper.
-     *
-     * @static
-     * @memberOf _
-     * @category Utilities
-     * @param {Object} object The object of function properties to add to `lodash`.
-     * @example
-     *
-     * _.mixin({
-     *   'capitalize': function(string) {
-     *     return string.charAt(0).toUpperCase() + string.slice(1).toLowerCase();
-     *   }
-     * });
-     *
-     * _.capitalize('moe');
-     * // => 'Moe'
-     *
-     * _('moe').capitalize();
-     * // => 'Moe'
-     */
-    function mixin(object) {
-      forEach(functions(object), function(methodName) {
-        var func = lodash[methodName] = object[methodName];
-
-        lodash.prototype[methodName] = function() {
-          var value = this.__wrapped__,
-              args = [value];
-
-          push.apply(args, arguments);
-          var result = func.apply(lodash, args);
-          return (value && typeof value == 'object' && value == result)
-            ? this
-            : new lodashWrapper(result);
-        };
-      });
-    }
-
-    /**
-     * Reverts the '_' variable to its previous value and returns a reference to
-     * the `lodash` function.
-     *
-     * @static
-     * @memberOf _
-     * @category Utilities
-     * @returns {Function} Returns the `lodash` function.
-     * @example
-     *
-     * var lodash = _.noConflict();
-     */
-    function noConflict() {
-      context._ = oldDash;
-      return this;
-    }
-
-    /**
-     * Converts the given `value` into an integer of the specified `radix`.
-     *
-     * Note: This method avoids differences in native ES3 and ES5 `parseInt`
-     * implementations. See http://es5.github.com/#E.
-     *
-     * @static
-     * @memberOf _
-     * @category Utilities
-     * @param {Mixed} value The value to parse.
-     * @returns {Number} Returns the new integer value.
-     * @example
-     *
-     * _.parseInt('08');
-     * // => 8
-     */
-    var parseInt = nativeParseInt('08') == 8 ? nativeParseInt : function(value, radix) {
-      // Firefox and Opera still follow the ES3 specified implementation of `parseInt`
-      return nativeParseInt(isString(value) ? value.replace(reLeadingZeros, '') : value, radix || 0);
-    };
-
-    /**
-     * Produces a random number between `min` and `max` (inclusive). If only one
-     * argument is passed, a number between `0` and the given number will be returned.
-     *
-     * @static
-     * @memberOf _
-     * @category Utilities
-     * @param {Number} [min=0] The minimum possible value.
-     * @param {Number} [max=1] The maximum possible value.
-     * @returns {Number} Returns a random number.
-     * @example
-     *
-     * _.random(0, 5);
-     * // => a number between 0 and 5
-     *
-     * _.random(5);
-     * // => also a number between 0 and 5
-     */
-    function random(min, max) {
-      if (min == null && max == null) {
-        max = 1;
-      }
-      min = +min || 0;
-      if (max == null) {
-        max = min;
-        min = 0;
-      }
-      return min + floor(nativeRandom() * ((+max || 0) - min + 1));
-    }
-
-    /**
-     * Resolves the value of `property` on `object`. If `property` is a function,
-     * it will be invoked with the `this` binding of `object` and its result returned,
-     * else the property value is returned. If `object` is falsey, then `undefined`
-     * is returned.
-     *
-     * @static
-     * @memberOf _
-     * @category Utilities
-     * @param {Object} object The object to inspect.
-     * @param {String} property The property to get the value of.
-     * @returns {Mixed} Returns the resolved value.
-     * @example
-     *
-     * var object = {
-     *   'cheese': 'crumpets',
-     *   'stuff': function() {
-     *     return 'nonsense';
-     *   }
-     * };
-     *
-     * _.result(object, 'cheese');
-     * // => 'crumpets'
-     *
-     * _.result(object, 'stuff');
-     * // => 'nonsense'
-     */
-    function result(object, property) {
-      var value = object ? object[property] : undefined;
-      return isFunction(value) ? object[property]() : value;
-    }
-
-    /**
-     * A micro-templating method that handles arbitrary delimiters, preserves
-     * whitespace, and correctly escapes quotes within interpolated code.
-     *
-     * Note: In the development build, `_.template` utilizes sourceURLs for easier
-     * debugging. See http://www.html5rocks.com/en/tutorials/developertools/sourcemaps/#toc-sourceurl
-     *
-     * Note: Lo-Dash may be used in Chrome extensions by either creating a `lodash csp`
-     * build and using precompiled templates, or loading Lo-Dash in a sandbox.
-     *
-     * For more information on precompiling templates see:
-     * http://lodash.com/#custom-builds
-     *
-     * For more information on Chrome extension sandboxes see:
-     * http://developer.chrome.com/stable/extensions/sandboxingEval.html
-     *
-     * @static
-     * @memberOf _
-     * @category Utilities
-     * @param {String} text The template text.
-     * @param {Obect} data The data object used to populate the text.
-     * @param {Object} options The options object.
-     *  escape - The "escape" delimiter regexp.
-     *  evaluate - The "evaluate" delimiter regexp.
-     *  interpolate - The "interpolate" delimiter regexp.
-     *  sourceURL - The sourceURL of the template's compiled source.
-     *  variable - The data object variable name.
-     * @returns {Function|String} Returns a compiled function when no `data` object
-     *  is given, else it returns the interpolated text.
-     * @example
-     *
-     * // using a compiled template
-     * var compiled = _.template('hello <%= name %>');
-     * compiled({ 'name': 'moe' });
-     * // => 'hello moe'
-     *
-     * var list = '<% _.forEach(people, function(name) { %><li><%= name %></li><% }); %>';
-     * _.template(list, { 'people': ['moe', 'larry'] });
-     * // => '<li>moe</li><li>larry</li>'
-     *
-     * // using the "escape" delimiter to escape HTML in data property values
-     * _.template('<b><%- value %></b>', { 'value': '<script>' });
-     * // => '<b>&lt;script&gt;</b>'
-     *
-     * // using the ES6 delimiter as an alternative to the default "interpolate" delimiter
-     * _.template('hello ${ name }', { 'name': 'curly' });
-     * // => 'hello curly'
-     *
-     * // using the internal `print` function in "evaluate" delimiters
-     * _.template('<% print("hello " + epithet); %>!', { 'epithet': 'stooge' });
-     * // => 'hello stooge!'
-     *
-     * // using custom template delimiters
-     * _.templateSettings = {
-     *   'interpolate': /{{([\s\S]+?)}}/g
-     * };
-     *
-     * _.template('hello {{ name }}!', { 'name': 'mustache' });
-     * // => 'hello mustache!'
-     *
-     * // using the `sourceURL` option to specify a custom sourceURL for the template
-     * var compiled = _.template('hello <%= name %>', null, { 'sourceURL': '/basic/greeting.jst' });
-     * compiled(data);
-     * // => find the source of "greeting.jst" under the Sources tab or Resources panel of the web inspector
-     *
-     * // using the `variable` option to ensure a with-statement isn't used in the compiled template
-     * var compiled = _.template('hi <%= data.name %>!', null, { 'variable': 'data' });
-     * compiled.source;
-     * // => function(data) {
-     *   var __t, __p = '', __e = _.escape;
-     *   __p += 'hi ' + ((__t = ( data.name )) == null ? '' : __t) + '!';
-     *   return __p;
-     * }
-     *
-     * // using the `source` property to inline compiled templates for meaningful
-     * // line numbers in error messages and a stack trace
-     * fs.writeFileSync(path.join(cwd, 'jst.js'), '\
-     *   var JST = {\
-     *     "main": ' + _.template(mainText).source + '\
-     *   };\
-     * ');
-     */
-    function template(text, data, options) {
-      // based on John Resig's `tmpl` implementation
-      // http://ejohn.org/blog/javascript-micro-templating/
-      // and Laura Doktorova's doT.js
-      // https://github.com/olado/doT
-      var settings = lodash.templateSettings;
-      text || (text = '');
-
-      // avoid missing dependencies when `iteratorTemplate` is not defined
-      options = defaults({}, options, settings);
-
-      var imports = defaults({}, options.imports, settings.imports),
-          importsKeys = keys(imports),
-          importsValues = values(imports);
-
-      var isEvaluating,
-          index = 0,
-          interpolate = options.interpolate || reNoMatch,
-          source = "__p += '";
-
-      // compile the regexp to match each delimiter
-      var reDelimiters = RegExp(
-        (options.escape || reNoMatch).source + '|' +
-        interpolate.source + '|' +
-        (interpolate === reInterpolate ? reEsTemplate : reNoMatch).source + '|' +
-        (options.evaluate || reNoMatch).source + '|$'
-      , 'g');
-
-      text.replace(reDelimiters, function(match, escapeValue, interpolateValue, esTemplateValue, evaluateValue, offset) {
-        interpolateValue || (interpolateValue = esTemplateValue);
-
-        // escape characters that cannot be included in string literals
-        source += text.slice(index, offset).replace(reUnescapedString, escapeStringChar);
-
-        // replace delimiters with snippets
-        if (escapeValue) {
-          source += "' +\n__e(" + escapeValue + ") +\n'";
-        }
-        if (evaluateValue) {
-          isEvaluating = true;
-          source += "';\n" + evaluateValue + ";\n__p += '";
-        }
-        if (interpolateValue) {
-          source += "' +\n((__t = (" + interpolateValue + ")) == null ? '' : __t) +\n'";
-        }
-        index = offset + match.length;
-
-        // the JS engine embedded in Adobe products requires returning the `match`
-        // string in order to produce the correct `offset` value
-        return match;
-      });
-
-      source += "';\n";
-
-      // if `variable` is not specified, wrap a with-statement around the generated
-      // code to add the data object to the top of the scope chain
-      var variable = options.variable,
-          hasVariable = variable;
-
-      if (!hasVariable) {
-        variable = 'obj';
-        source = 'with (' + variable + ') {\n' + source + '\n}\n';
-      }
-      // cleanup code by stripping empty strings
-      source = (isEvaluating ? source.replace(reEmptyStringLeading, '') : source)
-        .replace(reEmptyStringMiddle, '$1')
-        .replace(reEmptyStringTrailing, '$1;');
-
-      // frame code as the function body
-      source = 'function(' + variable + ') {\n' +
-        (hasVariable ? '' : variable + ' || (' + variable + ' = {});\n') +
-        "var __t, __p = '', __e = _.escape" +
-        (isEvaluating
-          ? ', __j = Array.prototype.join;\n' +
-            "function print() { __p += __j.call(arguments, '') }\n"
-          : ';\n'
-        ) +
-        source +
-        'return __p\n}';
-
-      // Use a sourceURL for easier debugging and wrap in a multi-line comment to
-      // avoid issues with Narwhal, IE conditional compilation, and the JS engine
-      // embedded in Adobe products.
-      // http://www.html5rocks.com/en/tutorials/developertools/sourcemaps/#toc-sourceurl
-      var sourceURL = '\n/*\n//@ sourceURL=' + (options.sourceURL || '/lodash/template/source[' + (templateCounter++) + ']') + '\n*/';
-
-      try {
-        var result = Function(importsKeys, 'return ' + source + sourceURL).apply(undefined, importsValues);
-      } catch(e) {
-        e.source = source;
-        throw e;
-      }
-      if (data) {
-        return result(data);
-      }
-      // provide the compiled function's source via its `toString` method, in
-      // supported environments, or the `source` property as a convenience for
-      // inlining compiled templates during the build process
-      result.source = source;
-      return result;
-    }
-
-    /**
-     * Executes the `callback` function `n` times, returning an array of the results
-     * of each `callback` execution. The `callback` is bound to `thisArg` and invoked
-     * with one argument; (index).
-     *
-     * @static
-     * @memberOf _
-     * @category Utilities
-     * @param {Number} n The number of times to execute the callback.
-     * @param {Function} callback The function called per iteration.
-     * @param {Mixed} [thisArg] The `this` binding of `callback`.
-     * @returns {Array} Returns a new array of the results of each `callback` execution.
-     * @example
-     *
-     * var diceRolls = _.times(3, _.partial(_.random, 1, 6));
-     * // => [3, 6, 4]
-     *
-     * _.times(3, function(n) { mage.castSpell(n); });
-     * // => calls `mage.castSpell(n)` three times, passing `n` of `0`, `1`, and `2` respectively
-     *
-     * _.times(3, function(n) { this.cast(n); }, mage);
-     * // => also calls `mage.castSpell(n)` three times
-     */
-    function times(n, callback, thisArg) {
-      n = (n = +n) > -1 ? n : 0;
-      var index = -1,
-          result = Array(n);
-
-      callback = lodash.createCallback(callback, thisArg, 1);
-      while (++index < n) {
-        result[index] = callback(index);
-      }
-      return result;
-    }
-
-    /**
-     * The opposite of `_.escape`, this method converts the HTML entities
-     * `&amp;`, `&lt;`, `&gt;`, `&quot;`, and `&#39;` in `string` to their
-     * corresponding characters.
-     *
-     * @static
-     * @memberOf _
-     * @category Utilities
-     * @param {String} string The string to unescape.
-     * @returns {String} Returns the unescaped string.
-     * @example
-     *
-     * _.unescape('Moe, Larry &amp; Curly');
-     * // => 'Moe, Larry & Curly'
-     */
-    function unescape(string) {
-      return string == null ? '' : String(string).replace(reEscapedHtml, unescapeHtmlChar);
-    }
-
-    /**
-     * Generates a unique ID. If `prefix` is passed, the ID will be appended to it.
-     *
-     * @static
-     * @memberOf _
-     * @category Utilities
-     * @param {String} [prefix] The value to prefix the ID with.
-     * @returns {String} Returns the unique ID.
-     * @example
-     *
-     * _.uniqueId('contact_');
-     * // => 'contact_104'
-     *
-     * _.uniqueId();
-     * // => '105'
-     */
-    function uniqueId(prefix) {
-      var id = ++idCounter;
-      return String(prefix == null ? '' : prefix) + id;
-    }
-
-    /*--------------------------------------------------------------------------*/
-
-    /**
-     * Invokes `interceptor` with the `value` as the first argument, and then
-     * returns `value`. The purpose of this method is to "tap into" a method chain,
-     * in order to perform operations on intermediate results within the chain.
-     *
-     * @static
-     * @memberOf _
-     * @category Chaining
-     * @param {Mixed} value The value to pass to `interceptor`.
-     * @param {Function} interceptor The function to invoke.
-     * @returns {Mixed} Returns `value`.
-     * @example
-     *
-     * _([1, 2, 3, 4])
-     *  .filter(function(num) { return num % 2 == 0; })
-     *  .tap(alert)
-     *  .map(function(num) { return num * num; })
-     *  .value();
-     * // => // [2, 4] (alerted)
-     * // => [4, 16]
-     */
-    function tap(value, interceptor) {
-      interceptor(value);
-      return value;
-    }
-
-    /**
-     * Produces the `toString` result of the wrapped value.
-     *
-     * @name toString
-     * @memberOf _
-     * @category Chaining
-     * @returns {String} Returns the string result.
-     * @example
-     *
-     * _([1, 2, 3]).toString();
-     * // => '1,2,3'
-     */
-    function wrapperToString() {
-      return String(this.__wrapped__);
-    }
-
-    /**
-     * Extracts the wrapped value.
-     *
-     * @name valueOf
-     * @memberOf _
-     * @alias value
-     * @category Chaining
-     * @returns {Mixed} Returns the wrapped value.
-     * @example
-     *
-     * _([1, 2, 3]).valueOf();
-     * // => [1, 2, 3]
-     */
-    function wrapperValueOf() {
-      return this.__wrapped__;
-    }
-
-    /*--------------------------------------------------------------------------*/
-
-    // add functions that return wrapped values when chaining
-    lodash.after = after;
-    lodash.assign = assign;
-    lodash.at = at;
-    lodash.bind = bind;
-    lodash.bindAll = bindAll;
-    lodash.bindKey = bindKey;
-    lodash.compact = compact;
-    lodash.compose = compose;
-    lodash.countBy = countBy;
-    lodash.createCallback = createCallback;
-    lodash.debounce = debounce;
-    lodash.defaults = defaults;
-    lodash.defer = defer;
-    lodash.delay = delay;
-    lodash.difference = difference;
-    lodash.filter = filter;
-    lodash.flatten = flatten;
-    lodash.forEach = forEach;
-    lodash.forIn = forIn;
-    lodash.forOwn = forOwn;
-    lodash.functions = functions;
-    lodash.groupBy = groupBy;
-    lodash.initial = initial;
-    lodash.intersection = intersection;
-    lodash.invert = invert;
-    lodash.invoke = invoke;
-    lodash.keys = keys;
-    lodash.map = map;
-    lodash.max = max;
-    lodash.memoize = memoize;
-    lodash.merge = merge;
-    lodash.min = min;
-    lodash.omit = omit;
-    lodash.once = once;
-    lodash.pairs = pairs;
-    lodash.partial = partial;
-    lodash.partialRight = partialRight;
-    lodash.pick = pick;
-    lodash.pluck = pluck;
-    lodash.range = range;
-    lodash.reject = reject;
-    lodash.rest = rest;
-    lodash.shuffle = shuffle;
-    lodash.sortBy = sortBy;
-    lodash.tap = tap;
-    lodash.throttle = throttle;
-    lodash.times = times;
-    lodash.toArray = toArray;
-    lodash.union = union;
-    lodash.uniq = uniq;
-    lodash.values = values;
-    lodash.where = where;
-    lodash.without = without;
-    lodash.wrap = wrap;
-    lodash.zip = zip;
-    lodash.zipObject = zipObject;
-
-    // add aliases
-    lodash.collect = map;
-    lodash.drop = rest;
-    lodash.each = forEach;
-    lodash.extend = assign;
-    lodash.methods = functions;
-    lodash.object = zipObject;
-    lodash.select = filter;
-    lodash.tail = rest;
-    lodash.unique = uniq;
-
-    // add functions to `lodash.prototype`
-    mixin(lodash);
-
-    /*--------------------------------------------------------------------------*/
-
-    // add functions that return unwrapped values when chaining
-    lodash.clone = clone;
-    lodash.cloneDeep = cloneDeep;
-    lodash.contains = contains;
-    lodash.escape = escape;
-    lodash.every = every;
-    lodash.find = find;
-    lodash.findIndex = findIndex;
-    lodash.findKey = findKey;
-    lodash.has = has;
-    lodash.identity = identity;
-    lodash.indexOf = indexOf;
-    lodash.isArguments = isArguments;
-    lodash.isArray = isArray;
-    lodash.isBoolean = isBoolean;
-    lodash.isDate = isDate;
-    lodash.isElement = isElement;
-    lodash.isEmpty = isEmpty;
-    lodash.isEqual = isEqual;
-    lodash.isFinite = isFinite;
-    lodash.isFunction = isFunction;
-    lodash.isNaN = isNaN;
-    lodash.isNull = isNull;
-    lodash.isNumber = isNumber;
-    lodash.isObject = isObject;
-    lodash.isPlainObject = isPlainObject;
-    lodash.isRegExp = isRegExp;
-    lodash.isString = isString;
-    lodash.isUndefined = isUndefined;
-    lodash.lastIndexOf = lastIndexOf;
-    lodash.mixin = mixin;
-    lodash.noConflict = noConflict;
-    lodash.parseInt = parseInt;
-    lodash.random = random;
-    lodash.reduce = reduce;
-    lodash.reduceRight = reduceRight;
-    lodash.result = result;
-    lodash.runInContext = runInContext;
-    lodash.size = size;
-    lodash.some = some;
-    lodash.sortedIndex = sortedIndex;
-    lodash.template = template;
-    lodash.unescape = unescape;
-    lodash.uniqueId = uniqueId;
-
-    // add aliases
-    lodash.all = every;
-    lodash.any = some;
-    lodash.detect = find;
-    lodash.foldl = reduce;
-    lodash.foldr = reduceRight;
-    lodash.include = contains;
-    lodash.inject = reduce;
-
-    forOwn(lodash, function(func, methodName) {
-      if (!lodash.prototype[methodName]) {
-        lodash.prototype[methodName] = function() {
-          var args = [this.__wrapped__];
-          push.apply(args, arguments);
-          return func.apply(lodash, args);
-        };
-      }
-    });
-
-    /*--------------------------------------------------------------------------*/
-
-    // add functions capable of returning wrapped and unwrapped values when chaining
-    lodash.first = first;
-    lodash.last = last;
-
-    // add aliases
-    lodash.take = first;
-    lodash.head = first;
-
-    forOwn(lodash, function(func, methodName) {
-      if (!lodash.prototype[methodName]) {
-        lodash.prototype[methodName]= function(callback, thisArg) {
-          var result = func(this.__wrapped__, callback, thisArg);
-          return callback == null || (thisArg && typeof callback != 'function')
-            ? result
-            : new lodashWrapper(result);
-        };
-      }
-    });
-
-    /*--------------------------------------------------------------------------*/
-
-    /**
-     * The semantic version number.
-     *
-     * @static
-     * @memberOf _
-     * @type String
-     */
-    lodash.VERSION = '1.1.1';
-
-    // add "Chaining" functions to the wrapper
-    lodash.prototype.toString = wrapperToString;
-    lodash.prototype.value = wrapperValueOf;
-    lodash.prototype.valueOf = wrapperValueOf;
-
-    // add `Array` functions that return unwrapped values
-    each(['join', 'pop', 'shift'], function(methodName) {
-      var func = arrayRef[methodName];
-      lodash.prototype[methodName] = function() {
-        return func.apply(this.__wrapped__, arguments);
-      };
-    });
-
-    // add `Array` functions that return the wrapped value
-    each(['push', 'reverse', 'sort', 'unshift'], function(methodName) {
-      var func = arrayRef[methodName];
-      lodash.prototype[methodName] = function() {
-        func.apply(this.__wrapped__, arguments);
-        return this;
-      };
-    });
-
-    // add `Array` functions that return new wrapped values
-    each(['concat', 'slice', 'splice'], function(methodName) {
-      var func = arrayRef[methodName];
-      lodash.prototype[methodName] = function() {
-        return new lodashWrapper(func.apply(this.__wrapped__, arguments));
-      };
-    });
-
-    // avoid array-like object bugs with `Array#shift` and `Array#splice`
-    // in Firefox < 10 and IE < 9
-    if (!support.spliceObjects) {
-      each(['pop', 'shift', 'splice'], function(methodName) {
-        var func = arrayRef[methodName],
-            isSplice = methodName == 'splice';
-
-        lodash.prototype[methodName] = function() {
-          var value = this.__wrapped__,
-              result = func.apply(value, arguments);
-
-          if (value.length === 0) {
-            delete value[0];
-          }
-          return isSplice ? new lodashWrapper(result) : result;
-        };
-      });
-    }
-
-    return lodash;
-  }
-
-  /*--------------------------------------------------------------------------*/
-
-  // expose Lo-Dash
-  var _ = runInContext();
-
-  // some AMD build optimizers, like r.js, check for specific condition patterns like the following:
-  if (typeof define == 'function' && typeof define.amd == 'object' && define.amd) {
-    // Expose Lo-Dash to the global object even when an AMD loader is present in
-    // case Lo-Dash was injected by a third-party script and not intended to be
-    // loaded as a module. The global assignment can be reverted in the Lo-Dash
-    // module via its `noConflict()` method.
-    window._ = _;
-
-    // define as an anonymous module so, through path mapping, it can be
-    // referenced as the "underscore" module
-    define('_',[],function() {
-      return _;
-    });
-  }
-  // check for `exports` after `define` in case a build optimizer adds an `exports` object
-  else if (freeExports && !freeExports.nodeType) {
-    // in Node.js or RingoJS v0.8.0+
-    if (freeModule) {
-      (freeModule.exports = _)._ = _;
-    }
-    // in Narwhal or RingoJS v0.7.0-
-    else {
-      freeExports._ = _;
-    }
-  }
-  else {
-    // in a browser or Rhino
-    window._ = _;
-  }
-}(this));
-define('qtek/core/Base',['require','./mixin/derive','./mixin/notifier','./util','_'],function(require){
+define('qtek/core/Base',['require','./mixin/derive','./mixin/notifier','./util'],function(require){
 
     var deriveMixin = require("./mixin/derive");
     var notifierMixin = require("./mixin/notifier");
     var util = require("./util");
-    var _ = require("_");
 
     var Base = function(){
         this.__GUID__ = util.genGUID();
     }
-    _.extend(Base, deriveMixin);
-    _.extend(Base.prototype, notifierMixin);
+    util.extend(Base, deriveMixin);
+    util.extend(Base.prototype, notifierMixin);
 
     return Base;
 });
@@ -9855,2518 +4513,6 @@ if(typeof(exports) !== 'undefined') {
   })(shim.exports);
 })(this);
 
-define('qtek/math/Vector2',['require','glmatrix'],function(require) {
-
-    
-
-    var glMatrix = require("glmatrix");
-    var vec2 = glMatrix.vec2;
-
-    var Vector2 = function(x, y) {
-        
-        x = x || 0;
-        y = y || 0;
-
-        this._array = vec2.fromValues(x, y);
-        // Dirty flag is used by the Node to determine
-        // if the matrix is updated to latest
-        this._dirty = true;
-    }
-
-    Vector2.prototype = {
-
-        constructor : Vector2,
-
-        get x() {
-            return this._array[0];
-        },
-
-        set x(value) {
-            this._array[0] = value;
-            this._dirty = true;
-        },
-
-        get y() {
-            return this._array[1];
-        },
-
-        set y(value) {
-            this._array[1] = value;
-            this._dirty = true;
-        },
-
-        add : function(b) {
-            vec2.add(this._array, this._array, b._array);
-            this._dirty = true;
-            return this;
-        },
-
-        set : function(x, y) {
-            this._array[0] = x;
-            this._array[1] = y;
-            this._dirty = true;
-            return this;
-        },
-
-        setArray : function(arr) {
-            this._array[0] = arr[0];
-            this._array[1] = arr[1];
-
-            this._dirty = true;
-            return this;
-        },
-
-        clone : function() {
-            return new Vector2(this.x, this.y);
-        },
-
-        copy : function(b) {
-            vec2.copy(this._array, b._array);
-            this._dirty = true;
-            return this;
-        },
-
-        cross : function(out, b) {
-            vec2.cross(out._array, this._array, b._array);
-            return this;
-        },
-
-        dist : function(b) {
-            return vec2.dist(this._array, b._array);
-        },
-
-        distance : function(b) {
-            return vec2.distance(this._array, b._array);
-        },
-
-        div : function(b) {
-            vec2.div(this._array, this._array, b._array);
-            this._dirty = true;
-            return this;
-        },
-
-        divide : function(b) {
-            vec2.divide(this._array, this._array, b._array);
-            this._dirty = true;
-            return this;
-        },
-
-        dot : function(b) {
-            return vec2.dot(this._array, b._array);
-        },
-
-        len : function() {
-            return vec2.len(this._array);
-        },
-
-        length : function() {
-            return vec2.length(this._array);
-        },
-        /**
-         * Perform linear interpolation between a and b
-         */
-        lerp : function(a, b, t) {
-            vec2.lerp(this._array, a._array, b._array, t);
-            this._dirty = true;
-            return this;
-        },
-
-        min : function(b) {
-            vec2.min(this._array, this._array, b._array);
-            this._dirty = true;
-            return this;
-        },
-
-        max : function(b) {
-            vec2.max(this._array, this._array, b._array);
-            this._dirty = true;
-            return this;
-        },
-
-        mul : function(b) {
-            vec2.mul(this._array, this._array, b._array);
-            this._dirty = true;
-            return this;
-        },
-
-        multiply : function(b) {
-            vec2.multiply(this._array, this._array, b._array);
-            this._dirty = true;
-            return this;
-        },
-
-        negate : function() {
-            vec2.negate(this._array, this._array);
-            this._dirty = true;
-            return this;
-        },
-
-        normalize : function() {
-            vec2.normalize(this._array, this._array);
-            this._dirty = true;
-            return this;
-        },
-
-        random : function(scale) {
-            vec2.random(this._array, scale);
-            this._dirty = true;
-            return this;
-        },
-
-        scale : function(s) {
-            vec2.scale(this._array, this._array, s);
-            this._dirty = true;
-            return this;
-        },
-        /**
-         * add b by a scaled factor
-         */
-        scaleAndAdd : function(b, s) {
-            vec2.scaleAndAdd(this._array, this._array, b._array, s);
-            this._dirty = true;
-            return this;
-        },
-
-        sqrDist : function(b) {
-            return vec2.sqrDist(this._array, b._array);
-        },
-
-        squaredDistance : function(b) {
-            return vec2.squaredDistance(this._array, b._array);
-        },
-
-        sqrLen : function() {
-            return vec2.sqrLen(this._array);
-        },
-
-        squaredLength : function() {
-            return vec2.squaredLength(this._array);
-        },
-
-        sub : function(b) {
-            vec2.sub(this._array, this._array, b._array);
-            this._dirty = true;
-            return this;
-        },
-
-        subtract : function(b) {
-            vec2.subtract(this._array, this._array, b._array);
-            this._dirty = true;
-            return this;
-        },
-
-        transformMat2 : function(m) {
-            vec2.transformMat2(this._array, this._array, m._array);
-            this._dirty = true;
-            return this;
-        },
-        transformMat2d : function(m) {
-            vec2.transformMat2d(this._array, this._array, m._array);
-            this._dirty = true;
-            return this;
-        },
-        transformMat3 : function(m) {
-            vec2.transformMat3(this._array, this._array, m._array);
-            this._dirty = true;
-            return this;
-        },
-        transformMat4 : function(m) {
-            vec2.transformMat4(this._array, this._array, m._array);
-            this._dirty = true;
-            return this;
-        },
-
-        toString : function() {
-            return "[" + Array.prototype.join.call(this._array, ",") + "]";
-        },
-    }
-
-
-    function clamp(x) {
-        return Math.min(Math.max(x, -1), 1);
-    }
-
-    return Vector2;
-
-});
-define('qtek/math/Matrix2d',['require','glmatrix'],function(require) {
-
-    
-
-    var glMatrix = require("glmatrix");
-    var mat2d = glMatrix.mat2d;
-
-    function makeProperty(n) {
-        return {
-            configurable : false,
-            set : function(value) {
-                this._array[n] = value;
-                this._dirty = true;
-            },
-            get : function() {
-                return this._array[n];
-            }
-        }
-    }
-
-    var Matrix2d = function() {
-
-        this._array = mat2d.create();
-    };
-
-    Matrix2d.prototype = {
-
-        constructor : Matrix2d,
-
-        clone : function() {
-            return (new Matrix2d()).copy(this);
-        },
-        copy : function(b) {
-            mat2d.copy(this._array, b._array);
-            return this;
-        },
-        determinant : function() {
-            return mat2d.determinant(this._array);
-        },
-        identity : function() {
-            mat2d.identity(this._array);
-            return this;
-        },
-        invert : function() {
-            mat2d.invert(this._array, this._array);
-            return this;
-        },
-        mul : function(b) {
-            mat2d.mul(this._array, this._array, b._array);
-            return this;
-        },
-        mulLeft : function(b) {
-            mat2d.mul(this._array, b._array, this._array);
-            return this;
-        },
-        multiply : function(b) {
-            mat2d.multiply(this._array, this._array, b._array);
-            return this;
-        },
-        multiplyLeft : function(b) {
-            mat2d.multiply(this._array, b._array, this._array);
-            return this;
-        },
-        rotate : function(rad) {
-            mat2d.rotate(this._array, this._array, rad);
-            return this;
-        },
-        scale : function(s) {
-            mat2d.scale(this._array, this._array, s._array);
-        },
-        translate : function(v) {
-            mat2d.translate(this._array, this._array, v._array);
-        },
-        toString : function() {
-            return "[" + Array.prototype.join.call(this._array, ",") + "]";
-        }
-    }
-
-    return Matrix2d;
-});
-/**
- * Style
- * @config  fillStyle | fill,
- * @config  strokeStyle | stroke,
- * @config  lineWidth,
- * @config  lineCap,
- * @config  lineJoin,
- * @config  lineDash,
- * @config  lineDashOffset,
- * @config  miterLimit,
- * @config  shadowColor,
- * @config  shadowOffsetX,
- * @config  shadowOffsetY,
- * @config  shadowBlur,
- * @config  globalAlpha | alpha,
- * @config  globalCompositeOperation,
- * @config  alpha,
- * @config  shadow
- */
-define('qtek/2d/Style',['require','../core/Base','_'],function(require) {
-    
-    var Base = require('../core/Base');
-    var _ = require('_');
-
-    var shadowSyntaxRegex = /([0-9\-]+)\s+([0-9\-]+)\s+([0-9]+)\s+(.+)/;
-    
-    var Style = Base.derive({}, {
-
-        bind : function(ctx) {
-            // Alias
-            var fillStyle = this.fillStyle || this.fill;
-            var strokeStyle = this.strokeStyle || this.stroke;
-            var globalAlpha = this.globalAlpha || this.alpha;
-            var globalCompositeOperation = this.globalCompositeOperation || this.composite;
-            // parse shadow string
-            if (this.shadow) {
-                var res = shadowSyntaxRegex.exec(trim(this.shadow));
-                if (res) {
-                    var shadowOffsetX = parseInt(res[1]);
-                    var shadowOffsetY = parseInt(res[2]);
-                    var shadowBlur = res[3];
-                    var shadowColor = res[4];
-                }
-            }
-            shadowOffsetX = this.shadowOffsetX || shadowOffsetX;
-            shadowOffsetY = this.shadowOffsetY || shadowOffsetY;
-            shadowBlur = this.shadowBlur || shadowBlur;
-            shadowColor = this.shadowColor || shadowColor;
-
-            (globalAlpha !== undefined) &&
-                (ctx.globalAlpha = globalAlpha);
-            globalCompositeOperation &&
-                (ctx.globalCompositeOperation = globalCompositeOperation);
-            (this.lineWidth !== undefined) &&
-                (ctx.lineWidth = this.lineWidth);
-            (this.lineCap !== undefined) && 
-                (ctx.lineCap = this.lineCap);
-            (this.lineJoin !== undefined) &&
-                (ctx.lineJoin = this.lineJoin);
-            (this.miterLimit !== undefined) &&
-                (ctx.miterLimit = this.miterLimit);
-            (shadowOffsetX !== undefined) &&
-                (ctx.shadowOffsetX = shadowOffsetX);
-            (shadowOffsetY !== undefined) &&
-                (ctx.shadowOffsetY = shadowOffsetY);
-            (shadowBlur !== undefined) &&
-                (ctx.shadowBlur = shadowBlur);
-            (shadowColor !== undefined) &&
-                (ctx.shadowColor = shadowColor);
-            this.font &&
-                (ctx.font = this.font);
-            this.textAlign &&
-                (ctx.textAlign = this.textAlign);
-            this.textBaseline &&
-                (ctx.textBaseline = this.textBaseline);
-
-            if (fillStyle) {
-                // Fill style is gradient or pattern
-                if (fillStyle.getInstance) {
-                    ctx.fillStyle = fillStyle.getInstance(ctx);
-                } else {
-                    ctx.fillStyle = fillStyle;
-                }
-            }
-            if (strokeStyle) {
-                // Stroke style is gradient or pattern
-                if (strokeStyle.getInstance) {
-                    ctx.strokeStyle = strokeStyle.getInstance(ctx);
-                } else {
-                    ctx.strokeStyle = strokeStyle;
-                }
-            }
-            // Set line dash individually
-            if (this.lineDash) {
-                if (ctx.setLineDash) {
-                    ctx.setLineDash(this.lineDash);
-                    if (typeof(this.lineDashOffset) === 'number') {
-                        ctx.lineDashOffset = this.lineDashOffset;
-                    }
-                } else {
-                    console.warn("Browser does not support setLineDash method");
-                }
-            }
-        }
-    })
-
-    function trim(str) {
-        return (str || '').replace(/^(\s|\u00A0)+|(\s|\u00A0)+$/g, '');
-    }
-
-    return Style;
-});
-/**
- * Node of the scene tree
- * And it is the base class of all elements
- */
-define('qtek/2d/Node',['require','../core/Base','../core/util','../math/Vector2','../math/Matrix2d','./Style','glmatrix'],function(require) {
-    
-    var Base = require("../core/Base");
-    var util = require("../core/util");
-    var Vector2 = require("../math/Vector2");
-    var Matrix2d = require("../math/Matrix2d");
-    var Style = require("./Style");
-
-    var glMatrix = require('glmatrix');
-    var mat2d = glMatrix.mat2d;
-    var vec2 = glMatrix.vec2;
-
-    var Node = Base.derive(function() {
-        return {
-            
-            name : '',
-            
-            //Axis Aligned Bounding Box
-            boundingBox : {
-                min : new Vector2(),
-                max : new Vector2()
-            },
-            // z index
-            z : 0,
-            
-            style : null,
-            
-            position : new Vector2(0, 0),
-            rotation : 0,
-            scale : new Vector2(1, 1),
-
-            autoUpdate : true,
-            transform : new Matrix2d(),
-            // inverse matrix of transform matrix
-            transformInverse : new Matrix2d(),
-            _prevRotation : 0,
-
-            // visible flag
-            visible : true,
-
-            _children : [],
-            // virtual width of the stroke line for intersect
-            intersectLineWidth : 0,
-
-            // Clip flag
-            // If it is true, this element can be used as a mask
-            // and all the children will be clipped in its shape
-            //
-            // TODO: add an other mask flag to distinguish with the clip?
-            clip : false,
-
-            // flag of fill when drawing the element
-            fill : true,
-            // flag of stroke when drawing the element
-            stroke : false,
-            // Enable picking
-            enablePicking : true
-        }
-    }, {
-        updateTransform : function() {
-            var m2d = this.transform._array;
-            if (! this.autoUpdate) {
-                return;
-            }
-            if (! this.scale._dirty &&
-                ! this.position._dirty &&
-                this.rotation === this._prevRotation) {
-                return;
-            }
-            mat2d.identity(m2d, m2d)
-            mat2d.scale(m2d, m2d, this.scale._array);
-            mat2d.rotate(m2d, m2d, this.rotation);
-            mat2d.translate(m2d, m2d, this.position._array);
-
-            this._prevRotation = this.rotation;
-            this.scale._dirty = false;
-            this.position._dirty = false;
-        },
-        updateTransformInverse : function() {
-            mat2d.invert(this.transformInverse._array, this.transform._array);
-        },
-        // intersect with the bounding box
-        intersectBoundingBox : function(x, y) {
-            var boundingBox = this.boundingBox;
-            return  (boundingBox.min.x < x && x < boundingBox.max.x) && (boundingBox.min.y < y && y< boundingBox.max.y);
-        },
-        add : function(elem) {
-            if (elem) {
-                this._children.push(elem);
-                if (elem.parent) {
-                    elem.parent.remove(elem);
-                }
-                elem.parent = this;
-            }
-        },
-        remove : function(elem) {
-            if (elem) {
-                this._children.splice(this._children.indexOf(elem), 1);
-                elem.parent = null;
-            }
-        },
-        children : function() {
-            // get a copy of children
-            return this._children.slice();
-        },
-        childAt : function(idx) {
-            return this._children[idx];
-        },
-        draw : null,
-
-        render : function(context) {
-            
-            this.trigger("beforerender", context);
-
-            var renderQueue = this.getSortedRenderQueue();
-            if (this.style) {
-                if (!this.style instanceof Array) {
-                    for (var i = 0; i < this.style.length; i++) {
-                        this.style[i].bind(context);
-                    }
-                } else if(this.style.bind) {
-                    this.style.bind(context);
-                }
-            }
-            // TODO : some style should not be inherited ?
-            context.save();
-            this.updateTransform();
-            var m = this.transform._array;
-            context.transform(m[0], m[1], m[2], m[3], m[4], m[5]);
-
-            if (this.draw) {
-                this.trigger("beforedraw", context);
-                this.draw(context);
-                this.trigger("afterdraw", context);
-            }
-
-            //clip from current path;
-            this.clip && context.clip();
-
-            for (var i = 0; i < renderQueue.length; i++) {
-                renderQueue[i].render(context);
-            }
-            context.restore();
-
-            this.trigger("afterrender", context);
-        },
-
-        traverse : function(callback) {
-            var stopTraverse = callback && callback(this);
-            if (! stopTraverse) {
-                var children = this._children;
-                for (var i = 0, len = children.length; i < len; i++) {
-                    children[i].traverse(callback);
-                }
-            }
-        },
-
-        intersect : function(x, y, eventName) {},
-
-        // Get transformed bounding rect
-        // getBoundingRect : function() {
-        //     return {
-        //         left : null,
-        //         top : null,
-        //         width : null,
-        //         height : null
-        //     }
-        // },
-
-        getSortedRenderQueue : function() {
-            var renderQueue = this._children.slice();
-            renderQueue.sort(_zSortFunction);
-            return renderQueue; 
-        }
-    });
-
-    function _zSortFunction(x, y) {
-        if (x.z === y.z)
-            return x.__GUID__ > y.__GUID__ ? 1 : -1;
-        return x.z > y.z ? 1 : -1 ;
-    }
-
-    return Node;
-});
-define('qtek/2d/Camera',['require','./Node','../math/Matrix2d','glmatrix'],function(require) {
-
-    var Node = require('./Node');
-    var Matrix2d = require("../math/Matrix2d");
-    var glMatrix = require('glmatrix');
-    var mat2d = glMatrix.mat2d;
-
-    var Camera = Node.derive(function() {
-        return {
-        }
-    }, {
-        getViewMatrix : function() {
-            this.updateTransform();
-            this.updateTransformInverse();
-            return this.transformInverse;
-        }
-    });
-
-    return Camera;
-});
-define('qtek/2d/CanvasRenderer',['require','../core/Base'],function(require) {
-
-    var Base = require('../core/Base');
-
-    var Renderer = Base.derive(function() {
-        return {
-            canvas : null,
-
-            ctx : null,
-            
-            width : 0,
-            
-            height : 0,
-            
-        }
-    }, function() {
-        if (!this.canvas) {
-            this.canvas = document.createElement('canvas');
-        }
-
-        if (this.width) {
-            this.canvas.width = this.width;
-        } else {
-            this.width = this.canvas.width;
-        }
-        if (this.height) {
-            this.canvas.height = this.height;
-        } else {
-            this.height = this.canvas.height;
-        }
-
-        this.canvas.style.zIndex = this.z;
-
-        this.ctx = this.canvas.getContext('2d');
-
-        this.ctx.__GUID__ = this.__GUID__;
-    }, {
-
-        resize : function(width, height) {
-            this.canvas.width = width;
-            this.canvas.height = height;
-
-            this.width = width;
-            this.height = height;
-        },
-
-        render : function(scene, camera) {
-            if (this.clearColor) {
-                this.ctx.fillStyle = this.clearColor;
-                this.ctx.fillRect(0, 0, this.width, this.height);
-            } else {
-                this.ctx.clearRect(0, 0, this.width, this.height);
-            }
-            if (camera) {
-                var vm = camera.getViewMatrix()._array;
-                this.ctx.transform(vm[0], vm[1], vm[2], vm[3], vm[4], vm[5]);   
-            }
-            scene.render(this.ctx);
-        }
-    });
-
-    return Renderer;
-});
-define('qtek/core/Cache',[],function() {
-
-    var Cache = function() {
-
-        this._contextId = 0;
-
-        this._caches = [];
-
-        this._context = {};
-    }
-
-    Cache.prototype = {
-
-        use : function(contextId, documentSchema) {
-
-            if (! this._caches[contextId]) {
-                this._caches[contextId] = {};
-
-                if (documentSchema) {
-                    this._caches[contextId] = documentSchema();
-                }
-            }
-            this._contextId = contextId;
-
-            this._context = this._caches[contextId];
-        },
-
-        put : function(key, value) {
-            this._context[key] = value;
-        },
-
-        get : function(key) {
-            return this._context[key];
-        },
-
-        dirty : function(field) {
-            field = field || "";
-            var key = "__dirty__" + field;
-            this.put(key, true)
-        },
-        
-        dirtyAll : function(field) {
-            field = field || "";
-            var key = "__dirty__" + field;
-            for (var i = 0; i < this._caches.length; i++) {
-                if (this._caches[i]) {
-                    this._caches[i][key] = true;
-                }
-            }
-        },
-
-        fresh : function(field) {
-            field = field || "";
-            var key = "__dirty__" + field;
-            this.put(key, false);
-        },
-
-        freshAll : function(field) {
-            field = field || "";
-            var key = "__dirty__" + field;
-            for (var i = 0; i < this._caches.length; i++) {
-                if (this._caches[i]) {
-                    this._caches[i][key] = false;
-                }
-            }
-        },
-
-        isDirty : function(field) {
-            field = field || "";
-            var key = "__dirty__" + field;
-            return  !this._context.hasOwnProperty(key)
-                    || this._context[key] === true
-        },
-
-        clearContext : function() {
-            this._caches[this._contextId] = {};
-            this._context = {};
-        },
-
-        deleteContext : function(contextId) {
-            this._caches[contextId] = {};
-            this._context = {};
-        },
-
-        'delete' : function(key) {
-            delete this._context[key];
-        },
-
-        clearAll : function() {
-            this._caches = {};
-        },
-
-        getContext : function() {
-            return this._context;
-        },
-
-        miss : function(key) {
-            return ! this._context.hasOwnProperty(key);
-        }
-    }
-
-    Cache.prototype.constructor = Cache;
-
-    return Cache;
-
-});
-/**
- * Adapter to CanvasGradient
- * base of linear gradient and radial gradient
- *
- * @export{class} Gradient
- */
-define('qtek/2d/Gradient',['require','../core/Base','../math/Vector2','../core/Cache'],function(require) {
-
-    var Base = require('../core/Base');
-    var Vector2 = require("../math/Vector2");
-    var Cache = require("../core/Cache");
-
-    var Gradient = Base.derive(function(){
-        return {
-            stops : []
-        }
-    }, function() {
-        this.cache = new Cache();
-    }, {
-        addColorStop : function(offset, color){
-            this.stops.push([offset, color]);
-            this.dirty();
-        },
-        removeAt : function(idx){
-            this.stops.splice(idx, 1);
-            this.dirty();
-        },
-        dirty : function(){
-            for (var contextId in this.cache._caches){
-                this.cache._caches[contextId]['dirty'] = true;
-            }
-        },
-        getInstance : function(ctx){
-            this.cache.use(ctx.__GUID__);
-            if (this.cache.get("dirty") ||
-                this.cache.miss("gradient")) {
-                this.update(ctx);
-            }
-            return this.cache.get("gradient");
-        },
-        update : function(ctx){}
-    });
-
-    return Gradient;
-});
-/**
- * Adapter to CanvasLinearGradient
- *
- * @export{class} LinearGradient
- */
-define('qtek/2d/LinearGradient',['require','./Gradient','../math/Vector2'],function(require) {
-
-    var Gradient = require('./Gradient');
-    var Vector2 = require("../math/Vector2");
-
-    var LinearGradient = Gradient.derive(function(){
-        return {
-            start : new Vector2(),
-            end : new Vector2(100, 0)
-        }
-    }, {
-        update : function(ctx){
-            var gradient = ctx.createLinearGradient(this.start.x, this.start.y, this.end.x, this.end.y);
-            for (var i = 0; i < this.stops.length; i++) {
-                var stop = this.stops[i];
-                gradient.addColorStop(stop[0], stop[1]);
-            }
-            this.cache.put('gradient', gradient);
-        }
-    });
-
-    return LinearGradient;
-});
-/**
- * Adapter to CanvasPattern
- *
- * @export{class} Pattern
- */
-define('qtek/2d/Pattern',['require','../core/Base','../math/Vector2','../core/Cache'],function(require) {
-
-    var Base = require('../core/Base');
-    var Vector2 = require("../math/Vector2");
-    var Cache = require("../core/Cache");
-
-    var Pattern = Base.derive(function(){
-        return {
-            image : null,
-            // 'repeat', 'repeat-x', 'repeat-y', 'no-repeat'
-            repetition : 'repeat'
-        }
-    }, function() {
-        this.cache = new Cache();
-    }, {
-        getInstance : function(ctx){
-            this.cache.use(ctx.__GUID__);
-            if (this.cache.get("dirty") ||
-                this.cache.miss("pattern")) {
-                var pattern = ctx.createPattern(this.image, this.repetition);
-                this.cache.put("pattern", pattern);
-                return pattern;
-            }
-            return this.cache.get("pattern");
-        },
-    });
-
-    return Pattern;
-});
-/**
- * Adapter to CanvasRadialGradient
- *
- * @export{class} RadialGradient
- */
-define('qtek/2d/RadialGradient',['require','./Gradient','../math/Vector2'],function(require) {
-
-    var Gradient = require('./Gradient');
-    var Vector2 = require("../math/Vector2");
-
-    var RadialGradient = Gradient.derive(function(){
-        return {
-            start : new Vector2(),
-            startRadius : 0,
-            end : new Vector2(),
-            endRadius : 0
-        }
-    }, {
-        update : function(ctx){
-            var gradient = ctx.createRadialGradient(this.start.x, this.start.y, this.startRadius, this.end.x, this.end.y, this.endRadius);
-            for (var i = 0; i < this.stops.length; i++) {
-                var stop = this.stops[i];
-                gradient.addColorStop(stop[0], stop[1]);
-            }
-            this.cache.put('gradient', gradient);
-        }
-    });
-
-    return RadialGradient;
-});
-define('qtek/2d/Scene',['require','./Node'],function(require) {
-
-    var Node = require('./Node');
-
-    var Scene = Node.derive(function() {
-        return {
-        }
-    }, {
-
-    });
-
-    return Scene;
-});
-;
-define("qtek/2d/picking/Box", function(){});
-
-define('qtek/2d/picking/Pixel',['require','../../core/Base'],function(require) {
-
-    var Base = require('../../core/Base');
-
-    var PixelPicking = Base.derive(function() {
-
-        return {
-            downSampleRatio : 1,
-            width : 100,
-            height : 100,
-
-            lookupOffset : 1,
-
-            _canvas : null,
-            _context : null,
-            _imageData : null,
-
-            _lookupTable : [],
-        }
-
-    }, function(){
-        this.init();
-    }, {
-        init : function() {
-            var canvas = document.createElement("canvas");
-            this._canvas = canvas;
-            this._context = canvas.getContext("2d");
-
-            this.resize(this.width, this.height);
-        },
-        setPrecision : function(ratio) {
-            this._canvas.width = this.width * ratio;
-            this._canvas.height = this.height * ratio;
-            this.downSampleRatio = ratio;
-        },
-        resize : function(width, height) {
-            this._canvas.width = width * this.downSampleRatio;
-            this._canvas.height = height * this.downSampleRatio;
-            this.width = width;
-            this.height = height;
-        },
-        update : function(scene, camera) {
-            var ctx = this._context;
-            ctx.clearRect(0, 0, this._canvas.width, this._canvas.height);
-            ctx.save();
-            ctx.scale(this.downSampleRatio, this.downSampleRatio);
-            this._lookupTable.length = 0;
-            if (camera) {
-                var vm = camera.getViewMatrix()._array;
-                ctx.transform(vm[0], vm[1], vm[2], vm[3], vm[4], vm[5]);   
-            }
-            this._renderNode(scene, ctx);
-            ctx.restore();
-            // Cache the image data
-            // Get image data is slow
-            // http://jsperf.com/getimagedata-multi-vs-once
-            var imageData = ctx.getImageData(0, 0, this._canvas.width, this._canvas.height);
-            this._imageData = imageData.data;
-        },
-        _renderNode : function(node, ctx) {
-            ctx.save();
-            node.updateTransform();
-            var m = node.transform._array;
-            ctx.transform(m[0], m[1], m[2], m[3], m[4], m[5]);
-            node.clip && ctx.clip();
-
-            if (node.draw && node.enablePicking === true) {
-                var lut = this._lookupTable;
-                var rgb = packID(lut.length + this.lookupOffset);
-                var color = 'rgb(' + rgb.join(',') + ')';
-                this._lookupTable.push(node);
-                
-                ctx.fillStyle = color;
-                ctx.strokeStyle = color;
-                node.draw(ctx, true);
-            }
-            var renderQueue = node.getSortedRenderQueue();
-            for (var i = 0; i < renderQueue.length; i++) {
-                var child = renderQueue[i];
-                this._renderNode(child, ctx);
-            }
-            ctx.restore();
-        },
-        pick : function(x, y) {
-            var ratio = this.downSampleRatio;
-            var width = this._canvas.width;
-            var height = this._canvas.height;
-            x = Math.ceil(ratio * x);
-            y = Math.ceil(ratio * y);
-
-            // Box sampler, to avoid the problem of anti aliasing
-            var ids = [
-                this._sample(x, y),
-                this._sample(x-1, y),
-                this._sample(x+1, y),
-                this._sample(x, y-1),
-                this._sample(x, y+1),
-            ];
-            var count = {};
-            var max = 0;
-            var maxId;
-            for (var i = 0; i < ids.length; i++) {
-                var id = ids[i];
-                if (!count[id]) {
-                    count[id]  = 1;
-                } else {
-                    count[id] ++;
-                }
-                if (count[id] > max) {
-                    max = count[id];
-                    maxId = id;
-                }
-            }
-
-            var id = maxId - this.lookupOffset;
-
-            if (id && max >=2) {
-                var el = this._lookupTable[id];
-                return el;
-            }
-        },
-
-        _sample : function(x, y) {
-            x = Math.max(Math.min(x, this._canvas.width), 1);
-            y = Math.max(Math.min(y, this._canvas.height), 1);
-            var offset = ((y-1) * this._canvas.width + (x-1))*4;
-            var data = this._imageData;
-            var r = data[offset];
-            var g = data[offset+1];
-            var b = data[offset+2];
-
-            return unpackID(r, g, b);
-        }
-    });
-
-
-    function packID(id){
-        var r = id >> 16;
-        var g = (id - (r << 8)) >> 8;
-        var b = id - (r << 16) - (g<<8);
-        return [r, g, b];
-    }
-
-    function unpackID(r, g, b){
-        return (r << 16) + (g<<8) + b;
-    }
-
-    return PixelPicking;
-});
-define('qtek/2d/shape/Arc',['require','../Node','../../math/Vector2'],function(require){
-
-    var Node = require('../Node');
-    var Vector2 = require("../../math/Vector2");
-
-    var Arc = Node.derive(function() {
-        return {
-            center      : new Vector2(),
-            radius      : 0,
-            startAngle  : 0,
-            endAngle    : Math.PI*2,
-            clockwise   : true
-        }
-    }, {
-        computeBoundingBox : function() {
-             util.computeArcBoundingBox(
-                this.center, this.radius, this.startAngle, 
-                this.endAngle, this.clockwise,
-                this.boundingBox.min, this.boundingBox.max
-            );
-        },
-        draw : function(contex) {
-
-            ctx.beginPath();
-            ctx.arc(this.center.x, this.center.y, this.radius, this.startAngle, this.endAngle,  ! this.clockwise);
-            if (this.stroke) {
-                ctx.stroke();
-            }
-            if (this.fill) {
-                ctx.fill();
-            }   
-        },
-        intersect : function(x, y){
-            // TODO
-            return false;
-        }
-    })
-
-    return Arc;
-});
-define('qtek/2d/shape/Circle',['require','../Node','../../math/Vector2'],function(require){
-
-    var Node = require('../Node');
-    var Vector2 = require("../../math/Vector2");
-
-    var Circle = Node.derive(function() {
-        return {
-            center : new Vector2(),
-            radius : 0   
-        }
-
-    }, {
-        computeBoundingBox : function() {
-            this.boundingBox = {
-                min : new Vector2(this.center.x-this.radius, this.center.y-this.radius),
-                max : new Vector2(this.center.x+this.radius, this.center.y+this.radius)
-            }
-        },
-        draw : function(ctx) {
-
-            ctx.beginPath();
-            ctx.arc(this.center.x, this.center.y, this.radius, 0, 2*Math.PI, false);
-            
-            if (this.stroke) {
-                ctx.stroke();
-            }
-            if (this.fill) {
-                ctx.fill();
-            }
-        },
-        intersect : function() {
-
-            return vec2.len([this.center[0]-x, this.center[1]-y]) < this.radius;
-        }
-    } )
-
-    return Circle;
-});
-define('qtek/2d/shape/Ellipse',['require','../Node','../../math/Vector2'],function(require){
-
-    var Node = require('../Node');
-    var Vector2 = require("../../math/Vector2");
-
-    var Ellipse = Node.derive(function() {
-        return {
-            center : new Vector2(),
-            radius : new Vector2()   
-        }
-
-    }, {
-        computeBoundingBox : function() {
-            this.boundingBox = {
-                min : this.center.clone().sub(this.radius),
-                max : this.center.clone().add(this.radius)
-            }
-        },
-        draw : function(ctx) {
-            ctx.save();
-            ctx.translate(this.center.x, this.center.y);
-            ctx.scale(1, this.radius.y / this.radius.x);
-            ctx.beginPath();
-            ctx.arc(0, 0, this.radius.x, 0, 2*Math.PI, false);
-            
-            if (this.stroke) {
-                ctx.stroke();
-            }
-            if (this.fill) {
-                ctx.fill();
-            }
-            ctx.restore();
-        },
-        intersect : function() {
-
-            return vec2.len([this.center[0]-x, this.center[1]-y]) < this.radius;
-        }
-    } )
-
-    return Ellipse;
-});
-/**
- * https://developer.mozilla.org/en-US/docs/HTML/Canvas/Drawing_DOM_objects_into_a_canvas
- * @export{class} HTML
- */
-define('qtek/2d/shape/HTML',['require','../Node'],function(require){
-
-    var Node = require("../Node");
-
-    var tpl = '<svg xmlns="http://www.w3.org/2000/svg" width="200" height="200">\
-                    <foreignObject>\
-                        {html}\
-                    </foreignObject>';
-
-    var HTML = Node.derive(function() {
-        return {
-            // html string
-            html : '',
-
-            _img : null
-        }
-    }, {
-        draw : function(ctx){
-            
-            var html = this.html;
-            var svg = tpl.replace('{html}', html);
-
-            if (!this._img) {
-                this.update();
-            }
-
-            if (this._img.complete) {
-                ctx.drawImage(this._img, 0, 0);
-            }
-        },
-
-        update : function(){
-            var _blob = new Blob([svg], {type:'image/svg+xml;charset=utf-8'});
-            var img = new Image();
-            var URL = window.URL || window.webkitURL || window;
-            var url = URL.createObjectURL(_blob);
-
-            img.onload = function(){
-                this.trigger("load");
-                URL.revokeObjectURL(url);
-            }
-
-            img.src = url;
-        }
-    });
-
-    return HTML;
-});
-define('qtek/2d/shape/Image',['require','../Node','../../math/Vector2','_'],function(require) {
-
-    var Node = require('../Node');
-    var Vector2 = require("../../math/Vector2");
-    var _ = require("_");
-
-    var _imageCache = {};
-    
-    var QTImage = Node.derive(function() {
-        return {
-            image     : null,
-            start   : new Vector2(),
-            size    : null
-        }
-    }, {
-        computeBoundingBox : function() {
-            if (this.size){
-                this.boundingBox = {
-                    min : this.start.clone(),
-                    max : this.start.clone().add(this.size)
-                }   
-            }
-        },
-        draw : function(ctx, isPicker) {
-            if (this.image && ! isPicker) {
-                this.size ? 
-                    ctx.drawImage(this.image, this.start.x, this.start.y, this.size.x, this.size.y) :
-                    ctx.drawImage(this.image, this.start.x, this.start.y);
-            }
-        },
-        intersect : function(x, y) {
-            return this.intersectBoundingBox(x, y);
-        }
-    });
-
-    QTImage.load = function(src, callback){
-        if (_imageCache[src]) {
-            var img = _imageCache[src];
-            if (img.constructor == Array) {
-                img.push(callback);
-            } else {
-                callback(img);
-            }
-        } else {
-            _imageCache[src] = [callback];
-            var img = new Image();
-            img.onload = function() {
-                _.each(_imageCache[src], function(cb) {
-                    cb(img);
-                });
-                _imageCache[src] = img;
-
-                img.onload = null;
-            }
-            img.src = src;
-        }
-    }
-    
-    return QTImage;
-});
-/**
- *
- * @export{object}
- */
-define('qtek/2d/util',['require','../math/Vector2','glmatrix'],function(require) {
-    
-    var Vector2 = require("../math/Vector2");
-    var glMatrix = require("glmatrix");
-    var vec2 = glMatrix.vec2;
-
-    var tmp = new Vector2();
-
-    var util =  {
-        fixPos: function(pos) {
-            pos.x += 0.5;
-            pos.y += 0.5;
-            return pos;
-        },
-        fixPosArray : function(poslist) {
-            var len = poslist.length;
-            for(var i = 0; i < len; i++) {
-                this.fixPos(poslist[i]);
-            }
-            return poslist;
-        },
-        computeBoundingBox : function(points, min, max) {
-            var left = points[0].x;
-            var right = points[0].x;
-            var top = points[0].y;
-            var bottom = points[0].y;
-            
-            for (var i = 1; i < points.length; i++) {
-                var p = points[i];
-                if (p.x < left) {
-                    left = p.x;
-                }
-                if (p.x > right) {
-                    right = p.x;
-                }
-                if (p.y < top) {
-                    top = p.y;
-                }
-                if (p.y > bottom) {
-                    bottom = p.y;
-                }
-            }
-            min.set(left, top);
-            max.set(right, bottom);
-        },
-
-        // http://pomax.github.io/bezierinfo/#extremities
-        computeCubeBezierBoundingBox : function(p0, p1, p2, p3, min, max) {
-            // var seg = (p0.dist(p1) + p2.dist(p3) + p0.dist(p3)) / 20;
-
-            // min.copy(p0).min(p3);
-            // max.copy(p0).max(p3);
-
-            // for (var i = 1; i < seg; i++) {
-            //     var t = i / seg;
-            //     var t2 = t * t;
-            //     var ct = 1 - t;
-            //     var ct2 = ct * ct;
-            //     var x = ct2 * ct * p0.x + 3 * ct2 * t * p1.x + 3 * ct * t2 * p2.x + t2 * t * p3.x;
-            //     var y = ct2 * ct * p0.y + 3 * ct2 * t * p1.y + 3 * ct * t2 * p2.y + t2 * t * p3.y;
-
-            //     tmp.set(x, y);
-            //     min.min(tmp);
-            //     max.max(tmp);
-            // }
-            var xDim = util._computeCubeBezierExtremitiesDim(p0.x, p1.x, p2.x, p3.x);
-            var yDim = util._computeCubeBezierExtremitiesDim(p0.y, p1.y, p2.y, p3.y);
-
-            xDim.push(p0.x, p3.x);
-            yDim.push(p0.y, p3.y);
-
-            var left = Math.min.apply(null, xDim);
-            var right = Math.max.apply(null, xDim);
-            var top = Math.min.apply(null, yDim);
-            var bottom = Math.max.apply(null, yDim);
-
-            min.set(left, top);
-            max.set(right, bottom);
-        },
-
-        _computeCubeBezierExtremitiesDim : function(p0, p1, p2, p3) {
-            var extremities = [];
-
-            var b = 6 * p2 - 12 * p1 + 6 * p0;
-            var a = 9 * p1 + 3 * p3 - 3 * p0 - 9 * p2;
-            var c = 3 * p1 - 3 * p0;
-
-            var tmp = b * b - 4 * a * c;
-            if (tmp > 0){
-                var tmpSqrt = Math.sqrt(tmp);
-                var t1 = (-b + tmpSqrt) / (2 * a);
-                var t2 = (-b - tmpSqrt) / (2 * a);
-                extremities.push(t1, t2);
-            } else if(tmp == 0) {
-                extremities.push(-b / (2 * a));
-            }
-            var result = [];
-            for (var i = 0; i < extremities.length; i++) {
-                var t = extremities[i];
-                if (Math.abs(2 * a * t + b) > 0.0001 && t < 1 && t > 0) {
-                    var ct = 1 - t;
-                    var val = ct * ct * ct * p0 
-                            + 3 * ct * ct * t * p1
-                            + 3 * ct * t * t * p2
-                            + t * t *t * p3;
-
-                    result.push(val);
-                }
-            }
-
-            return result;
-        },
-
-        // http://pomax.github.io/bezierinfo/#extremities
-        computeQuadraticBezierBoundingBox : function(p0, p1, p2, min, max) {
-            // Find extremities, where derivative in x dim or y dim is zero
-            var tmp = (p0.x + p2.x - 2 * p1.x);
-            // p1 is center of p0 and p2 in x dim
-            if (tmp === 0) {
-                var t1 = 0.5;
-            } else {
-                var t1 = (p0.x - p1.x) / tmp;
-            }
-
-            tmp = (p0.y + p2.y - 2 * p1.y);
-            // p1 is center of p0 and p2 in y dim
-            if (tmp === 0) {
-                var t2 = 0.5;
-            } else {
-                var t2 = (p0.y - p1.y) / tmp;
-            }
-
-            t1 = Math.max(Math.min(t1, 1), 0);
-            t2 = Math.max(Math.min(t2, 1), 0);
-
-            var ct1 = 1-t1;
-            var ct2 = 1-t2;
-
-            var x1 = ct1 * ct1 * p0.x + 2 * ct1 * t1 * p1.x + t1 * t1 * p2.x;
-            var y1 = ct1 * ct1 * p0.y + 2 * ct1 * t1 * p1.y + t1 * t1 * p2.y;
-
-            var x2 = ct2 * ct2 * p0.x + 2 * ct2 * t2 * p1.x + t2 * t2 * p2.x;
-            var y2 = ct2 * ct2 * p0.y + 2 * ct2 * t2 * p1.y + t2 * t2 * p2.y;
-
-            return util.computeBoundingBox(
-                        [p0.clone(), p2.clone(), new Vector2(x1, y1), new Vector2(x2, y2)],
-                        min, max
-                    );
-        },
-        // http://stackoverflow.com/questions/1336663/2d-bounding-box-of-a-sector
-        computeArcBoundingBox : (function(){
-            var start = new Vector2();
-            var end = new Vector2();
-            // At most 4 extremities
-            var extremities = [new Vector2(), new Vector2(), new Vector2(), new Vector2()];
-            return function(center, radius, startAngle, endAngle, clockwise, min, max) {
-                clockwise = clockwise ? 1 : -1;
-                start
-                    .set(Math.cos(startAngle), Math.sin(startAngle) * clockwise)
-                    .scale(radius)
-                    .add(center);
-                end
-                    .set(Math.cos(endAngle), Math.sin(endAngle) * clockwise)
-                    .scale(radius)
-                    .add(center);
-                
-                startAngle = startAngle % (Math.PI * 2);
-                if (startAngle < 0) {
-                    startAngle = startAngle + Math.PI * 2;
-                }
-                endAngle = endAngle % (Math.PI * 2);
-                if (endAngle < 0) {
-                    endAngle = endAngle + Math.PI * 2;
-                }
-
-                if (startAngle > endAngle) {
-                    endAngle += Math.PI * 2;
-                }
-                var number = 0;
-                for (var angle = 0; angle < endAngle; angle += Math.PI / 2) {
-                    if (angle > startAngle) {
-                        extremities[number++]
-                            .set(Math.cos(angle), Math.sin(angle) * clockwise)
-                            .scale(radius)
-                            .add(center);
-                    }
-                }
-                var points = extremities.slice(0, number)
-                points.push(start, end);
-                util.computeBoundingBox(points, min, max);
-            }
-        })()
-    }
-
-    return util;
-} );
-define('qtek/2d/shape/Line',['require','../Node','../util','../../math/Vector2'],function(require) {
-
-    var Node = require('../Node');
-    var util = require('../util');
-    var Vector2 = require("../../math/Vector2");
-
-    var Line = Node.derive(function() {
-        return {
-            start : new Vector2(),
-            end : new Vector2(),
-            width : 0   //virtual width of the line for intersect computation 
-        }
-    }, {
-        computeBoundingBox : function() {
-
-            this.boundingBox = util.computeBoundingBox(
-                                    [this.start, this.end],
-                                    this.boundingBox.min,
-                                    this.boundingBox.max
-                                );
-            
-            if (this.boundingBox.min.x == this.boundingBox.max.x) { //line is vertical
-                this.boundingBox.min.x -= this.width/2;
-                this.boundingBox.max.x += this.width/2;
-            }
-            if (this.boundingBox.min.y == this.boundingBox.max.y) { //line is horizontal
-                this.boundingBox.min.y -= this.width/2;
-                this.boundingBox.max.y += this.width/2;
-            }
-        },
-        draw : function(ctx) {
-            
-            var start = this.start,
-                end = this.end;
-
-            ctx.beginPath();
-            ctx.moveTo(start.x, start.y);
-            ctx.lineTo(end.x, end.y);
-            ctx.stroke();
-
-        },
-        intersect : function() {
-            var a = new Vector2();
-            var ba = new Vector2();
-            var bc = new Vector2();
-
-            return function(x, y) {
-                if (!this.intersectBoundingBox(x, y)) {
-                    return false;
-                }
-                var b = this.start;
-                var c = this.end;
-
-                a.set(x, y);
-                ba.copy(a).sub(b);
-                bc.copy(c).sub(b);
-
-                var bal = ba.length();
-                var bcl = bc.length();
-
-                var tmp = bal * ba.scale(1/bal).dot(bcl.scale(1/bcl));
-
-                var distSquare = bal * bal -  tmp * tmp;
-                return distance < this.width * this.width * 0.25;
-            }
-        }
-    });
-
-    return Line;
-});
-/**
- *
- * Inspired by path in paper.js
- */
-define('qtek/2d/shape/Path',['require','../Node','../util','../../math/Vector2'],function(require) {
-
-    var Node = require('../Node');
-    var util = require('../util');
-    var Vector2 = require("../../math/Vector2");
-
-    var minTmp = new Vector2();
-    var maxTmp = new Vector2();
-
-    var Path = Node.derive(function() {
-        return {
-            segments : [],
-            closePath : false
-        }
-    }, {
-        computeBoundingBox : function() {
-            var l = this.segments.length;
-            var segs = this.segments;
-
-            var min = this.boundingBox.min;
-            var max = this.boundingBox.max;
-            min.set(999999, 999999);
-            max.set(-999999, -999999);
-            
-            for (var i = 1; i < l; i++) {
-                if (segs[i-1].handleOut || segs[i].handleIn) {
-                    var bb = util.computeCubeBezierBoundingBox(
-                                segs[i-1].point,
-                                segs[i-1].handleOut || segs[i-1].point,
-                                segs[i].handleIn || segs[i].point,
-                                segs[i].point,
-                                minTmp, maxTmp
-                            );
-                    min.min(minTmp);
-                    max.max(maxTmp);
-                } else {
-                    min.min(segs[i-1].point);
-                    min.min(segs[i].point);
-
-                    max.max(segs[i-1].point);
-                    max.max(segs[i].point);
-                }
-            }
-        },
-        draw : function(ctx) {
-            
-            var l = this.segments.length;
-            var segs = this.segments;
-            
-            ctx.beginPath();
-            ctx.moveTo(segs[0].point.x, segs[0].point.y);
-            for (var i = 1; i < l; i++) {
-                if (segs[i-1].handleOut || segs[i].handleIn) {
-                    var prevHandleOut = segs[i-1].handleOut || segs[i-1].point;
-                    var handleIn = segs[i].handleIn || segs[i].point;
-                    ctx.bezierCurveTo(prevHandleOut.x, prevHandleOut.y,
-                            handleIn.x, handleIn.y, segs[i].point.x, segs[i].point.y);
-                } else {
-                    ctx.lineTo(segs[i].point.x, segs[i].point.y);
-                }
-            }
-            if (this.closePath) {
-                if (segs[l-1].handleOut || segs[0].handleIn) {
-                    var prevHandleOut = segs[l-1].handleOut || segs[l-1].point;
-                    var handleIn = segs[0].handleIn || segs[0].point;
-                    ctx.bezierCurveTo(prevHandleOut.x, prevHandleOut.y,
-                            handleIn.x, handleIn.y, segs[0].point.x, segs[0].point.y);
-                } else {
-                    ctx.lineTo(segs[0].point.x, segs[0].point.y);
-                }
-            }
-            if (this.fill) {
-                ctx.fill();
-            }
-            if (this.stroke) {
-                ctx.stroke();
-            }
-        },
-        smooth : function(degree) {
-
-            var len = this.segments.length;
-            var segs = this.segments;
-
-            var v = new Vector2();
-            for (var i = 0; i < len; i++) {
-                var point = segs[i].point;
-                var prevPoint = (i == 0) ? segs[len-1].point : segs[i-1].point;
-                var nextPoint = (i == len-1) ? segs[0].point : segs[i+1].point;
-                var degree = segs[i].smoothLevel || degree || 1;
-
-                v.copy(nextPoint).sub(prevPoint).scale(0.25);
-
-                //use degree to scale the handle length
-                v.scale(degree);
-                if (!segs[i].handleIn) {
-                    segs[i].handleIn = point.clone().sub(v);
-                } else {
-                    segs[i].handleIn.copy(point).sub(v);
-                }
-                if (!segs[i].handleOut) {
-                    segs[i].handleOut = point.clone().add(v);
-                } else {
-                    segs[i].handleOut.copy(point).add(v);
-                }
-            }
-        },
-        pushPoints : function(points) {
-            for (var i = 0; i < points.length; i++) {
-                this.segments.push({
-                    point : points[i],
-                    handleIn : null,
-                    handleOut : null
-                })
-            }
-        }
-    })
-
-    return Path;
-});
-define('qtek/2d/shape/Polygon',['require','../Node','../util','../../math/Vector2'],function(require) {
-
-    var Node = require('../Node');
-    var util = require('../util');
-    var Vector2 = require("../../math/Vector2");
-
-    var Polygon = Node.derive(function() {
-        return {
-            points : []
-        }
-    }, {
-        computeBoundingBox : function() {
-            this.boundingBox = util.computeBoundingBox(
-                                    this.points,
-                                    this.boundingBox.min,
-                                    this.boundingBox.max
-                                );
-        },
-        draw : function(ctx) {
-
-            var points = this.points;
-
-            ctx.beginPath();
-            
-            ctx.moveTo(points[0].x, points[0].y);
-            for (var i =1; i < points.length; i++) {
-                ctx.lineTo(points[i].x, points[i].y);
-            }
-            ctx.closePath();
-            if (this.stroke) {
-                ctx.stroke();
-            }
-            if (this.fill) {
-                ctx.fill();
-            }
-        },
-        intersect : function(x, y) {
-    
-            if (!this.intersectBoundingBox(x, y)) {
-                return false;
-            }
-
-            var len = this.points.length;
-            var angle = 0;
-            var points = this.points;
-            var vec1 = new Vector2();
-            var vec2 = new Vector2();
-            for (var i =0; i < len; i++) {
-                vec1.set(x, y).sub(points[i]).normalize().negate();
-                var j = (i+1)%len;
-                vec2.set(x, y).sub(points[j]).normalize().negate();
-                var piece = Math.acos(vec1.dot(vec2));
-                angle += piece;
-            }
-            return Math.length(angle - 2*Math.PI) < 0.001;
-        }
-    })
-
-    return Polygon;
-});
-define('qtek/2d/shape/Rectangle',['require','../Node','../util','../../math/Vector2'],function(require){
-
-    var Node = require('../Node');
-    var util = require('../util');
-    var Vector2 = require("../../math/Vector2");
-
-    var Rectangle = Node.derive( function() {
-        return {
-            start : new Vector2(0, 0),
-            size : new Vector2(0, 0)
-        }
-    }, {
-        computeBoundingBox : function() {
-            return {
-                min : this.start.clone(),
-                max : this.size.clone().add(this.start)
-            }
-        },
-        draw : function(ctx) {
-
-            var start = this.start;
-
-            ctx.beginPath();
-            ctx.rect(start.x, start.y, this.size.x, this.size.y);
-            if (this.stroke){
-                ctx.stroke();
-            }
-            if (this.fill){
-                ctx.fill();
-            }
-        },
-        intersect : function(x, y) {
-            return this.intersectBoundingBox(x, y);
-        }
-    })
-
-    return Rectangle;
-});
-/**
- * @export{class} RoundedRectangle
- */
-define('qtek/2d/shape/RoundedRectangle',['require','../Node','../util','../../math/Vector2'],function(require) {
-
-    var Node = require('../Node');
-    var util = require('../util');
-    var Vector2 = require("../../math/Vector2");
-
-    var RoundedRectange = Node.derive(function() {
-        return {
-            start   : new Vector2(),
-            size    : new Vector2(),
-            radius  : 0
-        }
-    }, {
-        computeBoundingBox : function() {
-            this.boundingBox = {
-                min : this.start.clone(),
-                max : this.size.clone().add(this.start)
-            }
-        },
-        draw : function(ctx) {
-
-            if (this.radius.constructor == Number) {
-                // topleft, topright, bottomright, bottomleft
-                var radius = [this.radius, this.radius, this.radius, this.radius];
-            } else if (this.radius.length == 2) {
-                var radius = [this.radius[0], this.radius[1], this.radius[0], this.radius[1]];
-            } else {
-                var radius = this.radius;
-            }
-
-            var start = this.fixAA ? util.fixPos(this.start.clone()) : this.start;
-            var size = this.size;
-            var v1 = new Vector2().copy(start).add(new Vector2(radius[0], 0));   //left top
-            var v2 = new Vector2().copy(start).add(new Vector2(size.x, 0));     //right top
-            var v3 = new Vector2().copy(start).add(size);                        //right bottom
-            var v4 = new Vector2().copy(start).add(new Vector2(0, size.y));     //left bottom
-            ctx.beginPath();
-            ctx.moveTo(v1.x, v1.y);
-            radius[1] ? 
-                ctx.arcTo(v2.x, v2.y, v3.x, v3.y, radius[1]) :
-                ctx.lineTo(v2.x, v2.y);
-            radius[2] ?
-                ctx.arcTo(v3.x, v3.y, v4.x, v4.y, radius[2]) :
-                ctx.lineTo(v3.x, v3.y);
-            radius[3] ?
-                ctx.arcTo(v4.x, v4.y, start.x, start.y, radius[3]) :
-                ctx.lineTo(v4.x, v4.y);
-            radius[0] ? 
-                ctx.arcTo(start.x, start.y, v2.x, v2.y, radius[0]) :
-                ctx.lineTo(start.x, start.y);
-            
-            if (this.stroke) {
-                ctx.stroke();
-            }
-            if (this.fill) {
-                ctx.fill();
-            }
-        },
-        intersect : function(x, y) {
-            // TODO
-            return false;
-        }
-    })
-
-    return RoundedRectange;
-});
-/**
- * 
- * @export{class} SVGPath
- */
-define('qtek/2d/shape/SVGPath',['require','../Node','../util','../../math/Vector2'],function(require) {
-
-    var Node = require("../Node");
-    var util = require("../util");
-    var Vector2 = require("../../math/Vector2");
-
-    var availableCommands = {'m':1,'M':1,'z':1,'Z':1,'l':1,'L':1,'h':1,'H':1,'v':1,'V':1,'c':1,'C':1,'s':1,'S':1,'q':1,'Q':1,'t':1,'T':1,'a':1,'A':1}
-
-    var SVGPath = Node.derive(function() {
-        return {
-            description : '',
-            _ops : []
-        }
-    }, {
-        draw : function(ctx) {
-            if (!this._ops.length) {
-                this.parse();
-            }
-
-            ctx.beginPath();
-            for (var i = 0; i < this._ops.length; i++) {
-                var op = this._ops[i];
-                switch(op[0]) {
-                    case 'm':
-                        ctx.moveTo(op[1], op[2]);
-                        break;
-                    case 'l':
-                        ctx.lineTo(op[1], op[2]);
-                        break;
-                    case 'c':
-                        ctx.bezierCurveTo(op[1], op[2], op[3], op[4], op[5], op[6]);
-                        break;
-                    case 'q':
-                        ctx.quadraticCurveTo(op[1], op[2], op[3], op[4]);
-                        break;
-                    case 'z':
-                        ctx.closePath();
-                        if (this.fill) {
-                            ctx.fill();
-                        }
-                        if (this.stroke) {
-                            ctx.stroke();
-                        }
-                        ctx.beginPath();
-                        break;
-                }
-            }
-            if (this.fill) {
-                ctx.fill();
-            }
-            if (this.stroke) {
-                ctx.stroke();
-            }
-        },
-
-        computeBoundingBox : (function() {
-            // Temp variables
-            var current = new Vector2();
-            var p1 = new Vector2();
-            var p2 = new Vector2();
-            var p3 = new Vector2();
-
-            var minTmp = new Vector2();
-            var maxTmp = new Vector2();
-
-            return function() {
-                if (!this._ops.length) {
-                    this.parse();
-                }
-                var min = new Vector2(999999, 999999);
-                var max = new Vector2(-999999, -999999);
-
-                for (var i = 0; i < this._ops.length; i++) {
-                    var op = this._ops[i];
-                    switch(op[0]) {
-                        case 'm':
-                            current.set(op[1], op[2]);
-                            break;
-                        case 'l':
-                            p1.set(op[1], op[2]);
-                            current.copy(p1);
-                            min.min(current).min(p1);
-                            max.max(current).max(p1);
-                            break;
-                        case 'c':
-                            p1.set(op[1], op[2]);
-                            p2.set(op[3], op[4]);
-                            p3.set(op[5], op[6]);
-                            util.computeCubeBezierBoundingBox(current, p1, p2, p3, minTmp, maxTmp);
-                            current.copy(p3);
-                            min.min(minTmp);
-                            max.max(maxTmp);
-                            break;
-                        case 'q':
-                            p1.set(op[1], op[2]);
-                            p2.set(op[3], op[4]);
-                            var bb = util.computeQuadraticBezierBoundingBox(current, p1, p2, minTmp, maxTmp);
-                            current.copy(p2);
-                            min.min(minTmp);
-                            min.max(maxTmp);
-                            break;
-                        case 'z':
-                            break;
-                    }
-                }
-
-                this.boundingBox = {
-                    min : min,
-                    max : max
-                }
-            }
-        })(),
-
-        parse : function(description) {
-            // point x, y
-            var x = 0;
-            var y = 0;
-            // control point 1(in cube bezier curve and quadratic bezier curve)
-            var x1 = 0;
-            var y1 = 0;
-            // control point 2(in cube bezier curve)
-            var x2 = 0;
-            var y2 = 0;
-
-            // pre process
-            description = description || this.description;
-            var d = description.replace(/\s*,\s*/g, ' ');
-            d = d.replace(/(-)/g, ' $1');
-            d = d.replace(/([mMzZlLhHvVcCsSqQtTaA])/g, ' $1 ');
-            d = d.split(/\s+/);
-
-            var command = "";
-            // Save the previous command specially for shorthand/smooth curveto(s/S, t/T)
-            var prevCommand = "";
-            var offset = 0;
-            var len = d.length;
-            var next = d[0];
-
-            while (offset <= len) {
-                // Skip empty
-                if(!next) {
-                    next = d[++offset];
-                    continue;
-                }
-                if (availableCommands[next]) {
-                    prevCommand = command;
-                    command = next;
-                    offset++;
-                }
-                // http://www.w3.org/TR/SVG/paths.html
-                switch (command) {
-                    case "m":
-                        x = pickValue() + x;
-                        y = pickValue() + y;
-                        this._ops.push(['m', x, y]);
-                        break;
-                    case "M":
-                        x = pickValue();
-                        y = pickValue();
-                        this._ops.push(['m', x, y]);
-                        break;
-                    case "z":
-                    case "Z":
-                        next = d[offset];
-                        this._ops.push(['z']);
-                        break;
-                    case "l":
-                        x = pickValue() + x;
-                        y = pickValue() + y;
-                        this._ops.push(['l', x, y]);
-                        break;
-                    case "L":
-                        x = pickValue();
-                        y = pickValue();
-                        this._ops.push(['l', x, y]);
-                        break;
-                    case "h":
-                        x = pickValue() + x;
-                        this._ops.push(['l', x, y]);
-                        break;
-                    case "H":
-                        x = pickValue();
-                        this._ops.push(['l', x, y]);
-                        break;
-                    case "v":
-                        y = pickValue() + y;
-                        this._ops.push(['l', x, y]);
-                        break;
-                    case "V":
-                        y = pickValue();
-                        this._ops.push(['l', x, y]);
-                        break;
-                    case "c":
-                        x1 = pickValue() + x;
-                        y1 = pickValue() + y;
-                        x2 = pickValue() + x;
-                        y2 = pickValue() + y;
-                        x = pickValue() + x;
-                        y = pickValue() + y;
-                        this._ops.push(['c', x1, y1, x2, y2, x, y]);
-                        break;
-                    case "C":
-                        x1 = pickValue();
-                        y1 = pickValue();
-                        x2 = pickValue();
-                        y2 = pickValue();
-                        x = pickValue();
-                        y = pickValue();
-                        this._ops.push(['c', x1, y1, x2, y2, x, y]);
-                        break;
-                    case "s":
-                        if (prevCommand === "c" || prevCommand === "C" ||
-                            prevCommand === "s" || prevCommand === "S") {
-                            // Reflection of the second control point on the previous command
-                            x1 = x * 2 - x2;
-                            y1 = y * 2 - y2;
-                        } else {
-                            x1 = x;
-                            y1 = y;
-                        }
-                        x2 = pickValue() + x;
-                        y2 = pickValue() + y;
-                        x = pickValue() + x;
-                        y = pickValue() + y;
-                        this._ops.push(['c', x1, y1, x2, y2, x, y]);
-                        break;
-                    case "S":
-                        if (prevCommand === "c" || prevCommand === "C" ||
-                            prevCommand === "s" || prevCommand === "S") {
-                            // Reflection of the second control point on the previous command
-                            x1 = x * 2 - x2; 
-                            y1 = y * 2 - y2;
-                        } else {
-                            x1 = x;
-                            y1 = y;
-                        }
-                        x2 = pickValue();
-                        y2 = pickValue();
-                        x = pickValue();
-                        y = pickValue();
-                        this._ops.push(['c', x1, y1, x2, y2, x, y]);
-                        break;
-                    case "q":
-                        x1 = pickValue() + x;
-                        y1 = pickValue() + y;
-                        x = pickValue() + x;
-                        y = pickValue() + y;
-                        this._ops.push(['q', x1, y1, x, y]);
-                        break;
-                    case "Q":
-                        x1 = pickValue();
-                        y1 = pickValue();
-                        x = pickValue();
-                        y = pickValue();
-                        this._ops.push(['q', x1, y1, x, y]);
-                        break;
-                    case "t":
-                        if (prevCommand === "q" || prevCommand === "Q" ||
-                            prevCommand === "t" || prevCommand === "T") {
-                            // Reflection of the second control point on the previous command
-                            x1 = x * 2 - x1; 
-                            y1 = y * 2 - y1;
-                        } else {
-                            x1 = x;
-                            y1 = y;
-                        }
-                        x = pickValue() + x;
-                        y = pickValue() + y;
-                        this._ops.push(['q', x1, y1, x, y]);
-                        break;
-                    case "T":
-                        if (prevCommand === "q" || prevCommand === "Q" ||
-                            prevCommand === "t" || prevCommand === "T") {
-                            // Reflection of the second control point on the previous command
-                            x1 = x * 2 - x1; 
-                            y1 = y * 2 - y1;
-                        } else {
-                            x1 = x;
-                            y1 = y;
-                        }
-                        x = pickValue();
-                        y = pickValue();
-                        this._ops.push(['q', x1, y1, x, y]);
-                        break;
-                    case "a":
-                    case "A":
-                        pickValue();
-                        pickValue();
-                        pickValue();
-                        pickValue();
-                        pickValue();
-                        pickValue();
-                        pickValue();
-                        console.warn("Elliptical arc is not supported yet");
-                        break;
-                    default:
-                        pick();
-                        continue;
-                }
-            }
-            
-            function pick() {
-                next = d[offset+1];
-                return d[offset++];
-            }
-
-            var _val;
-            function pickValue() {
-                next = d[offset+1];
-                _val = d[offset++];
-                return parseFloat(_val);
-            }
-        }
-    });
-
-    return SVGPath;
-});
-define('qtek/2d/shape/Sector',['require','../Node','../util','../../math/Vector2'],function(require) {
-
-    var Node = require('../Node');
-    var util = require('../util');
-    var Vector2 = require("../../math/Vector2");
-
-    var Sector = Node.derive(function() {
-        return {
-            center      : new Vector2(),
-            innerRadius : 0,
-            outerRadius : 0,
-            startAngle  : 0,
-            endAngle    : 0,
-            clockwise   : true
-        }
-    }, {
-        computeBoundingBox : function() {
-            var min = new Vector2();
-            var max = new Vector2();
-
-            util.computeArcBoundingBox(
-                this.center, this.innerRadius, this.startAngle, 
-                this.endAngle, this.clockwise, min, max
-            );
-            this.boundingBox.min
-                .set(99999, 99999)
-                .min(min);
-            this.boundingBox.max
-                .set(-99999, -99999)
-                .max(max);
-
-            util.computeArcBoundingBox(
-                this.center, this.outerRadius, this.startAngle, 
-                this.endAngle, this.clockwise, min, max
-            );
-            this.boundingBox.min.min(min);
-            this.boundingBox.max.max(max);
-        },
-        intersect : function(x, y) {
-
-            var startAngle = this.startAngle;
-            var endAngle = this.endAngle;
-            var r1 = this.innerRadius;
-            var r2 = this.outerRadius;
-            var c = this.center;
-            var v = new Vector2(x, y).sub(c);
-            var r = v.length();
-            var pi2 = Math.PI * 2;
-
-            if (r < r1 || r > r2) {
-                return false;
-            }
-            var angle = Math.atan2(v.y, v.x);
-
-            //need to constraint the angle between 0 - 360
-            if (angle < 0) {
-                angle = angle+pi2;
-            }
-            
-            if (this.clockwise) {
-                return angle < endAngle && angle > startAngle;
-            } else {
-                startAngle =  pi2 - startAngle;
-                endAngle = pi2 - endAngle;
-                return angle > endAngle && angle < startAngle;
-            }   
-        },
-        draw : function(ctx) {
-
-            var startAngle = this.startAngle;
-            var endAngle = this.endAngle;
-            var r1 = this.innerRadius;
-            var r2 = this.outerRadius;
-            var c = this.center;
-
-            if (! this.clockwise) {
-                startAngle =  Math.PI*2 - startAngle;
-                endAngle =  Math.PI*2 - endAngle;
-            }
-
-            var startInner = new Vector2(r1 * Math.cos(startAngle), r1 * Math.sin(startAngle)).add(c);
-            var startOuter = new Vector2(r2 * Math.cos(startAngle), r2 * Math.sin(startAngle)).add(c);
-            var endInner = new Vector2(r1 * Math.cos(endAngle), r1 * Math.sin(endAngle)).add(c);
-            var endOuter = new Vector2(r2 * Math.cos(endAngle), r2 * Math.sin(endAngle)).add(c);
-
-            ctx.beginPath();
-            ctx.moveTo(startInner.x, startInner.y);
-            ctx.lineTo(startOuter.x, startOuter.y);
-            ctx.arc(c.x, c.y, r2, startAngle, endAngle, ! this.clockwise);
-            ctx.lineTo(endInner.x, endInner.y);
-            ctx.arc(c.x, c.y, r1, endAngle, startAngle, this.clockwise);
-            ctx.closePath();
-
-            if (this.stroke) {
-                ctx.stroke();
-            }
-            if (this.fill) {
-                ctx.fill();
-            }
-        }
-    })
-
-    return Sector;
-});
-define('qtek/2d/shape/Text',['require','../Node','../util','../../math/Vector2'],function(require) {
-
-    var Node = require('../Node');
-    var util = require('../util');
-    var Vector2 = require("../../math/Vector2");
-
-    var Text = Node.derive( function() {
-        return {
-            text : '',
-            start : new Vector2(),
-            size : new Vector2()
-        }
-    }, {
-        computeBoundingBox : function() {
-            this.boundingBox = {
-                min : this.start.clone(),
-                max : this.start.clone().add(this.size)
-            }
-        },
-        draw : function(ctx) {
-            var start = this.start;
-            if (this.fill) {
-                this.size.length && this.size.x ?
-                    ctx.fillText(this.text, start.x, start.y, this.size.x) :
-                    ctx.fillText(this.text, start.x, start.y);
-            }
-            if (this.stroke) {
-                this.size.length && this.size.x ?
-                    ctx.strokeText(this.text, start.x, start.y, this.size.x) :
-                    ctx.strokeText(this.text, start.x, start.y);
-            }
-        },
-        resize : function(ctx) {
-            if (! this.size.x || this.needResize) {
-                this.size.x = ctx.measureText(this.text).width;
-                this.size.y = ctx.measureText('m').width;
-            }
-        },
-        intersect : function(x, y) {
-            return this.intersectBoundingBox(x, y);
-        }
-    })
-
-    return Text;
-});
-/**
- * Text Box
- * Support word wrap and word break
- * Drawing is based on the Text
- * @export{class} TextBox
- *
- * TODO: support word wrap of non-english text
- *      shift first line by (lineHeight-fontSize)/2
- */
-define('qtek/2d/shape/TextBox',['require','../Node','../../math/Vector2','./Text','_'],function(require) {
-
-    var Node = require('../Node');
-    var Vector2 = require("../../math/Vector2");
-    var Text = require('./Text');
-    var _ = require('_');
-
-    var TextBox = Node.derive(function() {
-        return {
-            start           : new Vector2(),
-            width           : 0,
-            wordWrap        : false,
-            wordBreak       : false,
-            lineHeight      : 0,
-            stroke          : false,
-            // private prop, save Text instances
-            _texts          : []
-        }
-    }, function() {
-        // to verify if the text is changed
-        this._oldText = "";
-    }, {
-        computeBoundingBox : function() {
-            // TODO
-        },
-        draw : function(ctx) {
-            if (this.text != this._oldText) {
-                this._oldText = this.text;
-
-                //set font for measureText
-                if (this.font) {
-                    ctx.font = this.font;
-                }
-                if (this.wordBreak) {
-                    this._texts = this.computeWordBreak(ctx);
-                }
-                else if (this.wordWrap) {
-                    this._texts = this.computeWordWrap(ctx);
-                }
-                else{
-                    var txt = new Text({
-                        text : this.text
-                    })
-                    this.extendCommonProperties(txt);
-                    this._texts = [txt]
-                }
-            }
-
-            ctx.save();
-            ctx.textBaseline = 'top';
-            _.each(this._texts, function(_text) {
-                _text.draw(ctx);
-            })
-            ctx.restore();
-        },
-        computeWordWrap : function(ctx) {
-            if (! this.text) {
-                return;
-            }
-            var words = this.text.split(' ');
-            var len = words.length;
-            var lineWidth = 0;
-            var wordWidth;
-            var wordText;
-            var texts = [];
-            var txt;
-
-            var wordHeight = ctx.measureText("m").width;
-
-            for(var i = 0; i < len; i++) {
-                wordText = i == len-1 ? words[i] : words[i]+' ';
-                wordWidth = ctx.measureText(wordText).width;
-                if (lineWidth + wordWidth > this.width ||
-                    ! txt) {    //first line
-                    // create a new text line and put current word
-                    // in the head of new line
-                    txt = new Text({
-                        text : wordText, //append last word
-                        start : this.start.clone().add(new Vector2(0, this.lineHeight*(texts.length+1) - wordHeight))
-                    })
-                    this.extendCommonProperties(txt);
-                    texts.push(txt);
-
-                    lineWidth = wordWidth;
-                }else{
-                    lineWidth += wordWidth;
-                    txt.text += wordText;
-                }
-            }
-            return texts;
-        },
-        computeWordBreak : function(ctx) {
-            if (! this.text) {
-                return;
-            }
-            var len = this.text.length;
-            var letterWidth;
-            var letter;
-            var lineWidth = ctx.measureText(this.text[0]).width;
-            var texts = [];
-            var txt;
-
-            var wordHeight = ctx.measureText("m").width;
-
-            for (var i = 0; i < len; i++) {
-                letter = this.text[i];
-                letterWidth = ctx.measureText(letter).width;
-                if (lineWidth + letterWidth > this.width || 
-                    ! txt) {    //first line
-                    var txt = new Text({
-                        text : letter,
-                        start : this.start.clone().add(new Vector2(0, this.lineHeight*(texts.length+1) - wordHeight))
-                    });
-                    this.extendCommonProperties(txt);
-                    texts.push(txt);
-                    // clear prev line states
-                    lineWidth = letterWidth;
-                } else {
-                    lineWidth += letterWidth;
-                    txt.text += letter;
-                }
-            }
-            return texts;
-        },
-        extendCommonProperties : function(txt) {
-            var props = {};
-            _.extend(txt, {
-                fill : this.fill,
-                stroke : this.stroke
-            })
-        },
-        intersect : function(x, y) {
-        }
-    })
-
-    return TextBox;
-});
 define('qtek/math/Vector3',['require','glmatrix'],function(require) {
     
     
@@ -12595,7 +4741,27 @@ define('qtek/math/Vector3',['require','glmatrix'],function(require) {
             vec3.transformQuat(this._array, this._array, q._array);
             this._dirty = true;
             return this;
-        },     
+        },
+
+        applyProjection : function(m) {
+            var v = this._array;
+            m = m._array;
+
+            // Perspective projection
+            if (m[15] === 0) {
+                var w = -1 / v[2];
+                v[0] = m[0] * v[0] * w;
+                v[1] = m[5] * v[1] * w;
+                v[2] = (m[10] * v[2] + m[14]) * w;
+            } else {
+                v[0] = m[0] * v[0] + m[12];
+                v[1] = m[5] * v[1] + m[13];
+                v[2] = m[10] * v[2] + m[14];
+            }
+            this._dirty = true;
+
+            return this;
+        },
         /**
          * Set euler angle from queternion
          */
@@ -12616,8 +4782,144 @@ define('qtek/math/Vector3',['require','glmatrix'],function(require) {
         },
     }
 
-    function clamp( x ) {
-        return Math.min( Math.max( x, -1 ), 1 );
+    // Supply methods that are not in place
+    Vector3.add = function(out, a, b) {
+        vec3.add(out._array, a._array, b._array);
+        out._dirty = true;
+        return out;
+    }
+
+    Vector3.set = function(out, x, y, z) {
+        vec3.set(out._array, x, y, z);
+        out._dirty = true;
+    }
+
+    Vector3.copy = function(out, b) {
+        vec3.copy(out._array, b._array);
+        out._dirty = true;
+        return out;
+    }
+
+    Vector3.cross = function(out, a, b) {
+        vec3.cross(out._array, a._array, b._array);
+        out._dirty = true;
+        return out;
+    }
+
+    Vector3.dist = function(a, b) {
+        return vec3.distance(a._array, b._array);
+    }
+
+    Vector3.distance = Vector3.dist;
+
+    Vector3.div = function(out, a, b) {
+        vec3.divide(out._array, a._array, b._array);
+        out._dirty = true;
+        return out;
+    }
+
+    Vector3.divide = Vector3.div;
+
+    Vector3.dot = function(a, b) {
+        return vec3.dot(a._array, b._array);
+    }
+
+    Vector3.len = function(b) {
+        return vec3.length(b._array);
+    }
+
+    // Vector3.length = Vector3.len;
+
+    Vector3.lerp = function(out, a, b, t) {
+        vec3.lerp(out._array, a._array, b._array, t);
+        out._dirty = true;
+        return out;
+    }
+
+    Vector3.min = function(out, a, b) {
+        vec3.min(out._array, a._array, b._array);
+        out._dirty = true;
+        return out;
+    }
+
+    Vector3.max = function(out, a, b) {
+        vec3.max(out._array, a._array, b._array);
+        out._dirty = true;
+        return out;
+    }
+
+    Vector3.mul = function(out, a, b) {
+        vec3.multiply(out._array, a._array, b._array);
+        out._dirty = true;
+        return out;
+    }
+
+    Vector3.multiply = Vector3.mul;
+
+    Vector3.negate = function(out, a) {
+        vec3.negate(out._array, a._array);
+        out._dirty = true;
+        return out;
+    }
+
+    Vector3.normalize = function(out, a) {
+        vec3.normalize(out._array, a._array);
+        out._dirty = true;
+        return out;
+    }
+
+    Vector3.random = function(out, scale) {
+        vec3.random(out._array, scale);
+        out._dirty = true;
+        return out;
+    }
+
+    Vector3.scale = function(out, a, scale) {
+        vec3.scale(out._array, a._array, scale);
+        out._dirty = true;
+        return out;
+    }
+
+    Vector3.scaleAndAdd = function(out, a, b, scale) {
+        vec3.scale(out._array, a._array, b._array, scale);
+        out._dirty = true;
+        return out;
+    }
+
+    Vector3.sqrDist = function(a, b) {
+        return vec3.sqrDist(a._array, b._array);
+    }
+
+    Vector3.squaredDistance = Vector3.sqrDist;
+
+    Vector3.sqrLen = function(a) {
+        return vec3.sqrLen(a._array);
+    }
+    Vector3.squaredLength = Vector3.sqrLen;
+
+    Vector3.sub = function(out, a, b) {
+        vec3.subtract(out._array, a._array, b._array);
+        out._dirty = true;
+        return out;
+    }
+    Vector3.subtract = Vector3.sub;
+
+    Vector3.transformMat3 = function(out, a, m) {
+        vec3.transformMat3(out._array, a._array, m._array);
+        out._dirty = true;
+        return out;
+    }
+
+    Vector3.transformMat4 = function(out, a, m) {
+        vec3.transformMat4(out._array, a._array, m._array);
+        out._dirty = true;
+        return out;
+    }
+
+    Vector3.transformQuat = function(out, a, q) {
+        vec3.transformQuat(out._array, a._array, m._array);
+        out._dirty = true;
+        return out;
     }
 
     Vector3.POSITIVE_X = new Vector3(1, 0, 0);
@@ -12758,7 +5060,7 @@ define('qtek/math/Quaternion',['require','glmatrix'],function(require) {
             var m3 = mat3.create();
             return function(m) {
                 mat3.fromMat4(m3, m._array);
-                // Not like mat4, mat3 in glmatrix seems to be row-based
+                // TODO Not like mat4, mat3 in glmatrix seems to be row-based
                 mat3.transpose(m3, m3);
                 quat.fromMat3(this._array, m3);
                 this._dirty = true;
@@ -12846,7 +5148,13 @@ define('qtek/math/Quaternion',['require','glmatrix'],function(require) {
             return this;
         },
 
-        setAxisAngle : function(axis /*Vector3*/, rad) {
+        setAxes : function(view, right, up) {
+            quat.setAxes(this._array, view._array, right._array, up._array);
+            this._dirty = true;
+            return this;
+        },
+
+        setAxisAngle : function(axis, rad) {
             quat.setAxisAngle(this._array, axis._array, rad);
             this._dirty = true;
             return this;
@@ -12875,6 +5183,132 @@ define('qtek/math/Quaternion',['require','glmatrix'],function(require) {
         toString : function() {
             return "[" + Array.prototype.join.call(this._array, ",") + "]";
         }
+    }
+
+    // Supply methods that are not in place
+    Quaternion.add = function(out, a, b) {
+        quat.add(out._array, a._array, b._array);
+        out._dirty = true;
+        return out;
+    }
+
+    Quaternion.set = function(out, x, y, z, w) {
+        quat.set(out._array, x, y, z, w);
+        out._dirty = true;
+    }
+
+    Quaternion.copy = function(out, b) {
+        quat.copy(out._array, b._array);
+        out._dirty = true;
+        return out;
+    }
+
+    Quaternion.calculateW = function(out, a) {
+        quat.calculateW(out._array, a._array);
+        out._dirty = true;
+        return out;
+    }
+
+    Quaternion.conjugate = function(out, a) {
+        quat.conjugate(out._array, a._array);
+        out._dirty = true;
+        return out;
+    }
+
+    Quaternion.identity = function(out) {
+        quat.identity(out._array);
+        out._dirty = true;
+        return out;
+    }
+
+    Quaternion.invert = function(out, a) {
+        quat.invert(out._array, a._array);
+        out._dirty = true;
+        return out;
+    }
+
+    Quaternion.dot = function(a, b) {
+        return quat.dot(a._array, b._array);
+    }
+
+    Quaternion.len = function(b) {
+        return quat.length(b._array);
+    }
+
+    // Quaternion.length = Quaternion.len;
+
+    Quaternion.lerp = function(out, a, b, t) {
+        quat.lerp(out._array, a._array, b._array, t);
+        out._dirty = true;
+        return out;
+    }
+
+    Quaternion.slerp = function(out, a, b, t) {
+        quat.slerp(out._array, a._array, b._array, t);
+        out._dirty = true;
+        return out;
+    }
+
+    Quaternion.mul = function(out, a, b) {
+        quat.multiply(out._array, a._array, b._array);
+        out._dirty = true;
+        return out;
+    }
+
+    Quaternion.multiply = Quaternion.mul;
+
+    Quaternion.rotateX = function(out, a, rad) {
+        quat.rotateX(out._array, a._array, rad);
+        out._dirty = true;
+        return out;
+    }
+
+    Quaternion.rotateY = function(out, a, rad) {
+        quat.rotateY(out._array, a._array, rad);
+        out._dirty = true;
+        return out;
+    }
+
+    Quaternion.rotateZ = function(out, a, rad) {
+        quat.rotateZ(out._array, a._array, rad);
+        out._dirty = true;
+        return out;
+    }
+
+    Quaternion.setAxisAngle = function(out, axis, rad) {
+        quat.setAxisAngle(out._array, axis._array, rad);
+        out._dirty = true;
+        return out;
+    }
+
+    Quaternion.normalize = function(out, a) {
+        quat.normalize(out._array, a._array);
+        out._dirty = true;
+        return out;
+    }
+
+    Quaternion.sqrLen = function(a) {
+        return quat.sqrLen(a._array);
+    }
+
+    Quaternion.squaredLength = Quaternion.sqrLen;
+
+    Quaternion.fromMat3 = function(out, m) {
+        quat.fromMat3(out._array, m._array);
+        out._dirty = true;
+        return out;
+    }
+
+    Quaternion.setAxes = function(out, view, right, up) {
+        quat.setAxes(out._array, view._array, right._array, up._array);
+        out._dirty = true;
+        return out;
+    }
+
+    Quaternion.rotationTo = function(out, a, b) {
+        quat.rotationTo(out._array, a._array, b._array);
+        out._dirty = true;
+        return out;
     }
 
     return Quaternion;
@@ -13121,6 +5555,97 @@ define('qtek/math/Matrix4',['require','glmatrix','./Vector3'],function(require) 
     // Object.defineProperty(Matrix4.prototype, 'm32', makeProperty(14));
     // Object.defineProperty(Matrix4.prototype, 'm33', makeProperty(15));
 
+    Matrix4.adjoint = function(out, a) {
+        mat4.adjoint(out._array, a._array);
+        return out;
+    }
+
+    Matrix4.copy = function(out, a) {
+        mat4.copy(out._array, a._array);
+        return out;
+    }
+
+    Matrix4.determinant = function(a) {
+        return mat4.determinant(a._array);
+    }
+
+    Matrix4.identity = function(out) {
+        mat4.identity(out._array);
+        return out;
+    }
+    
+    Matrix4.ortho = function(out, left, right, bottom, top, near, far) {
+        mat4.ortho(out._array, left, right, bottom, top, near, far);
+        return out;
+    }
+
+    Matrix4.perspective = function(out, fovy, aspect, near, far) {
+        mat4.perspective(out._array, fovy, aspect, near, far);
+        return out;
+    }
+
+    Matrix4.lookAt = function(out, eye, center, up) {
+        mat4.lookAt(out._array, eye._array, center._array, up._array);
+        return out;
+    }
+
+    Matrix4.invert = function(out, a) {
+        mat4.invert(out._array, a._array);
+        return out;
+    }
+
+    Matrix4.mul = function(out, a, b) {
+        mat4.mul(out._array, a._array, b._array);
+        return out;
+    }
+
+    Matrix4.multiply = Matrix4.mul;
+
+    Matrix4.fromQuat = function(out, q) {
+        mat4.fromQuat(out._array, q._array);
+        return out;
+    }
+
+    Matrix4.fromRotationTranslation = function(out, q, v) {
+        mat4.fromRotationTranslation(out._array, q._array, v._array);
+        return out;
+    }
+
+    Matrix4.rotate = function(out, a, rad, axis) {
+        mat4.rotate(out._array, a._array, rad, axis._array);
+        return out;
+    }
+
+    Matrix4.rotateX = function(out, a, rad) {
+        mat4.rotateX(out._array, a._array, rad);
+        return out;
+    }
+
+    Matrix4.rotateY = function(out, a, rad) {
+        mat4.rotateY(out._array, a._array, rad);
+        return out;
+    }
+
+    Matrix4.rotateZ = function(out, a, rad) {
+        mat4.rotateZ(out._array, a._array, rad);
+        return out;
+    }
+
+    Matrix4.scale = function(out, a, v) {
+        mat4.scale(out._array, a._array, v._array);
+        return out;
+    }
+
+    Matrix4.transpose = function(out, a) {
+        mat4.transpose(out._array, a._array);
+        return out;
+    }
+
+    Matrix4.translate = function(out, a, v) {
+        mat4.translate(out._array, a._array, v._array);
+        return out;
+    }
+
     return Matrix4;
 });
 define('qtek/math/Matrix3',['require','glmatrix'],function(require) {
@@ -13216,6 +5741,77 @@ define('qtek/math/Matrix3',['require','glmatrix'],function(require) {
         }
     }
 
+    Matrix3.adjoint = function(out, a) {
+        mat3.adjoint(out._array, a._array);
+        return out;
+    }
+
+    Matrix3.copy = function(out, a) {
+        mat3.copy(out._array, a._array);
+        return out;
+    }
+
+    Matrix3.determinant = function(a) {
+        return mat3.determinant(a._array);
+    }
+
+    Matrix3.identity = function(out) {
+        mat3.identity(out._array);
+        return out;
+    }
+
+    Matrix3.invert = function(out, a) {
+        mat3.invert(out._array, a._array);
+        return out;
+    }
+
+    Matrix3.mul = function(out, a, b) {
+        mat3.mul(out._array, a._array, b._array);
+        return out;
+    }
+
+    Matrix3.multiply = Matrix3.mul;
+
+    Matrix3.fromMat2d = function(out, a) {
+        mat3.fromMat2d(out._array, a._array);
+        return out;
+    }
+    
+    Matrix3.fromMat4 = function(out, a) {
+        mat3.fromMat4(out._array, a._array);
+        return out;
+    }
+
+    Matrix3.fromQuat = function(out, q) {
+        mat3.fromQuat(out._array, q._array);
+        return out;
+    }
+
+    Matrix3.normalFromMat4 = function(out, a) {
+        mat3.normalFromMat4(out._array, a._array);
+        return out;
+    }
+
+    Matrix3.rotate = function(out, a, rad) {
+        mat3.rotate(out._array, a._array, rad);
+        return out;
+    }
+
+    Matrix3.scale = function(out, a, v) {
+        mat3.scale(out._array, a._array, v._array);
+        return out;
+    }
+
+    Matrix3.transpose = function(out, a) {
+        mat3.transpose(out._array, a._array);
+        return out;
+    }
+
+    Matrix3.translate = function(out, a, v) {
+        mat3.translate(out._array, a._array, v._array);
+        return out;
+    }
+
     return Matrix3;
 });
 define('qtek/Node',['require','./core/Base','./core/util','./math/Vector3','./math/Quaternion','./math/Matrix4','./math/Matrix3','glmatrix'],function(require) {
@@ -13284,7 +5880,7 @@ define('qtek/Node',['require','./core/Base','./core/util','./math/Vector3','./ma
 
         add : function(node) {
             if (this._inIterating) {
-                console.warn('Do add operation can cause unpredictable error when in iterating');
+                console.warn('Add operation can cause unpredictable error when in iterating');
             }
             if (node.parent === this) {
                 return;
@@ -13295,14 +5891,14 @@ define('qtek/Node',['require','./core/Base','./core/util','./math/Vector3','./ma
             node.parent = this;
             this._children.push(node);
 
-            if (this.scene !== node.scene) {
+            if (this.scene && this.scene !== node.scene) {
                 node.traverse(this._addSelfToScene, this);
             }
         },
 
         remove : function(node) {
             if (this._inIterating) {
-                console.warn('Do remove operation can cause unpredictable error when in iterating');
+                console.warn('Remove operation can cause unpredictable error when in iterating');
             }
 
             this._children.splice(this._children.indexOf(node), 1);
@@ -13342,12 +5938,36 @@ define('qtek/Node',['require','./core/Base','./core/util','./math/Vector3','./ma
             return this._children[idx];
         },
 
+        getChildByName : function(name) {
+            for (var i = 0; i < this._children.length; i++) {
+                if (this._children[i].name === name) {
+                    return this._children[i];
+                }
+            }
+        },
+
+        getDescendantByName : function(name) {
+            for (var i = 0; i < this._children.length; i++) {
+                var child = this._children[i];
+                if (child.name === name) {
+                    return child;
+                } else {
+                    var res = child.getDescendantByName(name);
+                    if (res) {
+                        return res;
+                    }
+                }
+            }
+        },
+
         // pre-order traverse
-        traverse : function(callback, parent) {
+        traverse : function(callback, parent, ctor) {
             
             this._inIterating = true;
 
-            var stopTraverse = callback(this, parent);
+            if (ctor === undefined || this.constructor === ctor) {
+                var stopTraverse = callback(this, parent);
+            }
             if(!stopTraverse) {
                 var _children = this._children;
                 for(var i = 0, len = _children.length; i < len; i++) {
@@ -13457,6 +6077,19 @@ define('qtek/Node',['require','./core/Base','./core/util','./math/Vector3','./ma
             }
         },
 
+        clone : function() {
+            // TODO Name
+            var node = new this.constructor();
+            node.position.copy(this.position);
+            node.rotation.copy(this.rotation);
+            node.scale.copy(this.scale);
+
+            for (var i = 0; i < this._children.length; i++) {
+                node.add(this._children[i].clone());
+            }
+            return node;
+        },
+
         // http://docs.unity3d.com/Documentation/ScriptReference/Transform.RotateAround.html
         // TODO improve performance
         rotateAround : (function() {
@@ -13479,7 +6112,6 @@ define('qtek/Node',['require','./core/Base','./core/util','./math/Vector3','./ma
                 this.decomposeLocalTransform();
                 this._needsUpdateWorldTransform = true;
             }
-            
         })(),
 
         lookAt : (function() {
@@ -13593,6 +6225,8 @@ define('qtek/math/BoundingBox',['require','../core/Base','./Vector3','glmatrix']
 
             this.min._dirty = true;
             this.max._dirty = true;
+
+            return this;
         },
 
         applyProjection : function(matrix) {
@@ -13636,6 +6270,8 @@ define('qtek/math/BoundingBox',['require','../core/Base','./Vector3','glmatrix']
             }
             this.min._dirty = true;
             this.max._dirty = true;
+
+            return this;
         },
 
         updateVertices : function() {
@@ -13662,6 +6298,8 @@ define('qtek/math/BoundingBox',['require','../core/Base','./Vector3','glmatrix']
             vec3Copy(this.max._array, boundingBox.max._array);
             this.min._dirty = true;
             this.max._dirty = true;
+
+            return this;
         },
 
         clone : function() {
@@ -13678,10 +6316,12 @@ define('qtek/math/Plane',['require','./Vector3','glmatrix'],function(require) {
     var Vector3 = require('./Vector3');
     var glmatrix = require('glmatrix');
     var vec3 = glmatrix.vec3;
+    var mat4 = glmatrix.mat4;
+    var vec4 = glmatrix.vec4;
 
     var Plane = function(normal, distance) {
-        this.normal = normal || new Vector3();
-        this.distance = distance;
+        this.normal = normal || new Vector3(0, 1, 0);
+        this.distance = distance || 0;
     }
 
     Plane.prototype = {
@@ -13692,10 +6332,101 @@ define('qtek/math/Plane',['require','./Vector3','glmatrix'],function(require) {
             return vec3.dot(point._array, this.normal._array) - this.distance;
         },
 
+        projectPoint : function(point, out) {
+            if (!out) {
+                out = new Vector3();
+            }
+            var d = this.distanceToPoint(point);
+            vec3.scaleAndAdd(out._array, point._array, this.normal._array, -d);
+            out._dirty = true;
+            return out;
+        },
+
         normalize : function() {
             var invLen = 1 / vec3.len(this.normal._array);
             vec3.scale(this.normal._array, invLen);
             this.distance *= invLen;
+
+            return this;
+        },
+
+        intersectFrustum : function(frustum) {
+            // Check if all coords of frustum is on plane all under plane
+            var coords = frustum.vertices;
+            var normal = this.normal._array;
+            var onPlane = vec3.dot(coords[0]._array, normal) > this.distance;
+            for (var i = 1; i < 8; i++) {
+                if ((vec3.dot(coords[i]._array, normal) > this.distance) != onPlane) {
+                    return true;
+                } 
+            }
+        },
+
+        intersectLine : (function() {
+            var rd = vec3.create();
+            return function(start, end, out) {
+                var d0 = this.distanceToPoint(start);
+                var d1 = this.distanceToPoint(end);
+                if ((d0 > 0 && d1 > 0) || (d0 < 0 && d1 < 0)) {
+                    return null;
+                }
+                // Ray intersection
+                var pn = this.normal._array;
+                var d = this.distance;
+                var ro = start._array;
+                // direction
+                vec3.sub(rd, end._array, start._array);
+                vec3.normalize(rd, rd);
+
+                var divider = vec3.dot(pn, rd);
+                // ray is parallel to the plane
+                if (divider == 0) {
+                    return null;
+                }
+                if (!out) {
+                    out = new Vector3();
+                }
+                var t = (vec3.dot(pn, ro) - d) / divider;
+                vec3.scaleAndAdd(out._array, ro, rd, -t);
+                out._dirty = true;
+                return out;
+            };
+        })(),
+
+        applyTransform : (function() {
+            var inverseTranspose = mat4.create();
+            var normalv4 = vec4.create();
+            var pointv4 = vec4.create();
+            pointv4[3] = 1;
+            return function(m4) {
+                m4 = m4._array;
+                // Transform point on plane
+                vec3.scale(pointv4, this.normal._array, this.distance);
+                vec4.transformMat4(pointv4, pointv4, m4);
+                this.distance = vec3.dot(pointv4, this.normal._array);
+                // Transform plane normal
+                mat4.invert(inverseTranspose, m4);
+                mat4.transpose(inverseTranspose, inverseTranspose);
+                normalv4[3] = 0;
+                vec3.copy(normalv4, this.normal._array);
+                vec4.transformMat4(normalv4, normalv4, inverseTranspose);
+                vec3.copy(this.normal._array, normalv4);
+
+                return this;
+            }
+        })(),
+
+        copy : function(plane) {
+            vec3.copy(this.normal._array, plane.normal._array);
+            this.normal._dirty = true;
+            this.distance = plane.distance;
+            return this;
+        },
+
+        clone : function() {
+            var plane = new Plane();
+            plane.copy(this);
+            return plane;
         }
     }
 
@@ -13740,27 +6471,27 @@ define('qtek/math/Frustum',['require','./Vector3','./BoundingBox','./Plane','glm
 
             // Update planes
             vec3.set(planes[0].normal._array, m3 - m0, m7 - m4, m11 - m8);
-            planes[0].distance = m15 - m12;
+            planes[0].distance = -(m15 - m12);
             planes[0].normalize();
 
             vec3.set(planes[1].normal._array, m3 + m0, m7 + m4, m11 + m8);
-            planes[1].distance = m15 + m12;
+            planes[1].distance = -(m15 + m12);
             planes[1].normalize();
             
             vec3.set(planes[2].normal._array, m3 + m1, m7 + m5, m11 + m9);
-            planes[2].distance = m15 + m13;
+            planes[2].distance = -(m15 + m13);
             planes[2].normalize();
             
             vec3.set(planes[3].normal._array, m3 - m1, m7 - m5, m11 - m9);
-            planes[3].distance = m15 - m13;
+            planes[3].distance = -(m15 - m13);
             planes[3].normalize();
             
             vec3.set(planes[4].normal._array, m3 - m2, m7 - m6, m11 - m10);
-            planes[4].distance = m15 - m14;
+            planes[4].distance = -(m15 - m14);
             planes[4].normalize();
             
             vec3.set(planes[5].normal._array, m3 + m2, m7 + m6, m11 + m10);
-            planes[5].distance = m15 + m14;
+            planes[5].distance = -(m15 + m14);
             planes[5].normalize();
 
             // Perspective projection
@@ -13841,17 +6572,80 @@ define('qtek/math/Frustum',['require','./Vector3','./BoundingBox','./Plane','glm
     }
     return Frustum;
 });
-define('qtek/Camera',['require','./Node','./math/Matrix4','./math/Frustum','./math/BoundingBox'],function(require) {
+define('qtek/math/Ray',['require','../core/Base','./Vector3','glmatrix'],function(require) {
+
+    var Base = require('../core/Base');
+    var Vector3 = require('./Vector3');
+    var glMatrix = require('glmatrix');
+    var vec3 = glMatrix.vec3;
+
+    var Ray = function(origin, direction) {
+        this.origin = origin || new Vector3();
+        this.direction = direction || new Vector3();
+    }
+    Ray.prototype = {
+        
+        constructor : Ray,
+
+        // http://www.siggraph.org/education/materials/HyperGraph/raytrace/rayplane_intersection.htm
+        intersectPlane : function(plane, out) {
+            var pn = plane.normal._array;
+            var d = plane.distance;
+            var ro = this.origin._array;
+            var rd = this.direction._array;
+
+            var divider = vec3.dot(pn, rd);
+            // ray is parallel to the plane
+            if (divider == 0) {
+                return null;
+            }
+            if (!out) {
+                out = new Vector3();
+            }
+            var t = (vec3.dot(pn, ro) - d) / divider;
+            vec3.scaleAndAdd(out._array, ro, rd, -t);
+            out._dirty = true;
+            return out;
+        },
+
+        // Mirror the ray against plane
+        mirrorAgainstPlane : function(plane) {
+            // Distance to plane
+            var d = vec3.dot(plane.normal._array, this.direction._array);
+            vec3.scaleAndAdd(this.direction._array, this.direction._array, plane.normal._array, -d * 2);
+            this.direction_dirty = true;
+            return this;
+        },
+
+        // http://www.graphics.cornell.edu/pubs/1997/MT97.html
+        intersectTriangle : function() {
+            
+        }
+    };
+
+    return Ray;
+});
+define('qtek/Camera',['require','./Node','./math/Matrix4','./math/Frustum','./math/BoundingBox','./math/Ray','glmatrix'],function(require) {
 
     var Node = require("./Node");
     var Matrix4 = require("./math/Matrix4");
     var Frustum = require("./math/Frustum");
     var BoundingBox = require("./math/BoundingBox");
+    var Ray = require("./math/Ray");
+
+    var glMatrix = require('glmatrix');
+    var mat4 = glMatrix.mat4;
+    var vec3 = glMatrix.vec3;
+    var vec4 = glMatrix.vec4;
 
     var Camera = Node.derive(function() {
         return {
             
             projectionMatrix : new Matrix4(),
+
+            invProjectionMatrix : new Matrix4(),
+
+            viewMatrix : new Matrix4(),
 
             // Frustum bounding box in view space
             frustum : new Frustum(),
@@ -13871,11 +6665,39 @@ define('qtek/Camera',['require','./Node','./math/Matrix4','./math/Frustum','./ma
         
         update : function(force) {
             Node.prototype.update.call(this, force);
+            mat4.invert(this.viewMatrix._array, this.worldTransform._array);
             
             this.updateProjectionMatrix();
+            mat4.invert(this.invProjectionMatrix._array, this.projectionMatrix._array);
+
             this.frustum.setFromProjection(this.projectionMatrix);
         },
-        updateProjectionMatrix : function(){}
+        updateProjectionMatrix : function(){},
+
+        castRay : (function() {
+            var v4 = vec4.create();
+            return function(ndc, out) {
+                var ray = out !== undefined ? out : new Ray();
+                var x = ndc._array[0];
+                var y = ndc._array[1];
+                vec4.set(v4, x, y, -1, 1);
+                vec4.transformMat4(v4, v4, this.invProjectionMatrix._array);
+                vec4.transformMat4(v4, v4, this.worldTransform._array);
+                vec3.scale(ray.origin._array, v4, 1 / v4[3]);
+
+                vec4.set(v4, x, y, 1, 1);
+                vec4.transformMat4(v4, v4, this.invProjectionMatrix._array);
+                vec4.transformMat4(v4, v4, this.worldTransform._array);
+                vec3.scale(v4, v4, 1 / v4[3]);
+                vec3.sub(ray.direction._array, v4, ray.origin._array);
+
+                vec3.normalize(ray.direction._array, ray.direction._array);
+                ray.direction._dirty = true;
+                ray.origin._dirty = true;
+                
+                return ray;
+            }
+        })()
     });
 
     return Camera;
@@ -14302,6 +7124,112 @@ return {
     BROWSER_DEFAULT_WEBGL          : 0x9244,
 }
 });
+define('qtek/core/Cache',[],function() {
+
+    var Cache = function() {
+
+        this._contextId = 0;
+
+        this._caches = [];
+
+        this._context = {};
+    }
+
+    Cache.prototype = {
+
+        use : function(contextId, documentSchema) {
+
+            if (! this._caches[contextId]) {
+                this._caches[contextId] = {};
+
+                if (documentSchema) {
+                    this._caches[contextId] = documentSchema();
+                }
+            }
+            this._contextId = contextId;
+
+            this._context = this._caches[contextId];
+        },
+
+        put : function(key, value) {
+            this._context[key] = value;
+        },
+
+        get : function(key) {
+            return this._context[key];
+        },
+
+        dirty : function(field) {
+            field = field || "";
+            var key = "__dirty__" + field;
+            this.put(key, true)
+        },
+        
+        dirtyAll : function(field) {
+            field = field || "";
+            var key = "__dirty__" + field;
+            for (var i = 0; i < this._caches.length; i++) {
+                if (this._caches[i]) {
+                    this._caches[i][key] = true;
+                }
+            }
+        },
+
+        fresh : function(field) {
+            field = field || "";
+            var key = "__dirty__" + field;
+            this.put(key, false);
+        },
+
+        freshAll : function(field) {
+            field = field || "";
+            var key = "__dirty__" + field;
+            for (var i = 0; i < this._caches.length; i++) {
+                if (this._caches[i]) {
+                    this._caches[i][key] = false;
+                }
+            }
+        },
+
+        isDirty : function(field) {
+            field = field || "";
+            var key = "__dirty__" + field;
+            return  !this._context.hasOwnProperty(key)
+                    || this._context[key] === true
+        },
+
+        clearContext : function() {
+            this._caches[this._contextId] = {};
+            this._context = {};
+        },
+
+        deleteContext : function(contextId) {
+            this._caches[contextId] = {};
+            this._context = {};
+        },
+
+        'delete' : function(key) {
+            delete this._context[key];
+        },
+
+        clearAll : function() {
+            this._caches = {};
+        },
+
+        getContext : function() {
+            return this._context;
+        },
+
+        miss : function(key) {
+            return ! this._context.hasOwnProperty(key);
+        }
+    }
+
+    Cache.prototype.constructor = Cache;
+
+    return Cache;
+
+});
 define('qtek/Geometry',['require','./core/Base','./core/util','./core/glenum','./core/Cache'],function(require) {
     
     'use strict'
@@ -14310,6 +7238,30 @@ define('qtek/Geometry',['require','./core/Base','./core/util','./core/glenum','.
     var util = require("./core/util");
     var glenum = require("./core/glenum");
     var Cache = require("./core/Cache");
+
+    function Attribute(name, type, size, semantic, isDynamic) {
+        this.name = name;
+        this.type = type;
+        this.size = size;
+        if (semantic) {
+            this.semantic = semantic;
+        }
+        if (isDynamic) {
+            this._isDynamic = true;
+            this.value = [];
+        } else {
+            this._isDynamic = false;
+            this.value = null
+        }
+
+    }
+
+    Attribute.prototype.clone = function(copyValue) {
+        var ret = new Attribute(this.name, this.type, this.size, this.semantic, this._isDynamic);
+        if (copyValue) {
+            console.warn('todo');
+        }
+    }
 
     function AttributeBuffer(name, type, buffer, size, semantic) {
         this.name = name;
@@ -14353,6 +7305,7 @@ define('qtek/Geometry',['require','./core/Base','./core/util','./core/glenum','.
         getVertexNumber : notImplementedWarn,
         getFaceNumber : notImplementedWarn,
         isUseFace : notImplementedWarn,
+        isStatic : notImplementedWarn,
         getEnabledAttributes : notImplementedWarn,
         getBufferChunks : notImplementedWarn,
         generateVertexNormals : notImplementedWarn,
@@ -14371,6 +7324,7 @@ define('qtek/Geometry',['require','./core/Base','./core/util','./core/glenum','.
 
     Geometry.AttributeBuffer = AttributeBuffer;
     Geometry.IndicesBuffer = IndicesBuffer;
+    Geometry.Attribute = Attribute;
 
     return Geometry
 });
@@ -14399,65 +7353,21 @@ define('qtek/DynamicGeometry',['require','./Geometry','./core/util','./math/Vect
     var DynamicGeometry = Geometry.derive(function() {
         return {
             attributes : {
-                 position : {
-                    type : 'float',
-                    semantic : "POSITION",
-                    size : 3,
-                    value : []
-                 },
-                 texcoord0 : {
-                    type : 'float',
-                    semantic : "TEXCOORD_0",
-                    size : 2,
-                    value : []
-                 },
-                 texcoord1 : {
-                    type : 'float',
-                    semantic : "TEXCOORD_1",
-                    size : 2,
-                    value : []
-                 },
-                 normal : {
-                    type : 'float',
-                    semantic : "NORMAL",
-                    size : 3,
-                    value : []
-                 },
-                 tangent : {
-                    type : 'float',
-                    semantic : "TANGENT",
-                    size : 4,
-                    value : []
-                 },
-                 color : {
-                    type : 'float',
-                    semantic : "COLOR",
-                    size : 4,
-                    value : []
-                 },
+                 position : new Geometry.Attribute('position', 'float', 3, 'POSITION', true),
+                 texcoord0 : new Geometry.Attribute('texcoord0', 'float', 2, 'TEXCOORD_0', true),
+                 texcoord1 : new Geometry.Attribute('texcoord1', 'float', 2, 'TEXCOORD_1', true),
+                 normal : new Geometry.Attribute('normal', 'float', 3, 'NORMAL', true),
+                 tangent : new Geometry.Attribute('tangent', 'float', 4, 'TANGENT', true),
+                 color : new Geometry.Attribute('color', 'float', 4, 'COLOR', true),
                  // Skinning attributes
                  // Each vertex can be bind to 4 bones, because the 
                  // sum of weights is 1, so the weights is stored in vec3 and the last
                  // can be calculated by 1-w.x-w.y-w.z
-                 weight : {
-                    type : 'float',
-                    semantic : 'WEIGHT',
-                    size : 3,
-                    value : []
-                 },
-                 joint : {
-                    type : 'float',
-                    semantic : 'JOINT',
-                    size : 4,
-                    value : []
-                 },
+                 weight : new Geometry.Attribute('weight', 'float', 3, 'WEIGHT', true),
+                 joint : new Geometry.Attribute('joint', 'float', 4, 'JOINT', true),
                  // For wireframe display
                  // http://codeflow.org/entries/2012/aug/02/easy-wireframe-display-with-barycentric-coordinates/
-                 barycentric : {
-                    type : 'float',
-                    size : 3,
-                    value : []
-                 }
+                 barycentric : new Geometry.Attribute('barycentric', 'float', 3, null, true),
             },
 
             hint : glenum.DYNAMIC_DRAW,
@@ -14494,10 +7404,8 @@ define('qtek/DynamicGeometry',['require','./Geometry','./core/util','./math/Vect
                 return;
             }
             this.cache.dirtyAll(field);
-            
-            this._enabledAttributes = null;
 
-            // PENDING : Change to dynamic geometry
+            this._enabledAttributes = null;
         },
 
         getVertexNumber : function() {
@@ -14514,6 +7422,10 @@ define('qtek/DynamicGeometry',['require','./Geometry','./core/util','./math/Vect
 
         isSplitted : function() {
             return this.getVertexNumber() > this.chunkSize;
+        },
+        
+        isStatic : function() {
+            return false;
         },
 
         getEnabledAttributes : function() {
@@ -15184,13 +8096,12 @@ define('qtek/DynamicGeometry',['require','./Geometry','./core/util','./math/Vect
  * Base class for all textures like compressed texture, texture2d, texturecube
  * TODO mapping
  */
-define('qtek/Texture',['require','./core/Base','./core/util','./core/glenum','./core/Cache','_'],function(require) {
+define('qtek/Texture',['require','./core/Base','./core/util','./core/glenum','./core/Cache'],function(require) {
 
     var Base = require("./core/Base");
     var util = require("./core/util");
     var glenum = require("./core/glenum");
     var Cache = require("./core/Cache");
-    var _ = require("_");
 
     var Texture = Base.derive({
         // Width and height is used when the image is null and want
@@ -15574,11 +8485,11 @@ define('qtek/texture/Texture2D',['require','../Texture','../core/glinfo'],functi
 
     return Texture2D;
 });
-define('qtek/texture/TextureCube',['require','../Texture','../core/glinfo','_'],function(require) {
+define('qtek/texture/TextureCube',['require','../Texture','../core/glinfo','../core/util'],function(require) {
 
     var Texture = require('../Texture');
     var glinfo = require('../core/glinfo');
-    var _ = require('_');
+    var util = require('../core/util');
 
     var targetMap = {
         'px' : 'TEXTURE_CUBE_MAP_POSITIVE_X',
@@ -15685,7 +8596,7 @@ define('qtek/texture/TextureCube',['require','../Texture','../core/glinfo','_'],
         load : function(imageList) {
             var loading = 0;
             var self = this;
-            _.each(imageList, function(src, target){
+            util.each(imageList, function(src, target){
                 var image = new Image();
                 image.onload = function() {
                     loading --;
@@ -15751,7 +8662,7 @@ define('qtek/FrameBuffer',['require','./core/Base','./texture/Texture2D','./text
 
             _gl.bindFramebuffer(_gl.FRAMEBUFFER, this.getFrameBuffer(_gl));
 
-            this.cache.put("viewport", renderer.viewportInfo);
+            this.cache.put("viewport", renderer.viewport);
             renderer.setViewport(0, 0, this._width, this._height);
             // Create a new render buffer
             if (this.cache.miss("renderbuffer") && this.depthBuffer && ! this._depthTextureAttached) {
@@ -15787,10 +8698,10 @@ define('qtek/FrameBuffer',['require','./core/Base','./texture/Texture2D','./text
             _gl.bindFramebuffer(_gl.FRAMEBUFFER, null);
 
             this.cache.use(_gl.__GLID__);
-            var viewportInfo = this.cache.get("viewport");
+            var viewport = this.cache.get("viewport");
             // Reset viewport;
-            if (viewportInfo) {
-                renderer.setViewport(viewportInfo.x, viewportInfo.y, viewportInfo.width, viewportInfo.height);
+            if (viewport) {
+                renderer.setViewport(viewport.x, viewport.y, viewport.width, viewport.height);
             }
 
             // Because the data of texture is changed over time,
@@ -15963,7 +8874,7 @@ define('qtek/Layer',['require','./core/Base'],function(require) {
  * https://github.com/KhronosGroup/collada2json/issues/45
  *
  */
-define('qtek/Shader',['require','./core/Base','./core/util','./core/Cache','glmatrix','_'],function(require) {
+define('qtek/Shader',['require','./core/Base','./core/util','./core/Cache','glmatrix'],function(require) {
     
     
 
@@ -15971,7 +8882,6 @@ define('qtek/Shader',['require','./core/Base','./core/util','./core/Cache','glma
     var util = require("./core/util");
     var Cache = require("./core/Cache");
     var glMatrix = require("glmatrix");
-    var _ = require('_');
     var mat2 = glMatrix.mat2;
     var mat3 = glMatrix.mat3;
     var mat4 = glMatrix.mat4;
@@ -16123,7 +9033,6 @@ define('qtek/Shader',['require','./core/Base','./core/util','./core/Cache','glma
             this.dirty();
         },
         bind : function(_gl) {
-
             this.cache.use(_gl.__GLID__, getCacheSchema);
 
             this._currentLocationsMap = this.cache.get('locations');
@@ -16138,7 +9047,7 @@ define('qtek/Shader',['require','./core/Base','./core/util','./core/Cache','glma
         },
 
         dirty : function() {
-            this.cache.dirty();
+            this.cache.dirtyAll();
             for (var i = 0; i < this.cache._caches.length; i++) {
                 if (this.cache._caches[i]) {
                     var context = this.cache._caches[i];
@@ -16170,7 +9079,7 @@ define('qtek/Shader',['require','./core/Base','./core/util','./core/Cache','glma
         },
 
         define : function(type, key, val) {
-            val = val || null;
+            val = val !== undefined ? val : null;
             if (type == 'vertex' || type == 'both') {
                 if (this.vertexDefines[key] !== val) {
                     this.vertexDefines[key] = val;
@@ -16181,30 +9090,28 @@ define('qtek/Shader',['require','./core/Base','./core/util','./core/Cache','glma
             if (type == 'fragment' || type == 'both') {
                 if (this.fragmentDefines[key] !== val) {
                     this.fragmentDefines[key] = val;
-                    // Mark as dirty
-                    this.dirty();
+                    if (type !== 'both') {
+                        this.dirty();
+                    }
                 }
             }
         },
 
         unDefine : function(type, key) {
-            switch(type) {
-                case "vertex":
-                    if (this.isDefined('vertex', key)) {
-                        delete this.vertexDefines[key];
-                        // Mark as dirty
+            if (type == 'vertex' || type == 'both') {
+                if (this.isDefined('vertex', key)) {
+                    delete this.vertexDefines[key];
+                    // Mark as dirty
+                    this.dirty();
+                }
+            }
+            if (type == 'fragment' || type == 'both') {
+                if (this.isDefined('fragment', key)) {
+                    delete this.fragmentDefines[key];
+                    if (type !== 'both') {
                         this.dirty();
                     }
-                    break;
-                case "fragment":
-                    if (this.isDefined('fragment', key)) {
-                        delete this.fragmentDefines[key];
-                        // Mark as dirty
-                        this.dirty();
-                    }
-                    break;
-                default:
-                    throw new Error("Undefine type must be vertex or fragment");
+                }
             }
         },
 
@@ -16230,10 +9137,7 @@ define('qtek/Shader',['require','./core/Base','./core/util','./core/Cache','glma
             var status = this._textureStatus[symbol];
             if (status) {
                 var isEnabled = status.enabled;
-                if (isEnabled) {
-                    // Do nothing
-                    return;
-                }else{
+                if (!isEnabled) {
                     status.enabled = true;
                     this.dirty();
                 }
@@ -16252,12 +9156,8 @@ define('qtek/Shader',['require','./core/Base','./core/util','./core/Cache','glma
             var status = this._textureStatus[symbol];
             if (status) {
                 var isDisabled = ! status.enabled;
-                if (isDisabled) {
-                    // Do nothing
-                    return;
-                }else{
+                if (!isDisabled) {
                     status.enabled = false;
-
                     this.dirty();
                 }
             }
@@ -16277,11 +9177,7 @@ define('qtek/Shader',['require','./core/Base','./core/util','./core/Cache','glma
 
         hasUniform : function(symbol) {
             var location = this._currentLocationsMap[symbol];
-            if (location === null || location === undefined) {
-                return false;
-            } else {
-                return true;
-            }
+            return location !== null && location !== undefined;
         },
 
         setUniform : function(_gl, type, symbol, value) {
@@ -16764,11 +9660,11 @@ define('qtek/Shader',['require','./core/Base','./core/util','./core/Cache','glma
             var shader = new Shader({
                 vertex : this.vertex,
                 fragment : this.fragment,
-                vertexDefines : _.clone(this.vertexDefines),
-                fragmentDefines : _.clone(this.fragmentDefines)
+                vertexDefines : util.clone(this.vertexDefines),
+                fragmentDefines : util.clone(this.fragmentDefines)
             });
             for (var name in this._textureStatus) {
-                shader._textureStatus[name] = _.clone(this._textureStatus[name]);
+                shader._textureStatus[name] = util.clone(this._textureStatus[name]);
             }
             return shader;
         },
@@ -16871,8 +9767,6 @@ define('qtek/Material',['require','./core/Base','./Shader','./core/util','./core
     var Texture2D = require('./texture/Texture2D');
     var TextureCube = require('./texture/TextureCube');
 
-    _repository = [];
-
     var nameId = 0;
 
     var Material = Base.derive({
@@ -16912,10 +9806,6 @@ define('qtek/Material',['require','./core/Base','./Shader','./core/util','./core
         if (this.shader) {
             this.attachShader(this.shader);
         }
-
-        // Registory to repository
-        _repository.push(this);
-
     }, {
 
         bind : function(_gl) {
@@ -17068,17 +9958,9 @@ define('qtek/Material',['require','./core/Base','./Shader','./core/util','./core
         },
 
         dispose : function() {
-            _repository.splice(_repository.indexOf(this), 1);
+            //TODO
         }
     });
-
-    Material.getMaterial = function(name) {
-        for (var i = 0; i < _repository.length; i++) {
-            if (_repository[i].name === name) {
-                return _repository[i];
-            }
-        }
-    }
 
     return Material;
 });
@@ -17100,65 +9982,21 @@ define('qtek/StaticGeometry',['require','./Geometry','./core/util','./math/Bound
     var StaticGeometry = Geometry.derive(function() {
         return {
             attributes : {
-                 position : {
-                    type : 'float',
-                    semantic : "POSITION",
-                    size : 3,
-                    value : null
-                 },
-                 texcoord0 : {
-                    type : 'float',
-                    semantic : "TEXCOORD_0",
-                    size : 2,
-                    value : null
-                 },
-                 texcoord1 : {
-                    type : 'float',
-                    semantic : "TEXCOORD_1",
-                    size : 2,
-                    value : null
-                 },
-                 normal : {
-                    type : 'float',
-                    semantic : "NORMAL",
-                    size : 3,
-                    value : null
-                 },
-                 tangent : {
-                    type : 'float',
-                    semantic : "TANGENT",
-                    size : 4,
-                    value : null
-                 },
-                 color : {
-                    type : 'float',
-                    semantic : "COLOR",
-                    size : 4,
-                    value : null
-                 },
+                 position : new Geometry.Attribute('position', 'float', 3, 'POSITION', false),
+                 texcoord0 : new Geometry.Attribute('texcoord0', 'float', 2, 'TEXCOORD_0', false),
+                 texcoord1 : new Geometry.Attribute('texcoord1', 'float', 2, 'TEXCOORD_1', false),
+                 normal : new Geometry.Attribute('normal', 'float', 3, 'NORMAL', false),
+                 tangent : new Geometry.Attribute('tangent', 'float', 4, 'TANGENT', false),
+                 color : new Geometry.Attribute('color', 'float', 4, 'COLOR', false),
                  // Skinning attributes
                  // Each vertex can be bind to 4 bones, because the 
                  // sum of weights is 1, so the weights is stored in vec3 and the last
                  // can be calculated by 1-w.x-w.y-w.z
-                 weight : {
-                    type : 'float',
-                    semantic : 'WEIGHT',
-                    size : 3,
-                    value : null
-                 },
-                 joint : {
-                    type : 'float',
-                    semantic : 'JOINT',
-                    size : 4,
-                    value : null
-                 },
+                 weight : new Geometry.Attribute('weight', 'float', 3, 'WEIGHT', false),
+                 joint : new Geometry.Attribute('joint', 'float', 4, 'JOINT', false),
                  // For wireframe display
                  // http://codeflow.org/entries/2012/aug/02/easy-wireframe-display-with-barycentric-coordinates/
-                 barycentric : {
-                    type : 'float',
-                    size : 3,
-                    value : null
-                 }
+                 barycentric : new Geometry.Attribute('barycentric', 'float', 3, null, false),
             },
 
             hint : glenum.STATIC_DRAW,
@@ -17183,7 +10021,11 @@ define('qtek/StaticGeometry',['require','./Geometry','./core/util','./math/Bound
         },
         
         isUseFace : function() {
-            return this.useFace && this.faces.length;
+            return this.useFace && this.faces;
+        },
+
+        isStatic : function() {
+            return true;
         },
 
         getEnabledAttributes : function() {
@@ -17235,6 +10077,7 @@ define('qtek/StaticGeometry',['require','./Geometry','./core/util','./math/Bound
 
             var attributes = this.getEnabledAttributes();
             var prevSearchIdx = 0;
+            var count = 0;
             for (var name in attributes) {
                 var attribute = attributes[name];
                 if (!attribute.value) {
@@ -17267,14 +10110,16 @@ define('qtek/StaticGeometry',['require','./Geometry','./core/util','./math/Bound
                 _gl.bindBuffer(_gl.ARRAY_BUFFER, buffer);
                 _gl.bufferData(_gl.ARRAY_BUFFER, attribute.value, this.hint);
 
-                attributeBuffers.push(new Geometry.AttributeBuffer(name, attribute.type, buffer, attribute.size, attribute.semantic));
+                attributeBuffers[count++] = new Geometry.AttributeBuffer(name, attribute.type, buffer, attribute.size, attribute.semantic);
             }
+            attributeBuffers.length = count;
+
             if (! indicesBuffer && this.isUseFace()) {
                 indicesBuffer = new Geometry.IndicesBuffer(_gl.createBuffer(), this.faces.length);
                 chunk.indicesBuffer = indicesBuffer;
+                _gl.bindBuffer(_gl.ELEMENT_ARRAY_BUFFER, indicesBuffer.buffer);
+                _gl.bufferData(_gl.ELEMENT_ARRAY_BUFFER, this.faces, this.hint);
             }
-            _gl.bindBuffer(_gl.ELEMENT_ARRAY_BUFFER, indicesBuffer.buffer);
-            _gl.bufferData(_gl.ELEMENT_ARRAY_BUFFER, this.faces, this.hint);
         },
 
         generateVertexNormals : function() {
@@ -17548,11 +10393,11 @@ define('qtek/Mesh',['require','./Node','./core/glenum','./math/Vector3','./Stati
     var needsBindAttributes;
     var currentDrawID;
 
-    var renderInfo = {
-        faceNumber : 0,
-        vertexNumber : 0,
-        drawCallNumber : 0
-    };
+    var RenderInfo = function() {
+        this.faceNumber = 0;
+        this.vertexNumber = 0;
+        this.drawCallNumber = 0;
+    }
 
     function DrawDetail(
         availableAttributes,
@@ -17581,7 +10426,9 @@ define('qtek/Mesh',['require','./Node','./core/glenum','./math/Vector3','./Stati
             // Joints indeces indicate the index of joint in the skeleton instance
             joints : [],
 
-            _drawCache : {}
+            _drawCache : {},
+
+            _renderInfo : new RenderInfo()
         }
     }, {
 
@@ -17619,6 +10466,7 @@ define('qtek/Mesh',['require','./Node','./core/glenum','./math/Vector3','./Stati
             }
 
             var nVertex = geometry.getVertexNumber();
+            var renderInfo = this._renderInfo;
             renderInfo.vertexNumber = nVertex;
             renderInfo.faceNumber = 0;
             renderInfo.drawCallNumber = 0;
@@ -17646,7 +10494,7 @@ define('qtek/Mesh',['require','./Node','./core/glenum','./math/Vector3','./Stati
                 }
                 renderInfo.drawCallNumber = 1;
             } else {
-                // Use the cache of StaticGeometry
+                // Use the cache of static geometry
                 // TODO : machanism to change to the DynamicGeometry automatically
                 // when the geometry is not static any more
                 var drawDetails = this._drawCache[currentDrawID];
@@ -17686,7 +10534,7 @@ define('qtek/Mesh',['require','./Node','./core/glenum','./math/Vector3','./Stati
                         );
                         drawDetails.push(drawDetail);
                     }
-                    if (geometry instanceof StaticGeometry) {
+                    if (geometry.hint == glenum.STATIC_DRAW) {
                         this._drawCache[currentDrawID] = drawDetails;
                     }
                 }
@@ -17753,6 +10601,15 @@ define('qtek/Mesh',['require','./Node','./core/glenum','./math/Vector3','./Stati
             }
 
             return renderInfo;
+        },
+
+        clone : function() {
+            var mesh = Node.prototype.clone.call(this);
+
+            mesh.geometry = this.geometry;
+            mesh.material = this.material;
+
+            return mesh;
         }
     });
 
@@ -17771,6 +10628,8 @@ define('qtek/Mesh',['require','./Node','./core/glenum','./math/Vector3','./Stati
     Mesh.CW = glenum.CW;
     Mesh.CCW = glenum.CCW;
 
+    Mesh.RenderInfo = RenderInfo;
+
     return Mesh;
 });
 define('qtek/shader/source/basic.essl',[],function () { return '@export buildin.basic.vertex\n\nuniform mat4 worldViewProjection : WORLDVIEWPROJECTION;\n\nuniform vec2 uvRepeat : [1.0, 1.0];\n\nattribute vec2 texcoord : TEXCOORD_0;\nattribute vec3 position : POSITION;\n\nattribute vec3 barycentric;\n\n#ifdef SKINNING\nattribute vec3 weight : WEIGHT;\nattribute vec4 joint : JOINT;\n\nuniform mat4 skinMatrix[JOINT_NUMBER] : SKIN_MATRIX;\n#endif\n\nvarying vec2 v_Texcoord;\nvarying vec3 v_Barycentric;\n\nvoid main()\n{\n\n    vec3 skinnedPosition = position;\n\n    #ifdef SKINNING\n        \n        @import buildin.chunk.skin_matrix\n        \n        skinnedPosition = (skinMatrixWS * vec4(position, 1.0)).xyz;\n    #endif\n\n    v_Texcoord = texcoord * uvRepeat;\n    v_Barycentric = barycentric;\n\n    gl_Position = worldViewProjection * vec4(skinnedPosition, 1.0);\n}\n\n@end\n\n\n\n\n@export buildin.basic.fragment\n\nvarying vec2 v_Texcoord;\nuniform sampler2D diffuseMap;\nuniform vec3 color : [1.0, 1.0, 1.0];\nuniform vec3 emission : [0.0, 0.0, 0.0];\nuniform float alpha : 1.0;\n\n// Uniforms for wireframe\nuniform float lineWidth : 0.0;\nuniform vec3 lineColor : [0.0, 0.0, 0.0];\nvarying vec3 v_Barycentric;\n\n#extension GL_OES_standard_derivatives : enable\n@import buildin.util.edge_factor\n\nvoid main()\n{\n\n    gl_FragColor = vec4(color, alpha);\n    \n    #ifdef DIFFUSEMAP_ENABLED\n        vec4 tex = texture2D( diffuseMap, v_Texcoord );\n\n        #ifdef SRGB_DECODE\n            tex.rgb = pow(tex.rgb, vec3(2.2));\n        #endif\n        \n        #if defined(DIFFUSEMAP_ALPHA_ALPHA)\n            gl_FragColor.a = tex.a;\n        #endif\n\n        gl_FragColor.rgb *= tex.rgb;\n    #endif\n\n    gl_FragColor.rgb += emission;\n    if( lineWidth > 0.01)\n    {\n        gl_FragColor.rgb = gl_FragColor.rgb * mix(lineColor, vec3(1.0), edgeFactor(lineWidth));\n    }\n}\n\n@end';});
@@ -17779,7 +10638,7 @@ define('qtek/shader/source/lambert.essl',[],function () { return '/**\n * http:/
 
 define('qtek/shader/source/phong.essl',[],function () { return '\n// http://en.wikipedia.org/wiki/Blinn%E2%80%93Phong_shading_model\n\n@export buildin.phong.vertex\n\nuniform mat4 worldViewProjection : WORLDVIEWPROJECTION;\nuniform mat4 worldInverseTranspose : WORLDINVERSETRANSPOSE;\nuniform mat4 world : WORLD;\n\nuniform vec2 uvRepeat : [1.0, 1.0];\n\nattribute vec3 position : POSITION;\nattribute vec2 texcoord : TEXCOORD_0;\nattribute vec3 normal : NORMAL;\nattribute vec4 tangent : TANGENT;\n\n#ifdef VERTEX_COLOR\nattribute vec4 color : COLOR;\n#endif\n\nattribute vec3 barycentric;\n\n#ifdef SKINNING\nattribute vec3 weight : WEIGHT;\nattribute vec4 joint : JOINT;\n\nuniform mat4 skinMatrix[JOINT_NUMBER] : SKIN_MATRIX;\n#endif\n\nvarying vec2 v_Texcoord;\nvarying vec3 v_Normal;\nvarying vec3 v_WorldPosition;\nvarying vec3 v_Barycentric;\n\n#ifdef NORMALMAP_ENABLED\nvarying vec3 v_Tangent;\nvarying vec3 v_Bitangent;\n#endif\n\n#ifdef VERTEX_COLOR\nvarying vec4 v_Color;\n#endif\n\nvoid main()\n{\n    \n    vec3 skinnedPosition = position;\n    vec3 skinnedNormal = normal;\n    vec3 skinnedTangent = tangent.xyz;\n    #ifdef SKINNING\n        \n        @import buildin.chunk.skin_matrix\n\n        skinnedPosition = (skinMatrixWS * vec4(position, 1.0)).xyz;\n        // Normal matrix ???\n        skinnedNormal = (skinMatrixWS * vec4(normal, 0.0)).xyz;\n        skinnedTangent = (skinMatrixWS * vec4(tangent.xyz, 0.0)).xyz;\n    #endif\n\n    gl_Position = worldViewProjection * vec4(skinnedPosition, 1.0);\n\n    v_Texcoord = texcoord * uvRepeat;\n    v_WorldPosition = (world * vec4(skinnedPosition, 1.0)).xyz;\n    v_Barycentric = barycentric;\n\n    v_Normal = normalize((worldInverseTranspose * vec4(skinnedNormal, 0.0)).xyz);\n    \n    #ifdef NORMALMAP_ENABLED\n        v_Tangent = normalize((worldInverseTranspose * vec4(skinnedTangent, 0.0)).xyz);\n        v_Bitangent = normalize(cross(v_Normal, v_Tangent) * tangent.w);\n    #endif\n\n    #ifdef VERTEX_COLOR\n        v_Color = color;\n    #endif\n}\n\n@end\n\n\n@export buildin.phong.fragment\n\nuniform mat4 viewInverse : VIEWINVERSE;\n\nvarying vec2 v_Texcoord;\nvarying vec3 v_Normal;\nvarying vec3 v_WorldPosition;\n\n#ifdef NORMALMAP_ENABLED\nvarying vec3 v_Tangent;\nvarying vec3 v_Bitangent;\n#endif\n\nuniform sampler2D diffuseMap;\nuniform sampler2D normalMap;\nuniform samplerCube environmentMap;\n\nuniform vec3 color : [1.0, 1.0, 1.0];\nuniform float alpha : 1.0;\n\nuniform float shininess : 30;\n\nuniform vec3 specularColor : [1.0, 1.0, 1.0];\nuniform vec3 emission : [0.0, 0.0, 0.0];\n\nuniform float reflectivity : 0.5;\n\n// Uniforms for wireframe\nuniform float lineWidth : 0.0;\nuniform vec3 lineColor : [0.0, 0.0, 0.0];\nvarying vec3 v_Barycentric;\n\n#ifdef AMBIENT_LIGHT_NUMBER\n@import buildin.header.ambient_light\n#endif\n#ifdef POINT_LIGHT_NUMBER\n@import buildin.header.point_light\n#endif\n#ifdef DIRECTIONAL_LIGHT_NUMBER\n@import buildin.header.directional_light\n#endif\n#ifdef SPOT_LIGHT_NUMBER\n@import buildin.header.spot_light\n#endif\n\n#extension GL_OES_standard_derivatives : enable\n// Import util functions and uniforms needed\n@import buildin.util.calculate_attenuation\n\n@import buildin.util.edge_factor\n\n@import buildin.plugin.compute_shadow_map\n\nvoid main()\n{\n    #ifdef RENDER_TEXCOORD\n        gl_FragColor = vec4(v_Texcoord, 1.0, 1.0);\n        return;\n    #endif\n\n    vec4 finalColor = vec4(color, alpha);\n\n    vec3 eyePos = viewInverse[3].xyz;\n    vec3 viewDirection = normalize(eyePos - v_WorldPosition);\n\n    #ifdef DIFFUSEMAP_ENABLED\n        vec4 tex = texture2D(diffuseMap, v_Texcoord);\n        #ifdef SRGB_DECODE\n            tex.rgb = pow(tex.rgb, vec3(2.2));\n        #endif\n        finalColor.rgb *= tex.rgb;\n        #ifdef DIFFUSEMAP_ALPHA_ALPHA\n            finalColor.a *= tex.a;\n        #endif\n    #endif\n\n    vec3 normal = v_Normal;\n    #ifdef NORMALMAP_ENABLED\n        normal = texture2D(normalMap, v_Texcoord).xyz * 2.0 - 1.0;\n        mat3 tbn = mat3(v_Tangent, v_Bitangent, v_Normal);\n        normal = normalize(tbn * normal);\n    #endif\n\n    #ifdef RENDER_NORMAL\n        gl_FragColor = vec4(normal, 1.0);\n        return;\n    #endif\n\n    // Diffuse part of all lights\n    vec3 diffuseTerm = vec3(0.0, 0.0, 0.0);\n    // Specular part of all lights\n    vec3 specularTerm = vec3(0.0, 0.0, 0.0);\n    \n    #ifdef AMBIENT_LIGHT_NUMBER\n        for(int i = 0; i < AMBIENT_LIGHT_NUMBER; i++)\n        {\n            diffuseTerm += ambientLightColor[i];\n        }\n    #endif\n    #ifdef POINT_LIGHT_NUMBER\n        #if defined(POINT_LIGHT_SHADOWMAP_NUMBER)\n            float shadowContribs[POINT_LIGHT_NUMBER];\n            if(shadowEnabled)\n            {\n                computeShadowOfPointLights(v_WorldPosition, shadowContribs);\n            }\n        #endif\n        for(int i = 0; i < POINT_LIGHT_NUMBER; i++)\n        {\n            vec3 lightPosition = pointLightPosition[i];\n            vec3 lightColor = pointLightColor[i];\n            float range = pointLightRange[i];\n\n            vec3 lightDirection = lightPosition - v_WorldPosition;\n\n            // Calculate point light attenuation\n            float dist = length(lightDirection);\n            float attenuation = lightAttenuation(dist, range); \n\n            // Normalize vectors\n            lightDirection /= dist;\n            vec3 halfVector = normalize(lightDirection + viewDirection);\n\n            float ndh = dot(normal, halfVector);\n            ndh = clamp(ndh, 0.0, 1.0);\n\n            float ndl = dot(normal,  lightDirection);\n            ndl = clamp(ndl, 0.0, 1.0);\n\n            float shadowContrib = 1.0;\n            #if defined(POINT_LIGHT_SHADOWMAP_NUMBER)\n                if(shadowEnabled)\n                {\n                    shadowContrib = shadowContribs[i];\n                }\n            #endif\n\n            vec3 li = lightColor * ndl * attenuation * shadowContrib;\n\n            diffuseTerm += li;\n            if (shininess > 0.0)\n            {\n                specularTerm += li * pow(ndh, shininess);\n            }\n\n        }\n    #endif\n\n    #ifdef DIRECTIONAL_LIGHT_NUMBER\n        #if defined(DIRECTIONAL_LIGHT_SHADOWMAP_NUMBER)\n            float shadowContribs[DIRECTIONAL_LIGHT_NUMBER];\n            if(shadowEnabled)\n            {\n                computeShadowOfDirectionalLights(v_WorldPosition, shadowContribs);\n            }\n        #endif\n        for(int i = 0; i < DIRECTIONAL_LIGHT_NUMBER; i++)\n        {\n\n            vec3 lightDirection = -normalize(directionalLightDirection[i]);\n            vec3 lightColor = directionalLightColor[i];\n\n            vec3 halfVector = normalize(lightDirection + viewDirection);\n\n            float ndh = dot(normal, halfVector);\n            ndh = clamp(ndh, 0.0, 1.0);\n\n            float ndl = dot(normal, lightDirection);\n            ndl = clamp(ndl, 0.0, 1.0);\n\n            float shadowContrib = 1.0;\n            #if defined(DIRECTIONAL_LIGHT_SHADOWMAP_NUMBER)\n                if(shadowEnabled)\n                {\n                    shadowContrib = shadowContribs[i];\n                }\n            #endif\n\n            vec3 li = lightColor * ndl * shadowContrib;\n\n            diffuseTerm += li;\n            if (shininess > 0.0)\n            {\n                specularTerm += li * pow(ndh, shininess);\n            }\n        }\n    #endif\n\n    #ifdef SPOT_LIGHT_NUMBER\n        #if defined(SPOT_LIGHT_SHADOWMAP_NUMBER)\n            float shadowContribs[SPOT_LIGHT_NUMBER];\n            if(shadowEnabled)\n            {\n                computeShadowOfSpotLights(v_WorldPosition, shadowContribs);\n            }\n        #endif\n        for(int i = 0; i < SPOT_LIGHT_NUMBER; i++)\n        {\n            vec3 lightPosition = spotLightPosition[i];\n            vec3 spotLightDirection = -normalize(spotLightDirection[i]);\n            vec3 lightColor = spotLightColor[i];\n            float range = spotLightRange[i];\n            float a = spotLightUmbraAngleCosine[i];\n            float b = spotLightPenumbraAngleCosine[i];\n            float falloffFactor = spotLightFalloffFactor[i];\n\n            vec3 lightDirection = lightPosition - v_WorldPosition;\n            // Calculate attenuation\n            float dist = length(lightDirection);\n            float attenuation = lightAttenuation(dist, range); \n\n            // Normalize light direction\n            lightDirection /= dist;\n            // Calculate spot light fall off\n            float c = dot(spotLightDirection, lightDirection);\n\n            float falloff;\n            // Fomular from real-time-rendering\n            falloff = clamp((c - a) /( b - a), 0.0, 1.0);\n            falloff = pow(falloff, falloffFactor);\n\n            vec3 halfVector = normalize(lightDirection + viewDirection);\n\n            float ndh = dot(normal, halfVector);\n            ndh = clamp(ndh, 0.0, 1.0);\n\n            float ndl = dot(normal, lightDirection);\n            ndl = clamp(ndl, 0.0, 1.0);\n\n            float shadowContrib = 1.0;\n            #if defined(SPOT_LIGHT_SHADOWMAP_NUMBER)\n                if (shadowEnabled)\n                {\n                    shadowContrib = shadowContribs[i];\n                }\n            #endif\n\n            vec3 li = lightColor * ndl * attenuation * (1.0-falloff) * shadowContrib;\n\n            diffuseTerm += li;\n            if (shininess > 0.0)\n            {\n                specularTerm += li * pow(ndh, shininess);\n            }\n        }\n    #endif\n\n    finalColor.rgb *= diffuseTerm;\n    finalColor.rgb += specularTerm * specularColor;\n    finalColor.rgb += emission;\n\n    #ifdef ENVIRONMENTMAP_ENABLED\n        vec3 envTex = textureCube(environmentMap, reflect(-viewDirection, normal)).xyz;\n        finalColor.rgb = finalColor.rgb + envTex * reflectivity;\n    #endif\n\n    if(lineWidth > 0.01)\n    {\n        finalColor.rgb = finalColor.rgb * mix(lineColor, vec3(1.0), edgeFactor(lineWidth));\n    }\n\n    #ifdef GAMMA_ENCODE\n        finalColor.rgb = pow(finalColor.rgb, vec3(1 / 2.2));\n    #endif\n\n    gl_FragColor = finalColor;\n}\n\n@end';});
 
-define('qtek/shader/source/physical.essl',[],function () { return '\n// http://blog.selfshadow.com/publications/s2013-shading-course/\n\n@export buildin.physical.vertex\n\n@import buildin.phong.vertex\n\n@end\n\n\n@export buildin.physical.fragment\n\n#define PI 3.14159265358979\n\nuniform mat4 viewInverse : VIEWINVERSE;\n\nvarying vec2 v_Texcoord;\nvarying vec3 v_Normal;\nvarying vec3 v_WorldPosition;\n\n#ifdef NORMALMAP_ENABLED\nvarying vec3 v_Tangent;\nvarying vec3 v_Bitangent;\n#endif\n\nuniform sampler2D diffuseMap;\nuniform sampler2D normalMap;\nuniform samplerCube environmentMap;\n\nuniform vec3 color : [1.0, 1.0, 1.0];\nuniform float alpha : 1.0;\n\nuniform float glossiness : 0.5;\n\nuniform vec3 specularColor : [0.1, 0.1, 0.1];\nuniform vec3 emission : [0.0, 0.0, 0.0];\n\n// Uniforms for wireframe\nuniform float lineWidth : 0.0;\nuniform vec3 lineColor : [0.0, 0.0, 0.0];\nvarying vec3 v_Barycentric;\n\n#ifdef AMBIENT_LIGHT_NUMBER\n@import buildin.header.ambient_light\n#endif\n#ifdef POINT_LIGHT_NUMBER\n@import buildin.header.point_light\n#endif\n#ifdef DIRECTIONAL_LIGHT_NUMBER\n@import buildin.header.directional_light\n#endif\n#ifdef SPOT_LIGHT_NUMBER\n@import buildin.header.spot_light\n#endif\n\n#extension GL_OES_standard_derivatives : enable\n\n// Import util functions and uniforms needed\n@import buildin.util.calculate_attenuation\n\n@import buildin.util.edge_factor\n\n@import buildin.plugin.compute_shadow_map\n\n\nfloat G_Smith(float glossiness, float ndv, float ndl)\n{\n    // float k = (roughness+1.0) * (roughness+1.0) * 0.125;\n    float roughness = 1.0 - glossiness;\n    float k = roughness * roughness / 2.0;\n    float G1V = ndv / (ndv * (1.0 - k) + k);\n    float G1L = ndl / (ndl * (1.0 - k) + k);\n    return G1L * G1V;\n}\n\nvec3 F_Schlick(float ldn) {\n    return specularColor + (1.0 - specularColor) * pow(1.0 - ldn, 5.0);\n}\n\nfloat D_Phong(float g, float ndh) {\n    // from black ops 2\n    float a = pow(8192.0, g);\n    return (a + 2.0) / 8.0 * pow(ndh, a);\n}\n\nfloat D_GGX(float g, float ndh) {\n    float r = 1.0 - g;\n    float a = r * r;\n    float tmp = ndh * ndh * (a - 1.0) + 1.0;\n    return a / (PI * tmp * tmp);\n}\n\nvoid main()\n{\n    #ifdef RENDER_TEXCOORD\n        gl_FragColor = vec4(v_Texcoord, 1.0, 1.0);\n        return;\n    #endif\n\n    vec4 finalColor = vec4(color, alpha);\n\n    vec3 eyePos = viewInverse[3].xyz;\n    vec3 V = normalize(eyePos - v_WorldPosition);\n    float g = glossiness;\n\n    #ifdef DIFFUSEMAP_ENABLED\n        vec4 tex = texture2D(diffuseMap, v_Texcoord);\n        #ifdef SRGB_DECODE\n            tex.rgb = pow(tex.rgb, vec3(2.2));\n        #endif\n        finalColor.rgb *= tex.rgb;\n        #ifdef DIFFUSEMAP_ALPHA_ALPHA\n            finalColor.a *= tex.a;\n        #endif\n        #ifdef DIFFUSEMAP_ALPHA_GLOSS\n            g *= tex.a;\n        #endif\n    #endif\n\n    vec3 N = v_Normal;\n    #ifdef NORMALMAP_ENABLED\n        N = texture2D(normalMap, v_Texcoord).xyz * 2.0 - 1.0;\n        mat3 tbn = mat3(v_Tangent, v_Bitangent, v_Normal);\n        N = normalize(tbn * N);\n    #endif\n\n    #ifdef RENDER_NORMAL\n        gl_FragColor = vec4(N, 1.0);\n        return;\n    #endif\n\n    float ndv = dot(N, V);\n\n    // Diffuse part of all lights\n    vec3 diffuseTerm = vec3(0.0, 0.0, 0.0);\n    // Specular part of all lights\n    vec3 specularTerm = vec3(0.0, 0.0, 0.0);\n    \n    #ifdef AMBIENT_LIGHT_NUMBER\n        for(int i = 0; i < AMBIENT_LIGHT_NUMBER; i++)\n        {\n            diffuseTerm += ambientLightColor[i];\n        }\n    #endif\n    #ifdef POINT_LIGHT_NUMBER\n        #if defined(POINT_LIGHT_SHADOWMAP_NUMBER)\n            float shadowContribs[POINT_LIGHT_NUMBER];\n            if(shadowEnabled)\n            {\n                computeShadowOfPointLights(v_WorldPosition, shadowContribs);\n            }\n        #endif\n        for(int i = 0; i < POINT_LIGHT_NUMBER; i++)\n        {\n\n            vec3 lightPosition = pointLightPosition[i];\n            vec3 lc = pointLightColor[i];\n            float range = pointLightRange[i];\n\n            vec3 L = lightPosition - v_WorldPosition;\n\n            // Calculate point light attenuation\n            float dist = length(L);\n            float attenuation = lightAttenuation(dist, range); \n            L /= dist;\n            vec3 H = normalize(L + V);\n            float ndl = clamp(dot(N, L), 0.0, 1.0);\n            float ndh = clamp(dot(N, H), 0.0, 1.0);\n            float ldn = clamp(dot(L, N), 0.0, 1.0);\n\n            float shadowContrib = 1.0;\n            #if defined(POINT_LIGHT_SHADOWMAP_NUMBER)\n                if(shadowEnabled)\n                {\n                    shadowContrib = shadowContribs[i];\n                }\n            #endif\n\n            vec3 li = lc * ndl * attenuation * shadowContrib;\n            diffuseTerm += li;\n            specularTerm += li * F_Schlick(ldn) * D_Phong(g, ndh);\n        }\n    #endif\n\n    #ifdef DIRECTIONAL_LIGHT_NUMBER\n        #if defined(DIRECTIONAL_LIGHT_SHADOWMAP_NUMBER)\n            float shadowContribs[DIRECTIONAL_LIGHT_NUMBER];\n            if(shadowEnabled)\n            {\n                computeShadowOfDirectionalLights(v_WorldPosition, shadowContribs);\n            }\n        #endif\n        for(int i = 0; i < DIRECTIONAL_LIGHT_NUMBER; i++)\n        {\n\n            vec3 L = -normalize(directionalLightDirection[i]);\n            vec3 lc = directionalLightColor[i];\n\n            vec3 H = normalize(L + V);\n            float ndl = clamp(dot(N, L), 0.0, 1.0);\n            float ndh = clamp(dot(N, H), 0.0, 1.0);\n            float ldn = clamp(dot(L, N), 0.0, 1.0);\n\n            float shadowContrib = 1.0;\n            #if defined(DIRECTIONAL_LIGHT_SHADOWMAP_NUMBER)\n                if(shadowEnabled)\n                {\n                    shadowContrib = shadowContribs[i];\n                }\n            #endif\n\n            vec3 li = lc * ndl * shadowContrib;\n\n            diffuseTerm += li;\n            specularTerm += li * F_Schlick(ldn) * D_Phong(g, ndh);\n        }\n    #endif\n\n    #ifdef SPOT_LIGHT_NUMBER\n        #if defined(SPOT_LIGHT_SHADOWMAP_NUMBER)\n            float shadowContribs[SPOT_LIGHT_NUMBER];\n            if(shadowEnabled)\n            {\n                computeShadowOfSpotLights(v_WorldPosition, shadowContribs);\n            }\n        #endif\n        for(int i = 0; i < SPOT_LIGHT_NUMBER; i++)\n        {\n            vec3 lightPosition = spotLightPosition[i];\n            vec3 spotLightDirection = -normalize(spotLightDirection[i]);\n            vec3 lc = spotLightColor[i];\n            float range = spotLightRange[i];\n            float a = spotLightUmbraAngleCosine[i];\n            float b = spotLightPenumbraAngleCosine[i];\n            float falloffFactor = spotLightFalloffFactor[i];\n\n            vec3 L = lightPosition - v_WorldPosition;\n            // Calculate attenuation\n            float dist = length(L);\n            float attenuation = lightAttenuation(dist, range); \n\n            // Normalize light direction\n            L /= dist;\n            // Calculate spot light fall off\n            float c = dot(spotLightDirection, L);\n\n            float falloff;\n            // Fomular from real-time-rendering\n            falloff = clamp((c - a) /( b - a), 0.0, 1.0);\n            falloff = pow(falloff, falloffFactor);\n\n            vec3 H = normalize(L + V);\n            float ndl = clamp(dot(N, L), 0.0, 1.0);\n            float ndh = clamp(dot(N, H), 0.0, 1.0);\n            float ldn = clamp(dot(L, N), 0.0, 1.0);\n\n            float shadowContrib = 1.0;\n            #if defined(SPOT_LIGHT_SHADOWMAP_NUMBER)\n                if (shadowEnabled)\n                {\n                    shadowContrib = shadowContribs[i];\n                }\n            #endif\n\n            vec3 li = lc * attenuation * (1.0-falloff) * shadowContrib * ndl;\n\n            diffuseTerm += li;\n            specularTerm += li * F_Schlick(ldn) * D_Phong(g, ndh);\n        }\n    #endif\n\n    finalColor.rgb *= diffuseTerm;\n    finalColor.rgb += specularTerm;\n    finalColor.rgb += emission;\n\n    #ifdef ENVIRONMENTMAP_ENABLED\n        vec3 envTex = textureCube(environmentMap, reflect(-V, N)).xyz;\n        finalColor.rgb = finalColor.rgb + envTex * g;\n    #endif\n\n    if(lineWidth > 0.)\n    {\n        finalColor.rgb = finalColor.rgb * mix(lineColor, vec3(1.0), edgeFactor(lineWidth));\n    }\n\n    #ifdef GAMMA_ENCODE\n        finalColor.rgb = pow(finalColor.rgb, vec3(1 / 2.2));\n    #endif\n    gl_FragColor = finalColor;\n}\n\n@end';});
+define('qtek/shader/source/physical.essl',[],function () { return '\n// http://blog.selfshadow.com/publications/s2013-shading-course/\n\n@export buildin.physical.vertex\n\n@import buildin.phong.vertex\n\n@end\n\n\n@export buildin.physical.fragment\n\n#define PI 3.14159265358979\n\nuniform mat4 viewInverse : VIEWINVERSE;\n\nvarying vec2 v_Texcoord;\nvarying vec3 v_Normal;\nvarying vec3 v_WorldPosition;\n\n#ifdef NORMALMAP_ENABLED\nvarying vec3 v_Tangent;\nvarying vec3 v_Bitangent;\n#endif\n\nuniform sampler2D diffuseMap;\nuniform sampler2D normalMap;\nuniform samplerCube environmentMap;\n\nuniform vec3 color : [1.0, 1.0, 1.0];\nuniform float alpha : 1.0;\n\nuniform float glossiness : 0.5;\n\nuniform vec3 specularColor : [0.1, 0.1, 0.1];\nuniform vec3 emission : [0.0, 0.0, 0.0];\n\n// Uniforms for wireframe\nuniform float lineWidth : 0.0;\nuniform vec3 lineColor : [0.0, 0.0, 0.0];\nvarying vec3 v_Barycentric;\n\n#ifdef AMBIENT_LIGHT_NUMBER\n@import buildin.header.ambient_light\n#endif\n#ifdef POINT_LIGHT_NUMBER\n@import buildin.header.point_light\n#endif\n#ifdef DIRECTIONAL_LIGHT_NUMBER\n@import buildin.header.directional_light\n#endif\n#ifdef SPOT_LIGHT_NUMBER\n@import buildin.header.spot_light\n#endif\n\n#extension GL_OES_standard_derivatives : enable\n\n// Import util functions and uniforms needed\n@import buildin.util.calculate_attenuation\n\n@import buildin.util.edge_factor\n\n@import buildin.plugin.compute_shadow_map\n\n\nfloat G_Smith(float glossiness, float ndv, float ndl)\n{\n    // float k = (roughness+1.0) * (roughness+1.0) * 0.125;\n    float roughness = 1.0 - glossiness;\n    float k = roughness * roughness / 2.0;\n    float G1V = ndv / (ndv * (1.0 - k) + k);\n    float G1L = ndl / (ndl * (1.0 - k) + k);\n    return G1L * G1V;\n}\n\nvec3 F_Schlick(float ldn) {\n    return specularColor + (1.0 - specularColor) * pow(1.0 - ldn, 5.0);\n}\n\nfloat D_Phong(float g, float ndh) {\n    // from black ops 2\n    float a = pow(8192.0, g);\n    return (a + 2.0) / 8.0 * pow(ndh, a);\n}\n\nfloat D_GGX(float g, float ndh) {\n    float r = 1.0 - g;\n    float a = r * r;\n    float tmp = ndh * ndh * (a - 1.0) + 1.0;\n    return a / (PI * tmp * tmp);\n}\n\nvoid main()\n{\n    #ifdef RENDER_TEXCOORD\n        gl_FragColor = vec4(v_Texcoord, 1.0, 1.0);\n        return;\n    #endif\n\n    vec4 finalColor = vec4(color, alpha);\n\n    vec3 eyePos = viewInverse[3].xyz;\n    vec3 V = normalize(eyePos - v_WorldPosition);\n    float g = glossiness;\n\n    #ifdef DIFFUSEMAP_ENABLED\n        vec4 tex = texture2D(diffuseMap, v_Texcoord);\n        #ifdef SRGB_DECODE\n            tex.rgb = pow(tex.rgb, vec3(2.2));\n        #endif\n        finalColor.rgb *= tex.rgb;\n        #ifdef DIFFUSEMAP_ALPHA_ALPHA\n            finalColor.a *= tex.a;\n        #endif\n        #ifdef DIFFUSEMAP_ALPHA_GLOSS\n            g *= tex.a;\n        #endif\n    #endif\n\n    vec3 N = v_Normal;\n    #ifdef NORMALMAP_ENABLED\n        N = texture2D(normalMap, v_Texcoord).xyz * 2.0 - 1.0;\n        mat3 tbn = mat3(v_Tangent, v_Bitangent, v_Normal);\n        N = normalize(tbn * N);\n    #endif\n\n    #ifdef RENDER_NORMAL\n        gl_FragColor = vec4(N, 1.0);\n        return;\n    #endif\n\n    #ifdef RENDER_GLOSSINESS\n        gl_FragColor = vec4(vec3(g), 1.0);\n        return;\n    #endif\n\n    float ndv = dot(N, V);\n\n    // Diffuse part of all lights\n    vec3 diffuseTerm = vec3(0.0, 0.0, 0.0);\n    // Specular part of all lights\n    vec3 specularTerm = vec3(0.0, 0.0, 0.0);\n    \n    #ifdef AMBIENT_LIGHT_NUMBER\n        for(int i = 0; i < AMBIENT_LIGHT_NUMBER; i++)\n        {\n            // Hemisphere ambient lighting from cryengine\n            diffuseTerm += ambientLightColor[i] * (clamp(N.y * 0.7, 0.0, 1.0) + 0.3);\n            // diffuseTerm += ambientLightColor[i];\n        }\n    #endif\n    #ifdef POINT_LIGHT_NUMBER\n        #if defined(POINT_LIGHT_SHADOWMAP_NUMBER)\n            float shadowContribs[POINT_LIGHT_NUMBER];\n            if(shadowEnabled)\n            {\n                computeShadowOfPointLights(v_WorldPosition, shadowContribs);\n            }\n        #endif\n        for(int i = 0; i < POINT_LIGHT_NUMBER; i++)\n        {\n\n            vec3 lightPosition = pointLightPosition[i];\n            vec3 lc = pointLightColor[i];\n            float range = pointLightRange[i];\n\n            vec3 L = lightPosition - v_WorldPosition;\n\n            // Calculate point light attenuation\n            float dist = length(L);\n            float attenuation = lightAttenuation(dist, range); \n            L /= dist;\n            vec3 H = normalize(L + V);\n            float ndl = clamp(dot(N, L), 0.0, 1.0);\n            float ndh = clamp(dot(N, H), 0.0, 1.0);\n            float ldn = clamp(dot(L, N), 0.0, 1.0);\n\n            float shadowContrib = 1.0;\n            #if defined(POINT_LIGHT_SHADOWMAP_NUMBER)\n                if(shadowEnabled)\n                {\n                    shadowContrib = shadowContribs[i];\n                }\n            #endif\n\n            vec3 li = lc * ndl * attenuation * shadowContrib;\n            diffuseTerm += li;\n            specularTerm += li * F_Schlick(ldn) * D_Phong(g, ndh);\n        }\n    #endif\n\n    #ifdef DIRECTIONAL_LIGHT_NUMBER\n        #if defined(DIRECTIONAL_LIGHT_SHADOWMAP_NUMBER)\n            float shadowContribs[DIRECTIONAL_LIGHT_NUMBER];\n            if(shadowEnabled)\n            {\n                computeShadowOfDirectionalLights(v_WorldPosition, shadowContribs);\n            }\n        #endif\n        for(int i = 0; i < DIRECTIONAL_LIGHT_NUMBER; i++)\n        {\n\n            vec3 L = -normalize(directionalLightDirection[i]);\n            vec3 lc = directionalLightColor[i];\n\n            vec3 H = normalize(L + V);\n            float ndl = clamp(dot(N, L), 0.0, 1.0);\n            float ndh = clamp(dot(N, H), 0.0, 1.0);\n            float ldn = clamp(dot(L, N), 0.0, 1.0);\n\n            float shadowContrib = 1.0;\n            #if defined(DIRECTIONAL_LIGHT_SHADOWMAP_NUMBER)\n                if(shadowEnabled)\n                {\n                    shadowContrib = shadowContribs[i];\n                }\n            #endif\n\n            vec3 li = lc * ndl * shadowContrib;\n\n            diffuseTerm += li;\n            specularTerm += li * F_Schlick(ldn) * D_Phong(g, ndh);\n        }\n    #endif\n\n    #ifdef SPOT_LIGHT_NUMBER\n        #if defined(SPOT_LIGHT_SHADOWMAP_NUMBER)\n            float shadowContribs[SPOT_LIGHT_NUMBER];\n            if(shadowEnabled)\n            {\n                computeShadowOfSpotLights(v_WorldPosition, shadowContribs);\n            }\n        #endif\n        for(int i = 0; i < SPOT_LIGHT_NUMBER; i++)\n        {\n            vec3 lightPosition = spotLightPosition[i];\n            vec3 spotLightDirection = -normalize(spotLightDirection[i]);\n            vec3 lc = spotLightColor[i];\n            float range = spotLightRange[i];\n            float a = spotLightUmbraAngleCosine[i];\n            float b = spotLightPenumbraAngleCosine[i];\n            float falloffFactor = spotLightFalloffFactor[i];\n\n            vec3 L = lightPosition - v_WorldPosition;\n            // Calculate attenuation\n            float dist = length(L);\n            float attenuation = lightAttenuation(dist, range); \n\n            // Normalize light direction\n            L /= dist;\n            // Calculate spot light fall off\n            float c = dot(spotLightDirection, L);\n\n            float falloff;\n            // Fomular from real-time-rendering\n            falloff = clamp((c - a) /( b - a), 0.0, 1.0);\n            falloff = pow(falloff, falloffFactor);\n\n            vec3 H = normalize(L + V);\n            float ndl = clamp(dot(N, L), 0.0, 1.0);\n            float ndh = clamp(dot(N, H), 0.0, 1.0);\n            float ldn = clamp(dot(L, N), 0.0, 1.0);\n\n            float shadowContrib = 1.0;\n            #if defined(SPOT_LIGHT_SHADOWMAP_NUMBER)\n                if (shadowEnabled)\n                {\n                    shadowContrib = shadowContribs[i];\n                }\n            #endif\n\n            vec3 li = lc * attenuation * (1.0-falloff) * shadowContrib * ndl;\n\n            diffuseTerm += li;\n            specularTerm += li * F_Schlick(ldn) * D_Phong(g, ndh);\n        }\n    #endif\n\n    finalColor.rgb *= diffuseTerm;\n    finalColor.rgb += specularTerm;\n    finalColor.rgb += emission;\n\n    #ifdef ENVIRONMENTMAP_ENABLED\n        vec3 envTex = textureCube(environmentMap, reflect(-V, N)).xyz;\n        finalColor.rgb = finalColor.rgb + envTex * g;\n    #endif\n\n    if(lineWidth > 0.)\n    {\n        finalColor.rgb = finalColor.rgb * mix(lineColor, vec3(1.0), edgeFactor(lineWidth));\n    }\n\n    #ifdef GAMMA_ENCODE\n        finalColor.rgb = pow(finalColor.rgb, vec3(1 / 2.2));\n    #endif\n    gl_FragColor = finalColor;\n}\n\n@end';});
 
 define('qtek/shader/source/wireframe.essl',[],function () { return '@export buildin.wireframe.vertex\n\nuniform mat4 worldViewProjection : WORLDVIEWPROJECTION;\nuniform mat4 world : WORLD;\n\nattribute vec3 position : POSITION;\nattribute vec3 barycentric;\n\n#ifdef SKINNING\nattribute vec3 weight : WEIGHT;\nattribute vec4 joint : JOINT;\n\nuniform mat4 skinMatrix[JOINT_NUMBER] : SKIN_MATRIX;\n#endif\n\nvarying vec3 v_Barycentric;\n\nvoid main()\n{\n\n    vec3 skinnedPosition = position;\n    #ifdef SKINNING\n\n        @import buildin.chunk.skin_matrix\n\n        skinnedPosition = (skinMatrixWS * vec4(position, 1.0)).xyz;\n    #endif\n\n    gl_Position = worldViewProjection * vec4(skinnedPosition, 1.0 );\n\n    v_Barycentric = barycentric;\n}\n\n@end\n\n\n@export buildin.wireframe.fragment\n\nuniform vec3 color : [0.0, 0.0, 0.0];\n\nuniform float alpha : 1.0;\nuniform float lineWidth : 1.0;\n\nvarying vec3 v_Barycentric;\n\n#extension GL_OES_standard_derivatives : enable\n\n@import buildin.util.edge_factor\n\nvoid main()\n{\n\n    gl_FragColor.rgb = color;\n    gl_FragColor.a = ( 1.0-edgeFactor(lineWidth) ) * alpha;\n}\n\n@end';});
 
@@ -17792,10 +10651,9 @@ define('qtek/shader/source/prez.essl',[],function () { return '// Shader for pre
 /**
  * @export{object} library
  */
-define('qtek/shader/library',['require','../Shader','_','./source/basic.essl','./source/lambert.essl','./source/phong.essl','./source/physical.essl','./source/wireframe.essl','./source/skybox.essl','./source/util.essl','./source/prez.essl'],function(require) {
+define('qtek/shader/library',['require','../Shader','./source/basic.essl','./source/lambert.essl','./source/phong.essl','./source/physical.essl','./source/wireframe.essl','./source/skybox.essl','./source/util.essl','./source/prez.essl'],function(require) {
 
     var Shader = require("../Shader");
-    var _ = require("_");
 
     _library = {};
 
@@ -17898,7 +10756,382 @@ define('qtek/shader/library',['require','../Shader','_','./source/basic.essl','.
         put : put
     }
 });
-define('qtek/Renderer',['require','./core/Base','./core/util','./Light','./Mesh','./Texture','./core/glinfo','./core/glenum','./math/BoundingBox','./math/Matrix4','./Shader','./shader/library','./Material','glmatrix'],function(require) {
+define('qtek/math/Vector2',['require','glmatrix'],function(require) {
+
+    
+
+    var glMatrix = require("glmatrix");
+    var vec2 = glMatrix.vec2;
+
+    var Vector2 = function(x, y) {
+        
+        x = x || 0;
+        y = y || 0;
+
+        this._array = vec2.fromValues(x, y);
+        // Dirty flag is used by the Node to determine
+        // if the matrix is updated to latest
+        this._dirty = true;
+    }
+
+    Vector2.prototype = {
+
+        constructor : Vector2,
+
+        get x() {
+            return this._array[0];
+        },
+
+        set x(value) {
+            this._array[0] = value;
+            this._dirty = true;
+        },
+
+        get y() {
+            return this._array[1];
+        },
+
+        set y(value) {
+            this._array[1] = value;
+            this._dirty = true;
+        },
+
+        add : function(b) {
+            vec2.add(this._array, this._array, b._array);
+            this._dirty = true;
+            return this;
+        },
+
+        set : function(x, y) {
+            this._array[0] = x;
+            this._array[1] = y;
+            this._dirty = true;
+            return this;
+        },
+
+        setArray : function(arr) {
+            this._array[0] = arr[0];
+            this._array[1] = arr[1];
+
+            this._dirty = true;
+            return this;
+        },
+
+        clone : function() {
+            return new Vector2(this.x, this.y);
+        },
+
+        copy : function(b) {
+            vec2.copy(this._array, b._array);
+            this._dirty = true;
+            return this;
+        },
+
+        cross : function(out, b) {
+            vec2.cross(out._array, this._array, b._array);
+            return this;
+        },
+
+        dist : function(b) {
+            return vec2.dist(this._array, b._array);
+        },
+
+        distance : function(b) {
+            return vec2.distance(this._array, b._array);
+        },
+
+        div : function(b) {
+            vec2.div(this._array, this._array, b._array);
+            this._dirty = true;
+            return this;
+        },
+
+        divide : function(b) {
+            vec2.divide(this._array, this._array, b._array);
+            this._dirty = true;
+            return this;
+        },
+
+        dot : function(b) {
+            return vec2.dot(this._array, b._array);
+        },
+
+        len : function() {
+            return vec2.len(this._array);
+        },
+
+        length : function() {
+            return vec2.length(this._array);
+        },
+        /**
+         * Perform linear interpolation between a and b
+         */
+        lerp : function(a, b, t) {
+            vec2.lerp(this._array, a._array, b._array, t);
+            this._dirty = true;
+            return this;
+        },
+
+        min : function(b) {
+            vec2.min(this._array, this._array, b._array);
+            this._dirty = true;
+            return this;
+        },
+
+        max : function(b) {
+            vec2.max(this._array, this._array, b._array);
+            this._dirty = true;
+            return this;
+        },
+
+        mul : function(b) {
+            vec2.mul(this._array, this._array, b._array);
+            this._dirty = true;
+            return this;
+        },
+
+        multiply : function(b) {
+            vec2.multiply(this._array, this._array, b._array);
+            this._dirty = true;
+            return this;
+        },
+
+        negate : function() {
+            vec2.negate(this._array, this._array);
+            this._dirty = true;
+            return this;
+        },
+
+        normalize : function() {
+            vec2.normalize(this._array, this._array);
+            this._dirty = true;
+            return this;
+        },
+
+        random : function(scale) {
+            vec2.random(this._array, scale);
+            this._dirty = true;
+            return this;
+        },
+
+        scale : function(s) {
+            vec2.scale(this._array, this._array, s);
+            this._dirty = true;
+            return this;
+        },
+        /**
+         * add b by a scaled factor
+         */
+        scaleAndAdd : function(b, s) {
+            vec2.scaleAndAdd(this._array, this._array, b._array, s);
+            this._dirty = true;
+            return this;
+        },
+
+        sqrDist : function(b) {
+            return vec2.sqrDist(this._array, b._array);
+        },
+
+        squaredDistance : function(b) {
+            return vec2.squaredDistance(this._array, b._array);
+        },
+
+        sqrLen : function() {
+            return vec2.sqrLen(this._array);
+        },
+
+        squaredLength : function() {
+            return vec2.squaredLength(this._array);
+        },
+
+        sub : function(b) {
+            vec2.sub(this._array, this._array, b._array);
+            this._dirty = true;
+            return this;
+        },
+
+        subtract : function(b) {
+            vec2.subtract(this._array, this._array, b._array);
+            this._dirty = true;
+            return this;
+        },
+
+        transformMat2 : function(m) {
+            vec2.transformMat2(this._array, this._array, m._array);
+            this._dirty = true;
+            return this;
+        },
+        transformMat2d : function(m) {
+            vec2.transformMat2d(this._array, this._array, m._array);
+            this._dirty = true;
+            return this;
+        },
+        transformMat3 : function(m) {
+            vec2.transformMat3(this._array, this._array, m._array);
+            this._dirty = true;
+            return this;
+        },
+        transformMat4 : function(m) {
+            vec2.transformMat4(this._array, this._array, m._array);
+            this._dirty = true;
+            return this;
+        },
+
+        toString : function() {
+            return "[" + Array.prototype.join.call(this._array, ",") + "]";
+        },
+    }
+
+    // Supply methods that are not in place
+    Vector2.add = function(out, a, b) {
+        vec2.add(out._array, a._array, b._array);
+        out._dirty = true;
+        return out;
+    }
+
+    Vector2.set = function(out, x, y) {
+        vec2.set(out._array, x, y);
+        out._dirty = true;
+    }
+
+    Vector2.copy = function(out, b) {
+        vec2.copy(out._array, b._array);
+        out._dirty = true;
+        return out;
+    }
+
+    Vector2.cross = function(out, a, b) {
+        vec2.cross(out._array, a._array, b._array);
+        out._dirty = true;
+        return out;
+    }
+
+    Vector2.dist = function(a, b) {
+        return vec2.distance(a._array, b._array);
+    }
+
+    Vector2.distance = Vector2.dist;
+
+    Vector2.div = function(out, a, b) {
+        vec2.divide(out._array, a._array, b._array);
+        out._dirty = true;
+        return out;
+    }
+
+    Vector2.divide = Vector2.div;
+
+    Vector2.dot = function(a, b) {
+        return vec2.dot(a._array, b._array);
+    }
+
+    Vector2.len = function(b) {
+        return vec2.length(b._array);
+    }
+
+    // Vector2.length = Vector2.len;
+
+    Vector2.lerp = function(out, a, b, t) {
+        vec2.lerp(out._array, a._array, b._array, t);
+        out._dirty = true;
+        return out;
+    }
+
+    Vector2.min = function(out, a, b) {
+        vec2.min(out._array, a._array, b._array);
+        out._dirty = true;
+        return out;
+    }
+
+    Vector2.max = function(out, a, b) {
+        vec2.max(out._array, a._array, b._array);
+        out._dirty = true;
+        return out;
+    }
+
+    Vector2.mul = function(out, a, b) {
+        vec2.multiply(out._array, a._array, b._array);
+        out._dirty = true;
+        return out;
+    }
+
+    Vector2.multiply = Vector2.mul;
+
+    Vector2.negate = function(out, a) {
+        vec2.negate(out._array, a._array);
+        out._dirty = true;
+        return out;
+    }
+
+    Vector2.normalize = function(out, a) {
+        vec2.normalize(out._array, a._array);
+        out._dirty = true;
+        return out;
+    }
+
+    Vector2.random = function(out, scale) {
+        vec2.random(out._array, scale);
+        out._dirty = true;
+        return out;
+    }
+
+    Vector2.scale = function(out, a, scale) {
+        vec2.scale(out._array, a._array, scale);
+        out._dirty = true;
+        return out;
+    }
+
+    Vector2.scaleAndAdd = function(out, a, b, scale) {
+        vec2.scale(out._array, a._array, b._array, scale);
+        out._dirty = true;
+        return out;
+    }
+
+    Vector2.sqrDist = function(a, b) {
+        return vec2.sqrDist(a._array, b._array);
+    }
+
+    Vector2.squaredDistance = Vector2.sqrDist;
+
+    Vector2.sqrLen = function(a) {
+        return vec2.sqrLen(a._array);
+    }
+    Vector2.squaredLength = Vector2.sqrLen;
+
+    Vector2.sub = function(out, a, b) {
+        vec2.subtract(out._array, a._array, b._array);
+        out._dirty = true;
+        return out;
+    }
+    Vector2.subtract = Vector2.sub;
+
+    Vector2.transformMat2 = function(out, a, m) {
+        vec2.transformMat2(out._array, a._array, m._array);
+        out._dirty = true;
+        return out;
+    }
+
+    Vector2.transformMat2d = function(out, a, m) {
+        vec2.transformMat2d(out._array, a._array, m._array);
+        out._dirty = true;
+        return out;
+    }
+
+    Vector2.transformMat3 = function(out, a, m) {
+        vec2.transformMat3(out._array, a._array, m._array);
+        out._dirty = true;
+        return out;
+    }
+
+    Vector2.transformMat4 = function(out, a, m) {
+        vec2.transformMat4(out._array, a._array, m._array);
+        out._dirty = true;
+        return out;
+    }
+
+    return Vector2;
+
+});
+define('qtek/Renderer',['require','./core/Base','./core/util','./Light','./Mesh','./Texture','./core/glinfo','./core/glenum','./math/BoundingBox','./math/Matrix4','./Shader','./shader/library','./Material','./math/Vector3','./math/Vector2','glmatrix'],function(require) {
 
     var Base = require("./core/Base");
     var util = require("./core/util");
@@ -17912,6 +11145,8 @@ define('qtek/Renderer',['require','./core/Base','./core/util','./Light','./Mesh'
     var Shader = require('./Shader');
     var shaderLibrary = require('./shader/library');
     var Material = require('./Material');
+    var Vector3 = require('./math/Vector3');
+    var Vector2 = require('./math/Vector2');
 
     var glMatrix = require("glmatrix");
     var mat4 = glMatrix.mat4;
@@ -17952,7 +11187,7 @@ define('qtek/Renderer',['require','./core/Base','./core/util','./Light','./Mesh'
 
             gl : null,
 
-            viewportInfo : {},
+            viewport : {},
 
             _viewportSettings : [],
             _clearSettings : [],
@@ -18023,7 +11258,7 @@ define('qtek/Renderer',['require','./core/Base','./core/util','./Light','./Mesh'
             }
             this.gl.viewport(x, y, width, height);
 
-            this.viewportInfo = {
+            this.viewport = {
                 x : x,
                 y : y,
                 width : width,
@@ -18032,7 +11267,7 @@ define('qtek/Renderer',['require','./core/Base','./core/util','./Light','./Mesh'
         },
 
         saveViewport : function() {
-            this._viewportSettings.push(this.viewportInfo);
+            this._viewportSettings.push(this.viewport);
         },
 
         restoreViewport : function() {
@@ -18079,10 +11314,9 @@ define('qtek/Renderer',['require','./core/Base','./core/util','./Light','./Mesh'
             if (transparentQueue.length > 0) {
                 var worldViewMat = mat4.create();
                 var posViewSpace = vec3.create();
-                mat4.invert(matrices['VIEW'],  camera.worldTransform._array);
                 for (var i = 0; i < transparentQueue.length; i++) {
                     var node = transparentQueue[i];
-                    mat4.multiply(worldViewMat, matrices['VIEW'], node.worldTransform._array);
+                    mat4.multiply(worldViewMat, camera.viewMatrix._array, node.worldTransform._array);
                     vec3.transformMat4(posViewSpace, node.position._array, worldViewMat);
                     node.__depth = posViewSpace[2];
                 }
@@ -18127,7 +11361,7 @@ define('qtek/Renderer',['require','./core/Base','./core/util','./Light','./Mesh'
             };
 
             // Calculate view and projection matrix
-            mat4.invert(matrices.VIEW, camera.worldTransform._array);
+            mat4.copy(matrices.VIEW, camera.viewMatrix._array);
             mat4.copy(matrices.PROJECTION, camera.projectionMatrix._array);
             mat4.multiply(matrices.VIEWPROJECTION, camera.projectionMatrix._array, matrices.VIEW);
             mat4.copy(matrices.VIEWINVERSE, camera.worldTransform._array);
@@ -18213,8 +11447,6 @@ define('qtek/Renderer',['require','./core/Base','./core/util','./Light','./Mesh'
                     shader.matrixSemantics.WORLDVIEWPROJECTIONINVERSETRANSPOSE) {
                     mat4.invert(matrices.WORLDVIEWPROJECTIONINVERSE, matrices.WORLDVIEWPROJECTION);
                 }
-                // Frustum culling
-                // http://www.cse.chalmers.se/~uffe/vfc_bbox.pdf
                 if (geometry.boundingBox && ! preZ) {
                     if (!this._frustumCulling(renderable, camera)) {
                         continue;
@@ -18304,6 +11536,8 @@ define('qtek/Renderer',['require','./core/Base','./core/util','./Light','./Mesh'
         },
 
         _frustumCulling : (function() {
+            // Frustum culling
+            // http://www.cse.chalmers.se/~uffe/vfc_bbox.pdf
             var cullingBoundingBox = new BoundingBox();
             var cullingMatrix = new Matrix4();
             return function(renderable, camera) {
@@ -18355,12 +11589,16 @@ define('qtek/Renderer',['require','./core/Base','./core/util','./Light','./Mesh'
         disposeNode : function(root) {
             var materials = {};
             var _gl = this.gl;
+
             root.traverse(function(node) {
                 if (node.geometry) {
                     node.geometry.dispose(_gl);
                 }
                 if (node.material) {
                     materials[node.material.__GUID__] = node.material;
+                }
+                if (node.dispose) {
+                    node.dispose(_gl);
                 }
             });
             for (var guid in materials) {
@@ -18382,15 +11620,39 @@ define('qtek/Renderer',['require','./core/Base','./core/util','./Light','./Mesh'
                         }
                     }
                 }
-                mat.dispose();
             }
             root._children = [];
         },
 
+        disposeShader : function(shader) {
+            shader.dispose(this.gl);
+        },
+
+        disposeGeometry : function(geometry) {
+            geometry.dispose(this.gl);
+        },
+
         disposeTexture : function(texture) {
-            if (texture && texture.dispose) {
-                texture.dispose(this.gl);
+            texture.dispose(this.gl);
+        },
+
+        disposeFrameBuffer : function(frameBuffer) {
+            frameBuffer.dispose(this.gl);
+        },
+
+        screenToNdc : function(x, y, out) {
+            if (!out) {
+                out = new Vector2();
             }
+            // Invert y;
+            y = this.height - y;
+
+            out._array[0] = (x - this.viewport.x) / this.viewport.width;
+            out._array[0] = out._array[0] * 2 - 1;
+            out._array[1] = (y - this.viewport.y) / this.viewport.height;
+            out._array[1] = out._array[1] * 2 - 1;
+
+            return out;
         }
     })
 
@@ -18415,7 +11677,7 @@ define('qtek/Renderer',['require','./core/Base','./core/util','./Light','./Mesh'
             }
             return x.material.shader.__GUID__ - y.material.shader.__GUID__;
         }
-        // Depth is negative because of right hand coord
+        // Depth is negative
         // So farther object has smaller depth value
         return x.__depth - y.__depth
     }
@@ -18505,7 +11767,7 @@ define('qtek/Scene',['require','./Node','./Light','glmatrix','./math/BoundingBox
 
         removeFromScene : function(node) {
             if (node.name) {
-                this._nodeRepository[node.name] = null;
+                delete this._nodeRepository[node.name];
             }
         },
 
@@ -18822,8 +12084,8 @@ define('qtek/Skeleton',['require','./core/Base','./core/util','./math/Matrix4','
 
                     // Joint space is relative to root joint's parent, if have
                     // PENDING
-                    if (joint.rootNode) {
-                        mat4.invert(m4, joint.rootNode.worldTransform._array);
+                    if (joint.rootNode && joint.rootNode.parent) {
+                        mat4.invert(m4, joint.rootNode.parent.worldTransform._array);
                         mat4.multiply(
                             this._skinMatricesSubArrays[i],
                             m4,
@@ -19674,7 +12936,7 @@ define('qtek/camera/Perspective',['require','../Camera'],function(require) {
 
     return Perspective;
 } );
-define('qtek/Stage',['require','./core/Base','./Layer','./animation/Animation','./core/Event','./Scene','./Renderer','./camera/Perspective','./2d/Scene','./2d/CanvasRenderer','./2d/Camera'],function(require) {
+define('qtek/Stage',['require','./core/Base','./Layer','./animation/Animation','./core/Event','./Scene','./Renderer','./camera/Perspective'],function(require) {
 
     var Base = require('./core/Base');
     var Layer = require('./Layer');
@@ -19685,10 +12947,6 @@ define('qtek/Stage',['require','./core/Base','./Layer','./animation/Animation','
     var Renderer3D = require('./Renderer');
     var Camera3D = require('./camera/Perspective');
     
-    var Scene2D = require('./2d/Scene');
-    var Renderer2D = require('./2d/CanvasRenderer');
-    var Camera2D = require('./2d/Camera');
-
     var Stage = Base.derive(function() {
         return {
             container : null,
@@ -19737,26 +12995,6 @@ define('qtek/Stage',['require','./core/Base','./Layer','./animation/Animation','
             this.trigger('frame', frameTime);
         }, this);
     }, {
-
-        /**
-         * Create a new 2d layer
-         * @param {qtek.2d.Renderer} [renderer]
-         * @param {qtek.2d.Scene} [scene]
-         * @param {qtek.2d.Camera} [camera]
-         * @return {qtek.Layer}
-         */
-        createLayer2D : function(options) {
-            options = options || {};
-            options.renderer = options.renderer || new Renderer2D();
-            options.camera = options.camera || new Camera2D();
-            options.scene = options.scene || new Scene2D();
-
-            var layer = new Layer(options);
-            this.addLayer(layer);
-
-            return layer;
-        },
-
         /**
          * Create a new 3d layer
          * @param {qtek.3d.Renderer} [renderer]
@@ -19932,9 +13170,11 @@ define('qtek/animation/Blend1DClip',['require','./Clip'],function(require) {
             clip : inputClip,
             offset : offset || 0
         }
+        this.life = Math.max(inputClip.life, this.life);
+
         if (!this.inputs.length) {
             this.inputs.push(obj);
-            return;
+            return obj;
         }
         var len = this.inputs.length;
         if (this.inputs[0].position > position) {
@@ -19946,7 +13186,7 @@ define('qtek/animation/Blend1DClip',['require','./Clip'],function(require) {
             this.inputs.splice(key, obj);
         }
 
-        this.life = Math.max(inputClip.life, this.life);
+        return obj;
     }
 
     Blend1DClip.prototype.step = function(time) {
@@ -19995,7 +13235,7 @@ define('qtek/animation/Blend1DClip',['require','./Clip'],function(require) {
             this.output.blend1D(c1, c2, w);
         }
     }
-
+    
     // Find the key where position in range [inputs[key].position, inputs[key+1].position)
     Blend1DClip.prototype._findKey = function(position) {
         var key = -1;
@@ -20291,7 +13531,7 @@ define('qtek/animation/Blend2DClip',['require','./Clip','../util/delaunay','../m
 
         // {
         //  position : Vector2()
-        //  clip : 
+        //  clip : Clip()
         //  offset : 0
         // }
         this.inputs = opts.inputs || [];
@@ -20309,14 +13549,17 @@ define('qtek/animation/Blend2DClip',['require','./Clip','../util/delaunay','../m
     Blend2DClip.prototype.constructor = Blend2DClip;
 
     Blend2DClip.prototype.addInput = function(position, inputClip, offset) {
-        this.inputs.push({
+        var obj = {
             position : position,
             clip : inputClip,
             offset : offset || 0
-        });
+        }
+        this.inputs.push(obj);
         this.life = Math.max(inputClip.life, this.life);
         // TODO Change to incrementally adding
         this.updateTriangles();
+
+        return obj;
     }
 
     // Delaunay triangulate
@@ -20359,7 +13602,7 @@ define('qtek/animation/Blend2DClip',['require','./Clip','../util/delaunay','../m
         clip1.setTime((time + in1.offset) % clip1.life);
         clip2.setTime((time + in2.offset) % clip2.life);
         clip3.setTime((time + in3.offset) % clip3.life);
-
+        
         var c1 = clip1.output instanceof Clip ? clip1.output : clip1;
         var c2 = clip2.output instanceof Clip ? clip2.output : clip2;
         var c3 = clip3.output instanceof Clip ? clip3.output : clip3;
@@ -20367,7 +13610,6 @@ define('qtek/animation/Blend2DClip',['require','./Clip','../util/delaunay','../m
         this.output.blend2D(c1, c2, c3, a, b);
     }
 
-    // Find the key where position in range [inputs[key].position, inputs[key+1].position)
     Blend2DClip.prototype._findTriangle = function(position) {
         if (this._cacheTriangle) {
             var res = delaunay.contains(this._cacheTriangle.vertices, position._array);
@@ -20557,8 +13799,22 @@ define('qtek/animation/TransformClip',['require','./Clip','glmatrix'],function(r
         }
     })(),
 
+    TransformClip.prototype.additiveBlend = function(c1, c2) {
+        vec3.add(this.position, c1.position, c2.position);
+        vec3.add(this.scale, c1.scale, c2.scale);
+        quat.multiply(this.rotation, c2.rotation, c1.rotation);
+    }
+
+    TransformClip.prototype.subtractiveBlend = function(c1, c2) {
+        vec3.sub(this.position, c1.position, c2.position);
+        vec3.sub(this.scale, c1.scale, c2.scale);
+        quat.invert(this.rotation, c2.rotation);
+        quat.multiply(this.rotation, this.rotation, c1.rotation);
+    }
+
     TransformClip.prototype.getSubClip = function(startTime, endTime) {
         // TODO
+        console.warn('TODO');
     }
 
     return TransformClip;
@@ -20678,7 +13934,7 @@ define('qtek/animation/SamplerClip',['require','./Clip','./TransformClip','glmat
             var s = Math.min(len-2, this._cacheKey);
             for (var i = s; i >= 0; i--) {
                 if (channels.time[i-1] <= time && channels.time[i] > time) {
-                    key = i;
+                    key = i - 1;
                     break;
                 }
             }
@@ -20709,6 +13965,11 @@ define('qtek/animation/SamplerClip',['require','./Clip','./TransformClip','glmat
             if (channels.scale) {
                 vec3lerp(this.scale, channels.scale, channels.scale, percent, start * 3, end * 3);
             }
+        }
+        // Loop handling
+        if (key == len - 2) {
+            this._cacheKey = 0;
+            this._cacheTime = 0;
         }
     }
 
@@ -20796,6 +14057,8 @@ define('qtek/animation/SamplerClip',['require','./Clip','./TransformClip','glmat
 
     SamplerClip.prototype.blend1D = TransformClip.prototype.blend1D;
     SamplerClip.prototype.blend2D = TransformClip.prototype.blend2D;
+    SamplerClip.prototype.additiveBlend = TransformClip.prototype.additiveBlend;
+    SamplerClip.prototype.subtractiveBlend = TransformClip.prototype.subtractiveBlend;
 
     return SamplerClip;
 });
@@ -20893,6 +14156,26 @@ define('qtek/animation/SkinningClip',['require','./Clip','./TransformClip','glma
         }
     }
 
+    SkinningClip.prototype.additiveBlend = function(clip1, clip2) {
+        for (var i = 0; i < this.jointClips.length; i++) {
+            var c1 = clip1.jointClips[i];
+            var c2 = clip2.jointClips[i];
+            var tClip = this.jointClips[i];
+
+            tClip.additiveBlend(c1, c2);
+        }
+    }
+
+    SkinningClip.prototype.subtractiveBlend = function(clip1, clip2) {
+        for (var i = 0; i < this.jointClips.length; i++) {
+            var c1 = clip1.jointClips[i];
+            var c2 = clip2.jointClips[i];
+            var tClip = this.jointClips[i];
+
+            tClip.subtractiveBlend(c1, c2);
+        }
+    }
+
     SkinningClip.prototype.blend2D = function(clip1, clip2, clip3, f, g) {
         for (var i = 0; i < this.jointClips.length; i++) {
             var c1 = clip1.jointClips[i];
@@ -20917,6 +14200,312 @@ define('qtek/animation/SkinningClip',['require','./Clip','./TransformClip','glma
 
     return SkinningClip;
 });
+/**
+ *  @export{object} request
+ */
+define('qtek/core/request',['require'],function(require) {
+
+    function get(options) {
+
+        var xhr = new XMLHttpRequest();
+
+        xhr.open("get", options.url);
+        // With response type set browser can get and put binary data
+        // https://developer.mozilla.org/en-US/docs/DOM/XMLHttpRequest/Sending_and_Receiving_Binary_Data
+        // Default is text, and it can be set
+        // arraybuffer, blob, document, json, text
+        xhr.responseType = options.responseType || "text";
+
+        if (options.onprogress) {
+            //https://developer.mozilla.org/en-US/docs/DOM/XMLHttpRequest/Using_XMLHttpRequest
+            xhr.onprogress = function(e) {
+                if (e.lengthComputable) {
+                    var percent = e.loaded / e.total;
+                    options.onprogress(percent, e.loaded, e.total);
+                } else {
+                    options.onprogress(null);
+                }
+            }
+        }
+        xhr.onload = function(e) {
+            options.onload && options.onload(xhr.response);
+        }
+        if (options.onerror) {
+            xhr.onerror = options.onerror;
+        }
+        xhr.send(null);
+    }
+
+    return {
+        get : get
+    }
+});
+define('qtek/async/Task',['require','../core/mixin/notifier','../core/request','../core/util'],function(require) {
+
+    var notifier = require('../core/mixin/notifier');
+    var request = require('../core/request');
+    var util  = require('../core/util');
+    
+    var Task = function() {
+        this._fullfilled = false;
+        this._rejected = false;
+    }
+    Task.prototype.resolve = function(data) {
+        this._fullfilled = true;
+        this._rejected = false;
+        this.trigger('success', data);
+    }
+    Task.prototype.reject = function(err) {
+        this._rejected = true;
+        this._fullfilled = false;
+        this.trigger('error', err);
+    }
+    Task.prototype.isFullfilled = function() {
+        return this._fullfilled;
+    }
+    Task.prototype.isRejected = function() {
+        return this._rejected;
+    }
+    Task.prototype.isSettled = function() {
+        return this._fullfilled || this._rejected;
+    }
+    
+    util.extend(Task.prototype, notifier);
+
+    function makeRequestTask(url, responseType) {
+        var task = new Task();
+        request.get({
+            url : url,
+            responseType : responseType,
+            onload : function(res) {
+                task.resolve(res);
+            },
+            onerror : function() {
+                self.reject(error);
+            }
+        });
+        return task;
+    };
+
+    Task.makeRequestTask = function(url, responseType) {
+        var self = this;
+        if (typeof url === 'string') {
+            return makeRequestTask(url, responseType);
+        } else if (url.url) {   //  Configure object
+            var obj = url;
+            return makeRequestTask(obj.url, obj.responseType);
+        } else if (url instanceof Array) {  // Url list
+            var count = 0;
+            var urlList = url;
+            var tasks = [];
+            urlList.forEach(function(obj) {
+                var url, responseType;
+                if (typeof obj === 'string') {
+                    url = obj;
+                } else if (Object(obj) === obj) {
+                    url = obj.url;
+                    responseType = obj.responseType;
+                }
+                tasks.push(makeRequestTask(url, responseType));
+            });
+            return tasks;
+        }
+    }
+
+    Task.makeTask = function(obj) {
+        return new Task(obj);
+    }
+
+    util.extend(Task.prototype, notifier);
+
+    return Task;
+});
+define('qtek/async/TaskGroup',['require','../core/util','./Task'],function(require) {
+
+    var util  = require('../core/util');
+    var Task = require('./Task');
+
+    var TaskGroup = function() {
+
+        Task.apply(this, arguments);
+
+        this._tasks = [];
+
+        this._fulfilledNumber = 0;
+
+        this._rejectedNumber = 0;
+    };
+
+    var Ctor = function(){};
+    Ctor.prototype = Task.prototype;
+    TaskGroup.prototype = new Ctor();
+
+    TaskGroup.prototype.constructor = TaskGroup;
+
+    TaskGroup.prototype.all = function(tasks) {
+        var count = tasks.length;
+        var self = this;
+        var data = [];
+        if (tasks.length == 0) {
+            setTimeout(function() {
+                self.resolve(data);
+            });
+            return;
+        }
+        this._tasks = tasks;
+        this._fulfilledNumber = 0;
+        this._rejectedNumber = 0;
+
+        util.each(tasks, function(task, idx) {
+            task.once('success', function(res) {
+                count--;
+
+                self._fulfilledNumber++;
+                // TODO
+                // Some tasks like texture, loader are not inherited from task
+                // We need to set the deferred status here
+                task._fulfilled = true;
+                task._rejected = false;
+
+                data[idx] = res;
+                if (count === 0) {
+                    self.resolve(data);
+                }
+            });
+            task.once('error', function() {
+                
+                self._rejectedNumber ++;
+
+                task._fulfilled = false;
+                task._rejected = true;
+
+                self.reject(task);
+            });
+        });
+        return this;
+    };
+
+    TaskGroup.prototype.allSettled = function(tasks) {
+        var count = tasks.length;
+        var success = false;
+        var self = this;
+        var data = [];
+        if (tasks.length == 0) {
+            setTimeout(function() {
+                self.trigger('success', data);
+            });
+            return;
+        }
+        this._tasks = tasks;
+
+        util.each(tasks, function(task, idx) {
+            task.once('success', function(res) {
+                count--;
+                
+                self._fulfilledNumber++;
+
+                task._fulfilled = true;
+                task._rejected = false;
+
+                data[idx] = res;
+                success = true;
+                if (count === 0) {
+                    self.resolve(data);
+                }
+            });
+            task.once('error', function(err) {
+                count--;
+
+                self._rejectedNumber++;
+
+                task._fulfilled = false;
+                task._rejected = true;
+
+                // TODO 
+                data[idx] = null;
+                if (count === 0) {
+                    if (success) {
+                        self.resolve(data);
+                    } else {
+                        self.reject(data);
+                    }
+                }
+            });
+        });
+        return this;
+    }
+
+    TaskGroup.prototype.getFulfilledNumber = function(recursive) {
+        if (recursive) {
+            var nFulfilled = 0;
+            for (var i = 0; i < this._tasks.length; i++) {
+                var task = this._tasks[i];
+                if (task instanceof TaskGroup) {
+                    nFulfilled += task.getFulfilledNumber(recursive);
+                } else if(task._fulfilled) {
+                    nFulfilled += 1;
+                }
+            }
+            return nFulfilled;
+        } else {
+            return this._fulfilledNumber;
+        }
+    }
+
+    TaskGroup.prototype.getRejectedNumber = function(recursive) {
+        if (recursive) {
+            var nRejected = 0;
+            for (var i = 0; i < this._tasks.length; i++) {
+                var task = this._tasks[i];
+                if (task instanceof TaskGroup) {
+                    nRejected += task.getRejectedNumber(recursive);
+                } else if(task._rejected) {
+                    nRejected += 1;
+                }
+            }
+            return nRejected;
+        } else {
+            return this._rejectedNumber;
+        }
+    }
+
+    TaskGroup.prototype.getSettledNumber = function(recursive) {
+
+        if (recursive) {
+            var nSettled = 0;
+            for (var i = 0; i < this._tasks.length; i++) {
+                var task = this._tasks[i];
+                if (task instanceof TaskGroup) {
+                    nSettled += task.getSettledNumber(recursive);
+                } else if(task._rejected || task._fulfilled) {
+                    nSettled += 1;
+                }
+            }
+            return nSettled;
+        } else {
+            return this._fulfilledNumber + this._rejectedNumber;
+        }
+    }
+
+    TaskGroup.prototype.getTaskNumber = function(recursive) {
+        if (recursive) {
+            var nTask = 0;
+            for (var i = 0; i < this._tasks.length; i++) {
+                var task = this._tasks[i];
+                if (task instanceof TaskGroup) {
+                    nTask += task.getTaskNumber(recursive);
+                } else {
+                    nTask += 1;
+                }
+            }
+            return nTask;
+        } else {
+            return this._tasks.length;
+        }
+    }
+
+    return TaskGroup;
+});
 define('qtek/camera/Orthographic',['require','../Camera'],function(require) {
 
     var Camera = require('../Camera');
@@ -20939,10 +14528,9 @@ define('qtek/camera/Orthographic',['require','../Camera'],function(require) {
 
     return Orthographic;
 } );
-define('qtek/compositor/Graph',['require','../core/Base','_'], function( require ) {
+define('qtek/compositor/Graph',['require','../core/Base'], function( require ) {
 
     var Base = require("../core/Base");
-    var _ = require("_");
 
     var Graph = Base.derive( function() {
         return {
@@ -20958,7 +14546,7 @@ define('qtek/compositor/Graph',['require','../core/Base','_'], function( require
         },
 
         remove : function(node) {
-            _.without(this.nodes, node);
+            this.nodes.splice(this.nodes.indexOf(node), 1);
 
             this._dirty = true;
         },
@@ -20993,7 +14581,6 @@ define('qtek/compositor/Graph',['require','../core/Base','_'], function( require
                     }
                 }
             }
-
         },
 
         findPin : function(info) {
@@ -21037,6 +14624,13 @@ define('qtek/compositor/Compositor',['require','./Graph'],function(require){
             _outputs : []
         }
     }, {
+        add : function(node) {
+            Graph.prototype.add.call(this, node);
+            if (!node.outputs) {
+                this.addOutput(node);
+            }
+        },
+
         render : function(renderer) {
             if (this._dirty) {
                 this.update();
@@ -21047,18 +14641,11 @@ define('qtek/compositor/Compositor',['require','./Graph'],function(require){
                 this.nodes[i].beforeFrame();
             }
 
-            for (var i = 0; i < this.nodes.length; i++) {
-                var node = this.nodes[i];
-                // Find output node
-                if( ! node.outputs){
-                    node.render(renderer);
-                }
-            }
-
             for (var i = 0; i < this._outputs.length; i++) {
-                if (!this._outputs[i]._rendered) {
-                    this._outputs[i].render(renderer);
-                }
+                this._outputs[i].updateReference();
+            }
+            for (var i = 0; i < this._outputs.length; i++) {
+                this._outputs[i].render(renderer);
             }
 
             for (var i = 0; i < this.nodes.length; i++) {
@@ -21068,7 +14655,7 @@ define('qtek/compositor/Compositor',['require','./Graph'],function(require){
         },
 
         addOutput : function(node) {
-            if (node.outputs) {
+            if (this._outputs.indexOf(node) < 0) {
                 this._outputs.push(node);
             }
         },
@@ -21139,7 +14726,7 @@ define('qtek/compositor/shaders/lut.essl',[],function () { return '\n// https://
 
 define('qtek/compositor/shaders/output.essl',[],function () { return '@export buildin.compositor.output\n\nvarying vec2 v_Texcoord;\n\nuniform sampler2D texture;\n\nvoid main()\n{\n    vec3 tex = texture2D( texture, v_Texcoord ).rgb;\n\n    gl_FragColor = vec4(tex, 1.0);\n}\n\n@end';});
 
-define('qtek/compositor/shaders/hdr.essl',[],function () { return '// HDR Pipeline\n@export buildin.compositor.hdr.bright\n\nuniform sampler2D texture;\nuniform float threshold : 1;\nuniform float scale : 1.0;\n\nvarying vec2 v_Texcoord;\n\nconst vec3 lumWeight = vec3(0.2125, 0.7154, 0.0721);\n\n@import buildin.util.rgbm_decode\n@import buildin.util.rgbm_encode\n\nvoid main()\n{\n    #ifdef TEXTURE_ENABLED\n        #ifdef RGBM_DECODE\n            vec3 tex = RGBMDecode(texture2D(texture, v_Texcoord));\n        #else\n            vec3 tex = texture2D(texture, v_Texcoord).rgb;\n        #endif\n    #else\n        vec3 tex = vec3(0.0);\n    #endif\n\n    float lum = dot(tex, lumWeight);\n    if (lum > threshold)\n    {\n        gl_FragColor.rgb = tex * scale;\n    }\n    else\n    {\n        gl_FragColor.rgb = vec3(0.0);\n    }\n    gl_FragColor.a = 1.0;\n\n    #ifdef RGBM_ENCODE\n        gl_FragColor.rgba = RGBMEncode(gl_FragColor.rgb);\n    #endif\n}\n@end\n\n@export buildin.compositor.hdr.log_lum\n\nvarying vec2 v_Texcoord;\n\nuniform sampler2D texture;\n\nconst vec3 w = vec3(0.2125, 0.7154, 0.0721);\n\nvoid main()\n{\n    vec4 tex = texture2D(texture, v_Texcoord);\n    float luminance = dot(tex.rgb, w);\n    luminance = log(luminance + 0.001);\n\n    gl_FragColor = vec4(vec3(luminance), 1.0);\n}\n\n@end\n\n@export buildin.compositor.hdr.lum_adaption\nvarying vec2 v_Texcoord;\n\nuniform sampler2D adaptedLum;\nuniform sampler2D currentLum;\n\nuniform float frameTime : 0.02;\n\nvoid main()\n{\n    float fAdaptedLum = texture2D(adaptedLum, vec2(0.5, 0.5)).r;\n    float fCurrentLum = exp(texture2D(currentLum, vec2(0.5, 0.5)).r);\n\n    fAdaptedLum += (fCurrentLum - fAdaptedLum) * (1.0 - pow(0.98, 30.0 * frameTime));\n    gl_FragColor.rgb = vec3(fAdaptedLum);\n    // gl_FragColor.rgb = vec3(fCurrentLum);\n    gl_FragColor.a = 1.0;\n}\n@end\n\n// Tone mapping with gamma correction\n// http://filmicgames.com/archives/75\n@export buildin.compositor.hdr.tonemapping\n\nuniform sampler2D texture;\nuniform sampler2D bloom;\nuniform sampler2D lensflare;\nuniform sampler2D lum;\n\nuniform float exposure : 1.0;\n\nvarying vec2 v_Texcoord;\n\nconst float A = 0.22;   // Shoulder Strength\nconst float B = 0.30;   // Linear Strength\nconst float C = 0.10;   // Linear Angle\nconst float D = 0.20;   // Toe Strength\nconst float E = 0.01;   // Toe Numerator\nconst float F = 0.30;   // Toe Denominator\nconst vec3 whiteScale = vec3(11.2);\n\nvec3 uncharted2ToneMap(vec3 x)\n{\n    return ((x*(A*x+C*B)+D*E)/(x*(A*x+B)+D*F))-E/F;\n}\n\nvec3 filmicToneMap(vec3 color)\n{\n    vec3 x = max(vec3(0.0), color - 0.004);\n    return (x*(6.2*x+0.5))/(x*(6.2*x+1.7)+0.06);\n}\n\nfloat eyeAdaption(float fLum)\n{\n    return mix(0.2, fLum, 0.5);\n}\n\nvoid main()\n{\n    vec3 tex = vec3(0.0);\n    #ifdef TEXTURE_ENABLED\n        tex = texture2D(texture, v_Texcoord).rgb;\n    #endif\n\n    #ifdef BLOOM_ENABLED\n        tex += texture2D(bloom, v_Texcoord).rgb * 0.25;\n    #endif\n\n    #ifdef LENSFLARE_ENABLED\n        tex += texture2D(lensflare, v_Texcoord).rgb;\n    #endif\n\n    // Adjust exposure\n    // From KlayGE\n    #ifdef LUM_ENABLED\n        float fLum = texture2D(lum, vec2(0.5, 0.5)).r;\n        float adaptedLumDest = 3.0 / (max(0.1, 1.0 + 10.0*eyeAdaption(fLum)));\n        float exposureBias = adaptedLumDest * exposure;\n    #else\n        float exposureBias = exposure;\n    #endif\n    tex *= exposureBias;\n\n    // Do tone mapping\n    // vec3 color = uncharted2ToneMap(tex) / uncharted2ToneMap(whiteScale);\n    // color = pow(color, vec3(1.0/2.2));\n    vec3 color = filmicToneMap(tex);\n\n    #ifdef RGBM_ENCODE\n        gl_FragColor.rgba = RGBMEncode(color);\n    #else\n        gl_FragColor = vec4(color, 1.0);\n    #endif\n}\n\n@end';});
+define('qtek/compositor/shaders/hdr.essl',[],function () { return '// HDR Pipeline\n@export buildin.compositor.hdr.bright\n\nuniform sampler2D texture;\nuniform float threshold : 1;\nuniform float scale : 1.0;\n\nvarying vec2 v_Texcoord;\n\nconst vec3 lumWeight = vec3(0.2125, 0.7154, 0.0721);\n\n@import buildin.util.rgbm_decode\n@import buildin.util.rgbm_encode\n\nvoid main()\n{\n    #ifdef TEXTURE_ENABLED\n        #ifdef RGBM_DECODE\n            vec3 tex = RGBMDecode(texture2D(texture, v_Texcoord));\n        #else\n            vec3 tex = texture2D(texture, v_Texcoord).rgb;\n        #endif\n    #else\n        vec3 tex = vec3(0.0);\n    #endif\n\n    float lum = dot(tex, lumWeight);\n    if (lum > threshold)\n    {\n        gl_FragColor.rgb = tex * scale;\n    }\n    else\n    {\n        gl_FragColor.rgb = vec3(0.0);\n    }\n    gl_FragColor.a = 1.0;\n\n    #ifdef RGBM_ENCODE\n        gl_FragColor.rgba = RGBMEncode(gl_FragColor.rgb);\n    #endif\n}\n@end\n\n@export buildin.compositor.hdr.log_lum\n\nvarying vec2 v_Texcoord;\n\nuniform sampler2D texture;\n\nconst vec3 w = vec3(0.2125, 0.7154, 0.0721);\n\nvoid main()\n{\n    vec4 tex = texture2D(texture, v_Texcoord);\n    float luminance = dot(tex.rgb, w);\n    luminance = log(luminance + 0.001);\n\n    gl_FragColor = vec4(vec3(luminance), 1.0);\n}\n\n@end\n\n@export buildin.compositor.hdr.lum_adaption\nvarying vec2 v_Texcoord;\n\nuniform sampler2D adaptedLum;\nuniform sampler2D currentLum;\n\nuniform float frameTime : 0.02;\n\nvoid main()\n{\n    float fAdaptedLum = texture2D(adaptedLum, vec2(0.5, 0.5)).r;\n    float fCurrentLum = exp(texture2D(currentLum, vec2(0.5, 0.5)).r);\n\n    fAdaptedLum += (fCurrentLum - fAdaptedLum) * (1.0 - pow(0.98, 30.0 * frameTime));\n    gl_FragColor.rgb = vec3(fAdaptedLum);\n    gl_FragColor.a = 1.0;\n}\n@end\n\n// Tone mapping with gamma correction\n// http://filmicgames.com/archives/75\n@export buildin.compositor.hdr.tonemapping\n\nuniform sampler2D texture;\nuniform sampler2D bloom;\nuniform sampler2D lensflare;\nuniform sampler2D lum;\n\nuniform float exposure : 1.0;\n\nvarying vec2 v_Texcoord;\n\nconst float A = 0.22;   // Shoulder Strength\nconst float B = 0.30;   // Linear Strength\nconst float C = 0.10;   // Linear Angle\nconst float D = 0.20;   // Toe Strength\nconst float E = 0.01;   // Toe Numerator\nconst float F = 0.30;   // Toe Denominator\nconst vec3 whiteScale = vec3(11.2);\n\nvec3 uncharted2ToneMap(vec3 x)\n{\n    return ((x*(A*x+C*B)+D*E)/(x*(A*x+B)+D*F))-E/F;\n}\n\nvec3 filmicToneMap(vec3 color)\n{\n    vec3 x = max(vec3(0.0), color - 0.004);\n    return (x*(6.2*x+0.5))/(x*(6.2*x+1.7)+0.06);\n}\n\nfloat eyeAdaption(float fLum)\n{\n    return mix(0.2, fLum, 0.5);\n}\n\nvoid main()\n{\n    vec3 tex = vec3(0.0);\n    #ifdef TEXTURE_ENABLED\n        tex = texture2D(texture, v_Texcoord).rgb;\n    #endif\n\n    #ifdef BLOOM_ENABLED\n        tex += texture2D(bloom, v_Texcoord).rgb * 0.25;\n    #endif\n\n    #ifdef LENSFLARE_ENABLED\n        tex += texture2D(lensflare, v_Texcoord).rgb;\n    #endif\n\n    // Adjust exposure\n    // From KlayGE\n    #ifdef LUM_ENABLED\n        float fLum = texture2D(lum, vec2(0.5, 0.5)).r;\n        float adaptedLumDest = 3.0 / (max(0.1, 1.0 + 10.0*eyeAdaption(fLum)));\n        float exposureBias = adaptedLumDest * exposure;\n    #else\n        float exposureBias = exposure;\n    #endif\n    tex *= exposureBias;\n\n    // Do tone mapping\n    vec3 color = uncharted2ToneMap(tex) / uncharted2ToneMap(whiteScale);\n    color = pow(color, vec3(1.0/2.2));\n    // vec3 color = filmicToneMap(tex);\n\n    #ifdef RGBM_ENCODE\n        gl_FragColor.rgba = RGBMEncode(color);\n    #else\n        gl_FragColor = vec4(color, 1.0);\n    #endif\n}\n\n@end';});
 
 define('qtek/compositor/shaders/lensflare.essl',[],function () { return '// john-chapman-graphics.blogspot.co.uk/2013/02/pseudo-lens-flare.html\n@export buildin.compositor.lensflare\n\n#define SAMPLE_NUMBER 8\n\nuniform sampler2D texture;\nuniform sampler2D lensColor;\n\nuniform vec2 textureSize : [512, 512];\n\nuniform float dispersal : 0.3;\nuniform float haloWidth : 0.4;\nuniform float distortion : 1.0;\n\nvarying vec2 v_Texcoord;\n\nvec4 textureDistorted(\n    in vec2 texcoord,\n    in vec2 direction,\n    in vec3 distortion\n) {\n    return vec4(\n        texture2D(texture, texcoord + direction * distortion.r).r,\n        texture2D(texture, texcoord + direction * distortion.g).g,\n        texture2D(texture, texcoord + direction * distortion.b).b,\n        1.0\n    );\n}\n\nvoid main()\n{\n    vec2 texcoord = -v_Texcoord + vec2(1.0); // Flip texcoords\n    vec2 textureOffset = 1.0 / textureSize;\n\n    vec2 ghostVec = (vec2(0.5) - texcoord) * dispersal;\n    vec2 haloVec = normalize(ghostVec) * haloWidth;\n\n    vec3 distortion = vec3(-textureOffset.x * distortion, 0.0, textureOffset.x * distortion);\n    //Sample ghost\n    vec4 result = vec4(0.0);\n    for (int i = 0; i < SAMPLE_NUMBER; i++)\n    {\n        vec2 offset = fract(texcoord + ghostVec * float(i));\n\n        float weight = length(vec2(0.5) - offset) / length(vec2(0.5));\n        weight = pow(1.0 - weight, 10.0);\n\n        result += textureDistorted(offset, normalize(ghostVec), distortion) * weight;\n    }\n\n    result *= texture2D(lensColor, vec2(length(vec2(0.5) - texcoord)) / length(vec2(0.5)));\n    //Sample halo\n    float weight = length(vec2(0.5) - fract(texcoord + haloVec)) / length(vec2(0.5));\n    weight = pow(1.0 - weight, 10.0);\n    vec2 offset = fract(texcoord + haloVec);\n    result += textureDistorted(offset, normalize(ghostVec), distortion) * weight;\n\n    gl_FragColor = result;\n}\n@end';});
 
@@ -21294,11 +14881,11 @@ define('qtek/compositor/Pass',['require','../core/Base','../Scene','../camera/Or
 
     return Pass;
 });
-define('qtek/compositor/texturePool',['require','../texture/Texture2D','../core/glenum','_'],function(require) {
+define('qtek/compositor/texturePool',['require','../texture/Texture2D','../core/glenum','../core/util'],function(require) {
     
     var Texture2D = require('../texture/Texture2D');
     var glenum = require('../core/glenum');
-    var _ = require('_');
+    var util = require('../core/util');
 
     var pool = {};
 
@@ -21354,12 +14941,15 @@ define('qtek/compositor/texturePool',['require','../texture/Texture2D','../core/
         premultiplyAlpha : false
     }
 
+    var defaultParamPropList = Object.keys(defaultParams);
+
     function generateKey(parameters) {
-        _.defaults(parameters, defaultParams);
+        util.defaultsWithPropList(parameters, defaultParams, defaultParamPropList);
         fallBack(parameters);
 
         var key = '';
-        for (var name in defaultParams) {
+        for (var i = 0; i < defaultParamPropList.length; i++) {
+            var name = defaultParamPropList[i];
             var chunk = parameters[name].toString();
             key += chunk;
         }
@@ -21624,15 +15214,17 @@ define('qtek/compositor/Node',['require','../core/Base','./Pass','../FrameBuffer
                 return ;
             }
 
-            this._outputReferences[name] ++;
-
+            // Already been rendered in this frame
             if (this._rendered) {
-                // Already been rendered in this frame
-                return this._outputTextures[name];
+                // Force return texture in last frame
+                if (outputInfo.outputLastFrame) {
+                    return this._prevOutputTextures[name];
+                } else {
+                    return this._outputTextures[name];
+                }
             } else if (
                 // TODO
                 this._rendering   // Solve Circular Reference
-                || outputInfo.outputLastFrame // Force return texture in last frame
             ) {
                 if (!this._prevOutputTextures[name]) {
                     // Create a blank texture at first pass
@@ -21688,6 +15280,20 @@ define('qtek/compositor/Node',['require','../core/Base','./Pass','../FrameBuffer
 
             var shader = this.pass.material.shader;
             shader.disableTexturesAll();   
+        },
+
+        updateReference : function(name) {
+            if (!this._rendering) {
+                this._rendering = true;
+                for (var inputName in this.inputLinks) {
+                    var link = this.inputLinks[inputName];
+                    link.node.updateReference(link.pin);
+                }
+                this._rendering = false;
+            }
+            if (name) {
+                this._outputReferences[name] ++;
+            }
         },
 
         beforeFrame : function() {
@@ -21827,14 +15433,18 @@ define('qtek/compositor/SceneNode',['require','./Node','./Pass','../FrameBuffer'
     var texturePool = require("./texturePool");
     var glinfo = require('../core/glinfo');
 
-    var SceneNode = Node.derive(function() {
-        return {
-            name : 'scene',
-            scene : null,
-            camera : null,
-            autoUpdateScene : true,
-            preZ : false
-        }
+    var SceneNode = Node.derive({
+            
+        name : 'scene',
+        
+        scene : null,
+        
+        camera : null,
+        
+        autoUpdateScene : true,
+
+        preZ : false
+        
     }, function() {
         if (this.frameBuffer) {
             this.frameBuffer.depthBuffer = true;
@@ -21949,168 +15559,6 @@ define('qtek/compositor/TextureNode',['require','./Node','../FrameBuffer','./tex
 
     return TextureNode;
 });
-/**
- *  @export{object} request
- */
-define('qtek/core/request',['require'],function(require) {
-
-    function get(options) {
-
-        var xhr = new XMLHttpRequest();
-
-        xhr.open("get", options.url);
-        // With response type set browser can get and put binary data
-        // https://developer.mozilla.org/en-US/docs/DOM/XMLHttpRequest/Sending_and_Receiving_Binary_Data
-        // Default is text, and it can be set
-        // arraybuffer, blob, document, json, text
-        xhr.responseType = options.responseType || "text";
-
-        if (options.onprogress) {
-            //https://developer.mozilla.org/en-US/docs/DOM/XMLHttpRequest/Using_XMLHttpRequest
-            xhr.onprogress = function(e) {
-                if (e.lengthComputable) {
-                    var percent = e.loaded / e.total;
-                    options.onprogress(percent, e.loaded, e.total);
-                } else {
-                    options.onprogress(null);
-                }
-            }
-        }
-        xhr.onload = function(e) {
-            options.onload && options.onload(xhr.response);
-        }
-        if (options.onerror) {
-            xhr.onerror = options.onerror;
-        }
-        xhr.send(null);
-    }
-
-    return {
-        get : get
-    }
-});
-define('qtek/core/Async',['require','_','./mixin/notifier','./request'],function(require) {
-
-    var _  = require('_');
-    var notifier = require('./mixin/notifier');
-    var request = require('./request');
-    
-    var Task = function() {}
-    Task.prototype.resolve = function(data) {
-        this.trigger('success', data);
-    }
-    Task.prototype.reject = function(err) {
-        this.trigger('error', err);
-    }
-    _.extend(Task.prototype, notifier);
-
-
-    var Async = function() {};
-    Async.prototype = {
-
-        constructor : Async,
-
-        all : function(tasks) {
-            var count = tasks.length;
-            var self = this;
-            var data = [];
-            tasks.forEach(function(task, idx) {
-                task.once('success', function(res) {
-                    count--;
-                    data[idx] = res;
-                    if (count === 0) {
-                        self.trigger('success', data);
-                    }
-                });
-                task.once('error', function() {
-                    self.trigger('error', task);
-                });
-            });
-            return this;
-        },
-
-        any : function(tasks) {
-            var count = tasks.length;
-            var success = false;
-            var self = this;
-            var data = [];
-            tasks.forEach(function(task, idx) {
-                task.once('success', function(res) {
-                    count--;
-                    data[idx] = res;
-                    success = true;
-                    if (count === 0) {
-                        self.trigger('success', data);
-                    }
-                });
-                task.once('error', function(err) {
-                    count--;
-                    data[idx] = null;
-                    if (count === 0) {
-                        if (success) {
-                            self.trigger('success', data);
-                        } else {
-                            self.trigger('error');
-                        }
-                    }
-                })
-            });
-            return this;
-        }
-    }
-
-    function makeRequestTask(url, responseType) {
-        var task = new Task();
-        request.get({
-            url : url,
-            responseType : responseType,
-            onload : function(res) {
-                task.resolve(res);
-            },
-            onerror : function() {
-                self.reject(error);
-            }
-        });
-        return task;
-    };
-
-    Async.makeRequestTasks = function(url, responseType) {
-        var self = this;
-        if (typeof url === 'string') {
-            return makeRequestTask(url, responseType);
-        } else if (url.url) {   //  Configure object
-            var obj = url;
-            return makeRequestTask(obj.url, obj.responseType);
-        } else if (url instanceof Array) {  // Url list
-            var count = 0;
-            var urlList = url;
-            var tasks = [];
-            urlList.forEach(function(obj) {
-                var url, responseType;
-                if (typeof obj === 'string') {
-                    url = obj;
-                } else if (Object(obj) === obj) {
-                    url = obj.url;
-                    responseType = obj.responseType;
-                }
-                tasks.push(makeRequestTask(url, responseType));
-            });
-            return tasks;
-        }
-    }
-
-    Async.makeTask = function(obj) {
-        return new Task(obj);
-    }
-
-    _.extend(Async.prototype, notifier);
-
-    return Async;
-});
-define('qtek/core/color',['require'],function(require){
-
-	
-});
 ;
 define("qtek/geometry/Capsule", function(){});
 
@@ -22167,7 +15615,7 @@ define('qtek/geometry/Cone',['require','../DynamicGeometry','../math/BoundingBox
             // Build top cap
             positions.push(c1);
             // TODO
-            texcoords.push(vec2.fromValues(0, 0));
+            texcoords.push(vec2.fromValues(0, 1));
             var n = this.capSegments;
             for (var i = 0; i < n; i++) {
                 positions.push(topCap[i]);
@@ -22183,7 +15631,7 @@ define('qtek/geometry/Cone',['require','../DynamicGeometry','../math/BoundingBox
             for (var i = 0; i < n; i++) {
                 positions.push(bottomCap[i]);
                 // TODO
-                texcoords.push(vec2.fromValues(i / n, 1));
+                texcoords.push(vec2.fromValues(i / n, 0));
                 faces.push([offset, offset+((i+1) % n + 1), offset+i+1]);
             }
 
@@ -22337,6 +15785,7 @@ define('qtek/geometry/Cylinder',['require','../DynamicGeometry','../math/Boundin
                 bottomRadius : this.radius,
                 capSegments : this.capSegments,
                 heightSegments : this.heightSegments,
+                height : this.height
             });
 
             this.attributes.position.value = cone.attributes.position.value;
@@ -22620,7 +16069,7 @@ define('qtek/light/Spot',['require','../Light','../Shader','../math/Vector3'],fu
 
     return SpotLight;
 } );
-define('qtek/loader/FX',['require','../core/Base','../core/request','../core/util','../compositor/Compositor','../compositor/Node','../compositor/Group','../compositor/SceneNode','../compositor/TextureNode','../Shader','../Texture','../texture/Texture2D','../texture/TextureCube','_'],function(require) {
+define('qtek/loader/FX',['require','../core/Base','../core/request','../core/util','../compositor/Compositor','../compositor/Node','../compositor/Group','../compositor/SceneNode','../compositor/TextureNode','../Shader','../Texture','../texture/Texture2D','../texture/TextureCube'],function(require) {
     
     
 
@@ -22636,7 +16085,6 @@ define('qtek/loader/FX',['require','../core/Base','../core/request','../core/uti
     var Texture = require('../Texture');
     var Texture2D = require('../texture/Texture2D');
     var TextureCube = require('../texture/TextureCube');
-    var _ = require('_');
 
     var shaderSourceReg = /#source\((.*?)\)/;
     var urlReg = /#url\((.*?)\)/;
@@ -22848,7 +16296,7 @@ define('qtek/loader/FX',['require','../core/Base','../core/request','../core/uti
             var loading = 0;
             var cbd = false;
             var shaderRootPath = this.shaderRootPath || this.rootPath;
-            _.each(json.shaders, function(shaderExp, name) {
+            util.each(json.shaders, function(shaderExp, name) {
                 var res = urlReg.exec(shaderExp);
                 if (res) {
                     var path = res[1];
@@ -22886,7 +16334,7 @@ define('qtek/loader/FX',['require','../core/Base','../core/request','../core/uti
 
             var cbd = false;
             var textureRootPath = this.textureRootPath || this.rootPath;
-            _.each(json.textures, function(textureInfo, name) {
+            util.each(json.textures, function(textureInfo, name) {
                 var texture;
                 var path = textureInfo.path;
                 var parameters = this._convertParameter(textureInfo.parameters);
@@ -22942,7 +16390,7 @@ define('qtek/loader/FX',['require','../core/Base','../core/request','../core/uti
  * glTF Loader
  * Specification : https://github.com/KhronosGroup/glTF/blob/master/specification/README.md
  */
-define('qtek/loader/GLTF',['require','../core/Base','../core/request','../core/util','../Scene','../Shader','../Material','../Mesh','../Node','../Texture','../texture/Texture2D','../texture/TextureCube','../shader/library','../Skeleton','../Joint','../camera/Perspective','../camera/Orthographic','../light/Point','../light/Spot','../light/Directional','../core/glenum','../math/Vector3','../math/Quaternion','../math/BoundingBox','../animation/SamplerClip','../animation/SkinningClip','_','../StaticGeometry','glmatrix'],function(require) {
+define('qtek/loader/GLTF',['require','../core/Base','../core/request','../core/util','../Scene','../Shader','../Material','../Mesh','../Node','../Texture','../texture/Texture2D','../texture/TextureCube','../shader/library','../Skeleton','../Joint','../camera/Perspective','../camera/Orthographic','../light/Point','../light/Spot','../light/Directional','../core/glenum','../math/Vector3','../math/Quaternion','../math/BoundingBox','../animation/SamplerClip','../animation/SkinningClip','../StaticGeometry','glmatrix'],function(require) {
 
     
 
@@ -22974,8 +16422,6 @@ define('qtek/loader/GLTF',['require','../core/Base','../core/request','../core/u
 
     var SamplerClip = require("../animation/SamplerClip");
     var SkinningClip = require("../animation/SkinningClip");
-    
-    var _ = require("_");
 
     var StaticGeometry = require("../StaticGeometry");
 
@@ -23042,7 +16488,7 @@ define('qtek/loader/GLTF',['require','../core/Base','../core/request','../core/u
             // Build scene
             var scene = new Scene();
             // Load buffers
-            _.each(json.buffers, function(bufferInfo, name) {
+            util.each(json.buffers, function(bufferInfo, name) {
                 loading++;
                 self._loadBuffer(bufferInfo.path, function(buffer) {
                     lib.buffers[name] = buffer;
@@ -23066,10 +16512,6 @@ define('qtek/loader/GLTF',['require','../core/Base','../core/request','../core/u
 
                 var sceneInfo = json.scenes[json.scene];
                 for (var i = 0; i < sceneInfo.nodes.length; i++) {
-                    if (lib.joints[sceneInfo.nodes[i]]) {
-                        // Skip joint node
-                        continue;
-                    }
                     var node = lib.nodes[sceneInfo.nodes[i]];
                     node.update();
                     scene.add(node);
@@ -23194,6 +16636,8 @@ define('qtek/loader/GLTF',['require','../core/Base','../core/request','../core/u
                 return joint;
             }
 
+            var instanceSkins = {};
+
             for (var name in json.nodes) {
 
                 var nodeInfo = json.nodes[name];
@@ -23201,6 +16645,7 @@ define('qtek/loader/GLTF',['require','../core/Base','../core/request','../core/u
                 if (nodeInfo.instanceSkin) {
                     var skinName = nodeInfo.instanceSkin.skin;
                     var skeleton = lib.skeletons[skinName];
+                    instanceSkins[skinName] = skeleton;
 
                     var node = lib.nodes[name];
                     var jointIndices = skeleton.joints.map(function(joint) {
@@ -23237,14 +16682,14 @@ define('qtek/loader/GLTF',['require','../core/Base','../core/request','../core/u
                     var rootNodes = nodeInfo.instanceSkin.skeletons;
                     for (i = 0; i < rootNodes.length; i++) {
                         var rootNode = lib.nodes[rootNodes[i]];
-                        var rootJoint = bindNodeToJoint(jointsMap, rootNodes[i], -1, rootNode.parent);
+                        var rootJoint = bindNodeToJoint(jointsMap, rootNodes[i], -1, rootNode);
                         skeleton.roots.push(rootJoint);
                     }
                 }
             }
 
-            for (var name in lib.skeletons) {
-                var skeleton = lib.skeletons[name];
+            for (var name in instanceSkins) {
+                var skeleton = instanceSkins[name];
                 if (haveInvBindMatrices) {
                     skeleton.updateMatricesSubArrays();
                 } else {
@@ -23321,7 +16766,7 @@ define('qtek/loader/GLTF',['require','../core/Base','../core/request','../core/u
 
         _parseTextures : function(json, lib) {
             var root = this.textureRootPath || this.rootPath;
-            _.each(json.textures, function(textureInfo, name){
+            util.each(json.textures, function(textureInfo, name){
                 var samplerInfo = json.samplers[textureInfo.sampler];
                 var parameters = {};
                 ['wrapS', 'wrapT', 'magFilter', 'minFilter']
@@ -23564,6 +17009,12 @@ define('qtek/loader/GLTF',['require','../core/Base','../core/request','../core/u
                     }
 
                     var material = lib.materials[primitiveInfo.material];
+                    //Collada export from blender may not have default material
+                    if (!material) {
+                        material = new Material({
+                            shader : shaderLibrary.get(self.shaderName)
+                        })
+                    }
                     var mesh = new Mesh({
                         geometry : geometry,
                         material : material
@@ -23769,18 +17220,20 @@ define('qtek/loader/GLTF',['require','../core/Base','../core/request','../core/u
                 // glTF use axis angle in rotation, convert to quaternion
                 // https://github.com/KhronosGroup/glTF/issues/144
                 var rotationArr = parameters.rotation;
-                for (i = 0; i < parameters.TIME.length; i++) {
-                    parameters.TIME[i] *= 1000;
-                    var offset = i * 4;
-                    if (rotationArr) {
-                        quatTmp[0] = rotationArr[offset];
-                        quatTmp[1] = rotationArr[offset + 1];
-                        quatTmp[2] = rotationArr[offset + 2];
-                        quat.setAxisAngle(quatTmp, quatTmp, rotationArr[offset + 3]);
-                        parameters.rotation[offset] = quatTmp[0];
-                        parameters.rotation[offset + 1] = quatTmp[1];
-                        parameters.rotation[offset + 2] = quatTmp[2];
-                        parameters.rotation[offset + 3] = quatTmp[3];
+                if (rotationArr) {
+                    for (i = 0; i < parameters.TIME.length; i++) {
+                        parameters.TIME[i] *= 1000;
+                        var offset = i * 4;
+                        if (rotationArr) {
+                            quatTmp[0] = rotationArr[offset];
+                            quatTmp[1] = rotationArr[offset + 1];
+                            quatTmp[2] = rotationArr[offset + 2];
+                            quat.setAxisAngle(quatTmp, quatTmp, rotationArr[offset + 3]);
+                            parameters.rotation[offset] = quatTmp[0];
+                            parameters.rotation[offset + 1] = quatTmp[1];
+                            parameters.rotation[offset + 2] = quatTmp[2];
+                            parameters.rotation[offset + 3] = quatTmp[3];
+                        }
                     }
                 }
 
@@ -23793,9 +17246,9 @@ define('qtek/loader/GLTF',['require','../core/Base','../core/request','../core/u
                 });
                 var jointClip = jointClips[targetId];
                 jointClip.channels.time = parameters.TIME;
-                jointClip.channels.rotation = parameters.rotation;
-                jointClip.channels.position = parameters.translation;
-                jointClip.channels.scale = parameters.scale;
+                jointClip.channels.rotation = parameters.rotation || null;
+                jointClip.channels.position = parameters.translation || null;
+                jointClip.channels.scale = parameters.scale || null;
                 jointClip.life = parameters.TIME[parameters.TIME.length - 1];
             }
 
@@ -23814,459 +17267,11 @@ define('qtek/loader/GLTF',['require','../core/Base','../core/request','../core/u
     return Loader;
 });
 /**
- * shapes : circle, line, polygon, rect, polyline, ellipse, path
- */
-define('qtek/loader/SVG',['require','../core/Base','../core/request','../2d/Node','../2d/shape/Circle','../2d/shape/Rectangle','../2d/shape/Ellipse','../2d/shape/Line','../2d/shape/Path','../2d/shape/Polygon','../2d/shape/TextBox','../2d/shape/SVGPath','../2d/LinearGradient','../2d/RadialGradient','../2d/Pattern','../2d/Style','../math/Vector2','_'],function(require) {
-
-    var Base = require("../core/Base");
-
-    var request = require("../core/request");
-
-    var Node = require("../2d/Node");
-    var Circle = require("../2d/shape/Circle");
-    var Rectangle = require("../2d/shape/Rectangle");
-    var Ellipse = require("../2d/shape/Ellipse");
-    var Line = require("../2d/shape/Line");
-    var Path = require("../2d/shape/Path");
-    var Polygon = require("../2d/shape/Polygon");
-    var TextBox = require("../2d/shape/TextBox");
-    var SVGPath = require("../2d/shape/SVGPath");
-    var LinearGradient = require("../2d/LinearGradient");
-    var RadialGradient = require("../2d/RadialGradient");
-    var Pattern = require("../2d/Pattern");
-    var Style = require("../2d/Style");
-    var Vector2 = require("../math/Vector2");
-    var _ = require("_");
-
-    var Loader = Base.derive(function() {
-        return {
-            defs : {},
-            root : null
-        };
-    }, {
-        load : function(url) {
-
-            var self = this;
-            this.defs = {};
-
-            request.get({
-                url : url,
-                onprogress : function(percent, loaded, total) {
-                    self.trigger("progress", percent, loaded, total);
-                },
-                onerror : function(e) {
-                    self.trigger("error", e);
-                },
-                responseType : "text",
-                onload : function(xmlString) {
-                    self.parse(xmlString);
-                }
-            })
-        },
-        parse : function(xml) {
-            if (typeof(xml) === "string") {
-                var parser = new DOMParser();
-                var doc = parser.parseFromString(xml, 'text/xml');
-                var svg = doc.firstChild;
-                while (svg.nodeName.toLowerCase() !== 'svg') {
-                    svg = svg.nextSibling;
-                }
-            } else {
-                var svg = xml;
-            }
-            var root = new Node();
-            this.root = root;
-            // parse view port
-            var viewBox = svg.getAttribute("viewBox") || '';
-            var viewBoxArr = viewBox.split(/\s+/);
-
-            var width = parseFloat(svg.getAttribute("width") || 0);
-            var height = parseFloat(svg.getAttribute("height") || 0);
-
-            var x = parseFloat(viewBoxArr[0] || 0);
-            var y = parseFloat(viewBoxArr[1] || 0);
-            var vWidth = parseFloat(viewBoxArr[2]);
-            var vHeight = parseFloat(viewBoxArr[3]);
-
-            root.position.set(x, y);
-
-            var child = svg.firstChild;
-            while (child) {
-                this._parseNode(child, root);
-                child = child.nextSibling;
-            }
-            
-            this.trigger('success', root);
-
-            return root;
-        },
-
-        _parseNode : function(xmlNode, parent) {
-            var nodeName = xmlNode.nodeName.toLowerCase();
-
-            if (nodeName === 'defs') {
-                // define flag
-                this._isDefine = true;
-            }
-
-            if (this._isDefine) {
-                var parser = defineParsers[nodeName];
-                if (parser) {
-                    var def = parser.call(this, xmlNode);
-                    var id = xmlNode.getAttribute("id");
-                    if (id) {
-                        this.defs[id] = def;
-                    }
-                }
-            } else {
-                var parser = nodeParsers[nodeName];
-                if (parser) {
-                    var node = parser.call(this, xmlNode, parent);
-                    parent.add(node);
-                }
-            }
-
-            var child = xmlNode.firstChild;
-            while (child) {
-                if (child.nodeType === 1){
-                    this._parseNode(child, node);
-                }
-                child = child.nextSibling;
-            }
-
-            // Quit define
-            if (nodeName === 'defs') {
-                this._isDefine = false;
-            }
-        }
-    });
-    
-    var nodeParsers = {
-        "g" : function(xmlNode, parentNode) {
-            var node = new Node();
-            if (parentNode) {
-                _inheritStyle(parentNode, node);
-            }
-            _parseAttributes(xmlNode, node, this.defs);
-            return node;
-        },
-        "rect" : function(xmlNode, parentNode) {
-            var rect = new Rectangle();
-            if (parentNode) {
-                _inheritStyle(parentNode, rect);
-            }
-            _parseAttributes(xmlNode, rect, this.defs);
-
-            var x = parseFloat(xmlNode.getAttribute("x") || 0);
-            var y = parseFloat(xmlNode.getAttribute("y") || 0);
-            var width = parseFloat(xmlNode.getAttribute("width") || 0);
-            var height = parseFloat(xmlNode.getAttribute("height") || 0);
-            rect.start.set(x, y);
-            rect.size.set(x, y);
-
-            return rect;
-        },
-        "circle" : function(xmlNode, parentNode) {
-            var circle = new Circle();
-            if (parentNode) {
-                _inheritStyle(parentNode, circle);
-            }
-            _parseAttributes(xmlNode, circle, this.defs);
-
-            var cx = parseFloat(xmlNode.getAttribute("cx") || 0);
-            var cy = parseFloat(xmlNode.getAttribute("cy") || 0);
-            var r = parseFloat(xmlNode.getAttribute("r") || 0);
-            circle.center.set(cx, cy);
-            circle.radius = r;
-
-            return circle;
-        },
-        'line' : function(xmlNode, parentNode){
-            var line = new Line();
-            if (parentNode) {
-                _inheritStyle(parentNode, line);
-            }
-            _parseAttributes(xmlNode, line, this.defs);
-
-            var x1 = parseFloat(xmlNode.getAttribute("x1") || 0);
-            var y1 = parseFloat(xmlNode.getAttribute("y1") || 0);
-            var x2 = parseFloat(xmlNode.getAttribute("x2") || 0);
-            var y2 = parseFloat(xmlNode.getAttribute("y2") || 0);
-            line.start.set(x1, y1);
-            line.end.set(x2, y2);
-
-            return line;
-        },
-        "ellipse" : function(xmlNode, parentNode) {
-            var ellipse = new Ellipse();
-            if (parentNode) {
-                _inheritStyle(parentNode, ellipse);
-            }
-            _parseAttributes(xmlNode, ellipse, this.defs);
-
-            var cx = parseFloat(xmlNode.getAttribute("cx") || 0);
-            var cy = parseFloat(xmlNode.getAttribute("cy") || 0);
-            var rx = parseFloat(xmlNode.getAttribute("rx") || 0);
-            var ry = parseFloat(xmlNode.getAttribute("ry") || 0);
-
-            ellipse.center.set(cx, cy);
-            ellipse.radius.set(rx, ry);
-            return ellipse;
-        },
-        'polygon' : function(xmlNode, parentNode) {
-            var points = xmlNode.getAttribute("points");
-            if (points) {
-                points = _parsePoints(points);
-            }
-            var polygon = new Polygon({
-                points : points
-            });
-            if (parentNode) {
-                _inheritStyle(parentNode, polygon);
-            }
-            _parseAttributes(xmlNode, polygon, this.defs);
-
-            return polygon;
-        },
-        'polyline' : function(xmlNode, parentNode) {
-            var path = new Path();
-            if (parentNode) {
-                _inheritStyle(parentNode, path);
-            }
-            _parseAttributes(xmlNode, path, this.defs);
-
-            var points = xmlNode.getAttribute("points");
-            if (points) {
-                points = _parsePoints(points);
-                path.pushPoints(points);
-            }
-
-            return path;
-        },
-        'image' : function(xmlNode, parentNode) {
-
-        },
-        'text' : function(xmlNode, parentNode) {
-            
-        },
-        "path" : function(xmlNode, parentNode) {
-            var path = new SVGPath();
-            if (parentNode) {
-                _inheritStyle(parentNode, path);
-            }
-            _parseAttributes(xmlNode, path, this.defs);
-
-            // TODO svg fill rule
-            // https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/fill-rule
-            // path.style.globalCompositeOperation = 'xor';
-
-            var d = xmlNode.getAttribute("d") || "";
-            path.description = d;
-
-            return path;
-        }
-    }
-
-    var defineParsers = {
-
-        'lineargradient' : function(xmlNode) {
-            var x1 = parseInt(xmlNode.getAttribute("x1") || 0);
-            var y1 = parseInt(xmlNode.getAttribute("y1") || 0);
-            var x2 = parseInt(xmlNode.getAttribute("x2") || 10);
-            var y2 = parseInt(xmlNode.getAttribute("y2") || 0);
-
-            var gradient = new LinearGradient();
-            gradient.start.set(x1, y1);
-            gradient.end.set(x2, y2);
-
-            _parseGradientColorStops(xmlNode, gradient);
-
-            return gradient;
-        },
-
-        'radialgradient' : function(xmlNode) {
-
-        }
-    }
-
-    function _parseGradientColorStops(xmlNode, gradient){
-
-        var stop = xmlNode.firstChild;
-
-        while (stop) {
-            if (stop.nodeType === 1) {
-                var offset = stop.getAttribute("offset");
-                if (offset.indexOf("%") > 0) {  // percentage
-                    offset = parseInt(offset) / 100;
-                } else if(offset) {    // number from 0 to 1
-                    offset = parseFloat(offset);
-                } else {
-                    offset = 0;
-                }
-
-                var stopColor = stop.getAttribute("stop-color") || '#000000';
-
-                gradient.addColorStop(offset, stopColor);
-            }
-            stop = stop.nextSibling;
-        }
-    }
-
-    function _inheritStyle(parent, child) {
-        child.stroke = parent.stroke;
-        child.fill = parent.fill;
-    }
-
-    function _parsePoints(pointsString) {
-        var list = pointsString.trim().replace(/,/g, " ").split(/\s+/);
-        var points = [];
-
-        for (var i = 0; i < list.length; i+=2) {
-            var x = parseFloat(list[i]);
-            var y = parseFloat(list[i+1]);
-            points.push(new Vector2(x, y));
-        }
-        return points;
-    }
-
-    function _parseAttributes(xmlNode, node, defs) {
-        _parseTransformAttribute(xmlNode, node);
-
-        var styleList = {
-            fill : xmlNode.getAttribute('fill'),
-            stroke : xmlNode.getAttribute("stroke"),
-            lineWidth : xmlNode.getAttribute("stroke-width"),
-            opacity : xmlNode.getAttribute('opacity'),
-            lineDash : xmlNode.getAttribute('stroke-dasharray'),
-            lineDashOffset : xmlNode.getAttribute('stroke-dashoffset'),
-            lineCap : xmlNode.getAttribute('stroke-linecap'),
-            lineJoin : xmlNode.getAttribute('stroke-linjoin'),
-            miterLimit : xmlNode.getAttribute("stroke-miterlimit")
-        }
-
-        _.extend(styleList, _parseStyleAttribute(xmlNode));
-
-        node.style = new Style({
-            fill : _getPaint(styleList.fill, defs),
-            stroke : _getPaint(styleList.stroke, defs),
-            lineWidth : parseFloat(styleList.lineWidth),
-            opacity : parseFloat(styleList.opacity),
-            lineDashOffset : styleList.lineDashOffset,
-            lineCap : styleList.lineCap,
-            lineJoin : styleList.lineJoin,
-            miterLimit : parseFloat(styleList.miterLimit)
-        });
-        if (styleList.lineDash) {
-            node.style.lineDash = styleList.lineDash.trim().split(/\s*,\s*/);
-        }
-
-        if (styleList.stroke && styleList.stroke !== "none") {
-            // enable stroke
-            node.stroke = true;
-        }
-    }
-
-
-    var urlRegex = /url\(\s*#(.*?)\)/;
-    function _getPaint(str, defs) {
-        // if (str === 'none') {
-        //     return;
-        // }
-        var urlMatch = urlRegex.exec(str);
-        if (urlMatch) {
-            var url = urlMatch[1].trim();
-            var def = defs[url];
-            return def;
-        }
-        return str;
-    }
-
-    var transformRegex = /(translate|scale|rotate|skewX|skewY|matrix)\(([\-\s0-9\.,]*)\)/g;
-
-    function _parseTransformAttribute(xmlNode, node) {
-        var transform = xmlNode.getAttribute("transform");
-        if (transform) {
-            var m = node.transform;
-            m.identity();
-            var transformOps = [];
-            transform.replace(transformRegex, function(str, type, value){
-                transformOps.push(type, value);
-            })
-            for(var i = transformOps.length-1; i > 0; i-=2){
-                var value = transformOps[i];
-                var type = transformOps[i-1];
-                switch(type) {
-                    case "translate":
-                        value = value.trim().split(/\s+/);
-                        m.translate(new Vector2(parseFloat(value[0]), parseFloat(value[1] || 0)));
-                        break;
-                    case "scale":
-                        value = value.trim().split(/\s+/);
-                        m.scale(new Vector2(parseFloat(value[0]), parseFloat(value[1] || value[0])));
-                        break;
-                    case "rotate":
-                        value = value.trim().split(/\s*/);
-                        m.rotate(parseFloat(value[0]));
-                        break;
-                    case "skew":
-                        value = value.trim().split(/\s*/);
-                        console.warn("Skew transform is not supported yet");
-                        break;
-                    case "matrix":
-                        var value = value.trim().split(/\s*,\s*/);
-                        var arr = m._array;
-                        arr[0] = parseFloat(value[0]);
-                        arr[1] = parseFloat(value[1]);
-                        arr[2] = parseFloat(value[2]);
-                        arr[3] = parseFloat(value[3]);
-                        arr[4] = parseFloat(value[4]);
-                        arr[5] = parseFloat(value[5]);
-                        break;
-                }
-            }
-        }
-        node.autoUpdate = false;
-    }
-
-    var styleRegex = /(\S*?):(.*?);/g;
-    function _parseStyleAttribute(xmlNode) {
-        var style = xmlNode.getAttribute("style");
-
-        if (style) {
-            var styleList = {};
-            style = style.replace(/\s*([;:])\s*/g, "$1");
-            style.replace(styleRegex, function(str, key, val){
-                styleList[key] = val;
-            });
-
-            return {
-                fill : styleList['fill'],
-                stroke : styleList['stroke'],
-                lineWidth : styleList['stroke-width'],
-                opacity : styleList['opacity'],
-                lineDash : styleList['stroke-dasharray'],
-                lineDashOffset : styleList['stroke-dashoffset'],
-                lineCap : styleList['stroke-linecap'],
-                lineJoin : styleList['stroke-linjoin'],
-                miterLimit : styleList['stroke-miterlimit']
-            }
-        }
-        return {};
-    }
-
-    function _parseCSSRules(doc) {
-
-    }
-
-
-    return Loader
-});
-/**
  * Load three.js JSON Format model
  *
  * Format specification : https://github.com/mrdoob/three.js/wiki/JSON-Model-format-3.1
  */
-define('qtek/loader/three/Model',['require','../../core/Base','../../core/request','../../core/util','../../Shader','../../Material','../../DynamicGeometry','../../Mesh','../../Node','../../texture/Texture2D','../../texture/TextureCube','../../shader/library','../../Skeleton','../../Joint','../../math/Vector3','../../math/Quaternion','../../core/glenum','../../animation/SkinningClip','_','glmatrix'],function(require) {
+define('qtek/loader/three/Model',['require','../../core/Base','../../core/request','../../core/util','../../Shader','../../Material','../../DynamicGeometry','../../Mesh','../../Node','../../texture/Texture2D','../../texture/TextureCube','../../shader/library','../../Skeleton','../../Joint','../../math/Vector3','../../math/Quaternion','../../core/glenum','../../animation/SkinningClip','glmatrix'],function(require) {
 
     var Base = require('../../core/Base');
 
@@ -24286,7 +17291,6 @@ define('qtek/loader/three/Model',['require','../../core/Base','../../core/reques
     var Quaternion = require("../../math/Quaternion");
     var glenum = require('../../core/glenum');
     var SkinningClip = require('../../animation/SkinningClip');
-    var _ = require("_");
 
     var glMatrix = require("glmatrix");
     var vec3 = glMatrix.vec3;
@@ -24761,10 +17765,10 @@ define('qtek/loader/three/Model',['require','../../core/Base','../../core/reques
             if (mConfig.transparent !== undefined && mConfig.transparent) {
                 material.transparent = true;
             }
-            if ( ! _.isUndefined(mConfig.depthTest)) {
+            if (mConfig.depthTest !== undefined) {
                 material.depthTest = mConfig.depthTest;
             }
-            if ( ! _.isUndefined(mConfig.depthWrite)) {
+            if (mConfig.depthWrite !== undefined) {
                 material.depthMask = mConfig.depthWrite;
             }
             
@@ -24910,33 +17914,179 @@ define('qtek/math/Matrix2',['require','glmatrix'],function(require) {
         }
     }
 
+    Matrix2.adjoint = function(out, a) {
+        mat2.adjoint(out._array, a._array);
+        return out;
+    }
+
+    Matrix2.copy = function(out, a) {
+        mat2.copy(out._array, a._array);
+        return out;
+    }
+
+    Matrix2.determinant = function(a) {
+        return mat2.determinant(a._array);
+    }
+
+    Matrix2.identity = function(out) {
+        mat2.identity(out._array);
+        return out;
+    }
+
+    Matrix2.invert = function(out, a) {
+        mat2.invert(out._array, a._array);
+        return out;
+    }
+
+    Matrix2.mul = function(out, a, b) {
+        mat2.mul(out._array, a._array, b._array);
+        return out;
+    }
+
+    Matrix2.multiply = Matrix2.mul;
+
+    Matrix2.rotate = function(out, a, rad) {
+        mat2.rotate(out._array, a._array, rad);
+        return out;
+    }
+
+    Matrix2.scale = function(out, a, v) {
+        mat2.scale(out._array, a._array, v._array);
+        return out;
+    }
+
+    Matrix2.transpose = function(out, a) {
+        mat2.transpose(out._array, a._array);
+        return out;
+    }
+
     return Matrix2;
 });
-define('qtek/math/Ray',['require','../core/Base','./Vector3','glmatrix'],function(require) {
+define('qtek/math/Matrix2d',['require','glmatrix'],function(require) {
 
-    var Base = require('../core/Base');
-    var Vector3 = require('./Vector3');
-    var glMatrix = require('glmatrix');
-    var vec3 = glMatrix.vec3;
+    
 
-    var Ray = function(origin, direction) {
-        this.origin = origin || new Vector3();
-        this.direction = direction || new Vector3();
-    }
-    Ray.prototype = {
-        
-        constructor : Ray,
+    var glMatrix = require("glmatrix");
+    var mat2d = glMatrix.mat2d;
 
-        intersectPlane : function() {
-            
-        },
-
-        intersectTriangle : function() {
-            
+    function makeProperty(n) {
+        return {
+            configurable : false,
+            set : function(value) {
+                this._array[n] = value;
+                this._dirty = true;
+            },
+            get : function() {
+                return this._array[n];
+            }
         }
+    }
+
+    var Matrix2d = function() {
+
+        this._array = mat2d.create();
     };
 
-    return Ray;
+    Matrix2d.prototype = {
+
+        constructor : Matrix2d,
+
+        clone : function() {
+            return (new Matrix2d()).copy(this);
+        },
+        copy : function(b) {
+            mat2d.copy(this._array, b._array);
+            return this;
+        },
+        determinant : function() {
+            return mat2d.determinant(this._array);
+        },
+        identity : function() {
+            mat2d.identity(this._array);
+            return this;
+        },
+        invert : function() {
+            mat2d.invert(this._array, this._array);
+            return this;
+        },
+        mul : function(b) {
+            mat2d.mul(this._array, this._array, b._array);
+            return this;
+        },
+        mulLeft : function(b) {
+            mat2d.mul(this._array, b._array, this._array);
+            return this;
+        },
+        multiply : function(b) {
+            mat2d.multiply(this._array, this._array, b._array);
+            return this;
+        },
+        multiplyLeft : function(b) {
+            mat2d.multiply(this._array, b._array, this._array);
+            return this;
+        },
+        rotate : function(rad) {
+            mat2d.rotate(this._array, this._array, rad);
+            return this;
+        },
+        scale : function(s) {
+            mat2d.scale(this._array, this._array, s._array);
+        },
+        translate : function(v) {
+            mat2d.translate(this._array, this._array, v._array);
+        },
+        toString : function() {
+            return "[" + Array.prototype.join.call(this._array, ",") + "]";
+        }
+    }
+
+    Matrix2d.adjoint = function(out, a) {
+        mat2d.adjoint(out._array, a._array);
+        return out;
+    }
+
+    Matrix2d.copy = function(out, a) {
+        mat2d.copy(out._array, a._array);
+        return out;
+    }
+
+    Matrix2d.determinant = function(a) {
+        return mat2d.determinant(a._array);
+    }
+
+    Matrix2d.identity = function(out) {
+        mat2d.identity(out._array);
+        return out;
+    }
+
+    Matrix2d.invert = function(out, a) {
+        mat2d.invert(out._array, a._array);
+        return out;
+    }
+
+    Matrix2d.mul = function(out, a, b) {
+        mat2d.mul(out._array, a._array, b._array);
+        return out;
+    }
+
+    Matrix2d.multiply = Matrix2d.mul;
+
+    Matrix2d.rotate = function(out, a, rad) {
+        mat2d.rotate(out._array, a._array, rad);
+        return out;
+    }
+
+    Matrix2d.scale = function(out, a, v) {
+        mat2d.scale(out._array, a._array, v._array);
+        return out;
+    }
+
+    Matrix2d.translate = function(out, a, v) {
+        mat2d.translate(out._array, a._array, v._array);
+        return out;
+    }
+
+    return Matrix2d;
 });
 define('qtek/math/Value',['require','./Vector3','./Vector2'],function(require) {
 
@@ -25137,11 +18287,6 @@ define('qtek/math/Vector4',['require','glmatrix'], function(require) {
             return this;
         },
 
-        cross : function(out, b) {
-            vec4.cross(out._array, this._array, b._array);
-            return this;
-        },
-
         dist : function(b) {
             return vec4.dist(this._array, b._array);
         },
@@ -25283,6 +18428,134 @@ define('qtek/math/Vector4',['require','glmatrix'], function(require) {
         }
     }
 
+    // Supply methods that are not in place
+    Vector4.add = function(out, a, b) {
+        vec4.add(out._array, a._array, b._array);
+        out._dirty = true;
+        return out;
+    }
+
+    Vector4.set = function(out, x, y, z, w) {
+        vec4.set(out._array, x, y, z, w);
+        out._dirty = true;
+    }
+
+    Vector4.copy = function(out, b) {
+        vec4.copy(out._array, b._array);
+        out._dirty = true;
+        return out;
+    }
+
+    Vector4.dist = function(a, b) {
+        return vec4.distance(a._array, b._array);
+    }
+
+    Vector4.distance = Vector4.dist;
+
+    Vector4.div = function(out, a, b) {
+        vec4.divide(out._array, a._array, b._array);
+        out._dirty = true;
+        return out;
+    }
+
+    Vector4.divide = Vector4.div;
+
+    Vector4.dot = function(a, b) {
+        return vec4.dot(a._array, b._array);
+    }
+
+    Vector4.len = function(b) {
+        return vec4.length(b._array);
+    }
+
+    // Vector4.length = Vector4.len;
+
+    Vector4.lerp = function(out, a, b, t) {
+        vec4.lerp(out._array, a._array, b._array, t);
+        out._dirty = true;
+        return out;
+    }
+
+    Vector4.min = function(out, a, b) {
+        vec4.min(out._array, a._array, b._array);
+        out._dirty = true;
+        return out;
+    }
+
+    Vector4.max = function(out, a, b) {
+        vec4.max(out._array, a._array, b._array);
+        out._dirty = true;
+        return out;
+    }
+
+    Vector4.mul = function(out, a, b) {
+        vec4.multiply(out._array, a._array, b._array);
+        out._dirty = true;
+        return out;
+    }
+
+    Vector4.multiply = Vector4.mul;
+
+    Vector4.negate = function(out, a) {
+        vec4.negate(out._array, a._array);
+        out._dirty = true;
+        return out;
+    }
+
+    Vector4.normalize = function(out, a) {
+        vec4.normalize(out._array, a._array);
+        out._dirty = true;
+        return out;
+    }
+
+    Vector4.random = function(out, scale) {
+        vec4.random(out._array, scale);
+        out._dirty = true;
+        return out;
+    }
+
+    Vector4.scale = function(out, a, scale) {
+        vec4.scale(out._array, a._array, scale);
+        out._dirty = true;
+        return out;
+    }
+
+    Vector4.scaleAndAdd = function(out, a, b, scale) {
+        vec4.scale(out._array, a._array, b._array, scale);
+        out._dirty = true;
+        return out;
+    }
+
+    Vector4.sqrDist = function(a, b) {
+        return vec4.sqrDist(a._array, b._array);
+    }
+
+    Vector4.squaredDistance = Vector4.sqrDist;
+
+    Vector4.sqrLen = function(a) {
+        return vec4.sqrLen(a._array);
+    }
+    Vector4.squaredLength = Vector4.sqrLen;
+
+    Vector4.sub = function(out, a, b) {
+        vec4.subtract(out._array, a._array, b._array);
+        out._dirty = true;
+        return out;
+    }
+    Vector4.subtract = Vector4.sub;
+
+    Vector4.transformMat4 = function(out, a, m) {
+        vec4.transformMat4(out._array, a._array, m._array);
+        out._dirty = true;
+        return out;
+    }
+
+    Vector4.transformQuat = function(out, a, q) {
+        vec4.transformQuat(out._array, a._array, m._array);
+        out._dirty = true;
+        return out;
+    }
+
     return Vector4;
 } );
 define('qtek/particleSystem/Particle',['require','../math/Vector3','glmatrix'],function(require) {
@@ -25295,13 +18568,14 @@ define('qtek/particleSystem/Particle',['require','../math/Vector3','glmatrix'],f
         
         this.position = new Vector3();
 
-        this.rotation = 0;
+        // Use euler angle to represent rotation
+        this.rotation = new Vector3();
 
-        this.velocity = new Vector3();
+        this.velocity = null;
 
-        this.angularVelocity = 0;
+        this.angularVelocity = null;
 
-        this.life = 0;
+        this.life = 1;
 
         this.age = 0;
 
@@ -25313,8 +18587,12 @@ define('qtek/particleSystem/Particle',['require','../math/Vector3','glmatrix'],f
     }
 
     Particle.prototype.update = function(deltaTime) {
-        vec3.scaleAndAdd(this.position._array, this.position._array, this.velocity._array, deltaTime);
-        this.rotation += this.angularVelocity;
+        if (this.velocity) {
+            vec3.scaleAndAdd(this.position._array, this.position._array, this.velocity._array, deltaTime);
+        }
+        if (this.angularVelocity) {
+            vec3.scaleAndAdd(this.rotation._array, this.rotation._array, this.angularVelocity._array, deltaTime);
+        }
     }
 
     return Particle;
@@ -25340,60 +18618,58 @@ define('qtek/particleSystem/Emitter',['require','../core/Base','../math/Vector3'
         velocity : null,
         angularVelocity : null,
         spriteSize : null,
-        weight : null
+        weight : null,
+
+        _particlePool : null
         
     }, function() {
         
         this._particlePool = [];
 
+        // TODO Reduce heap memory
         for (var i = 0; i < this.max; i++) {
             var particle = new Particle();
             particle.emitter = this;
             this._particlePool.push(particle);
-        }
-        
-        if (!this.life) {
-            this.life = Value.constant(1);
-        }
-        if (!this.position) {
-            this.position = Value.vector(new Vector3());
-        }
-        if (!this.rotation) {
-            this.rotation = Value.constant(0);
-        }
-        if (!this.velocity) {
-            this.velocity = Value.vector(new Vector3());
-        }
-        if (!this.angularVelocity) {
-            this.angularVelocity = Value.constant(0);
-        }
-        if (!this.spriteSize) {
-            this.spriteSize = Value.constant(1);
-        }
-        if (!this.weight) {
-            this.weight = Value.constant(1);
+
+            if (this.velocity) {
+                particle.velocity = new Vector3();
+            }
+            if (this.angularVelocity) {
+                particle.angularVelocity = new Vector3();
+            }
         }
 
     }, {
 
         emit : function(out) {
-            var amount;
-            if (this._particlePool.length > this.amount) {
-                amount = this.amount;
-            } else {
-                amount = this._particlePool.length;
-            }
+            var amount = Math.min(this._particlePool.length, this.amount);
+
             var particle;
             for (var i = 0; i < amount; i++) {
                 particle = this._particlePool.pop();
                 // Initialize particle status
-                this.position.get(particle.position);
-                particle.rotation = this.rotation.get();
-                this.velocity.get(particle.velocity);
-                particle.angularVelocity = this.angularVelocity.get();
-                particle.life = this.life.get();
-                particle.spriteSize = this.spriteSize.get();
-                particle.weight = this.weight.get();
+                if (this.position) {
+                    this.position.get(particle.position);
+                }
+                if (this.rotation) {
+                    this.rotation.get(particle.rotation);
+                }
+                if (this.velocity) {
+                    this.velocity.get(particle.velocity);
+                }
+                if (this.angularVelocity) {
+                    this.angularVelocity.get(particle.angularVelocity);
+                }
+                if (this.life) {
+                    particle.life = this.life.get();
+                }
+                if (this.spriteSize) {
+                    particle.spriteSize = this.spriteSize.get();
+                }
+                if (this.weight) {
+                    particle.weight = this.weight.get();
+                }
                 particle.age = 0;
 
                 out.push(particle);
@@ -25434,34 +18710,38 @@ define('qtek/particleSystem/ForceField',['require','../core/Base','../math/Vecto
 
     return ForceField;
 });
-define('qtek/particleSystem/GravityField',['require','../core/Base','glmatrix'],function(require) {
+define('qtek/particleSystem/GravityField',['require','../core/Base','../math/Vector3','glmatrix'],function(require) {
 
     var Base = require('../core/Base');
+    var Vector3 = require('../math/Vector3');
     var glMatrix = require('glmatrix');
     var vec3 =  glMatrix.vec3;
 
     var GravityField = Base.derive(function() {
-        gravity : 0
+        return {
+            gravity : new Vector3(0, -10, 0)
+        }
     }, {
         applyTo : function(velocity, position, weight, deltaTime) {
             if (weight > 0) {
-                velocity._array[1] -= this.gravity * deltaTime / weight;
+                vec3.scaleAndAdd(velocity._array, velocity._array, this.gravity._array, deltaTime);
             }
         }
     });
 
     return GravityField;
 });
-define('qtek/particleSystem/particle.essl',[],function () { return '@export buildin.particle.vertex\n\nuniform mat4 worldView : WORLDVIEW;\nuniform mat4 projection : PROJECTION;\n\nattribute vec3 position : POSITION;\nattribute vec3 normal : NORMAL;\n\nvarying float v_Age;\n\nvoid main() {\n    v_Age = normal.x;\n    float rotation = normal.y;\n\n    vec4 worldViewPosition = worldView * vec4(position, 1.0);\n    gl_PointSize = -normal.z / worldViewPosition.z;\n    gl_Position = projection * worldViewPosition;\n    \n}\n\n@end\n\n@export buildin.particle.fragment\n\nuniform sampler2D sprite;\nuniform sampler2D gradient;\nuniform vec3 color : [1.0, 1.0, 1.0];\nuniform float alpha : 1.0;\n\nvarying float v_Age;\n\nvoid main() {\n    vec4 color = vec4(color, alpha);\n    #ifdef SPRITE_ENABLED\n        color *= texture2D(sprite, gl_PointCoord);\n    #endif\n    #ifdef GRADIENT_ENABLED\n        color *= texture2D(gradient, vec2(v_Age, 0.5));\n    #endif\n\n    gl_FragColor = color;\n}\n\n@end';});
+define('qtek/particleSystem/particle.essl',[],function () { return '@export buildin.particle.vertex\n\nuniform mat4 worldView : WORLDVIEW;\nuniform mat4 projection : PROJECTION;\n\nattribute vec3 position : POSITION;\nattribute vec3 normal : NORMAL;\n\n#ifdef UV_ANIMATION\nattribute vec2 texcoord0 : TEXCOORD_0;\nattribute vec2 texcoord1 : TEXCOORD_1;\n\nvarying vec2 v_Uv0;\nvarying vec2 v_Uv1;\n#endif\n\nvarying float v_Age;\n\nvoid main() {\n    v_Age = normal.x;\n    float rotation = normal.y;\n\n    vec4 worldViewPosition = worldView * vec4(position, 1.0);\n    gl_Position = projection * worldViewPosition;\n    float w = gl_Position.w;\n    // TODO\n    gl_PointSize = normal.z * projection[0].x / w;\n\n    #ifdef UV_ANIMATION\n        v_Uv0 = texcoord0;\n        v_Uv1 = texcoord1;\n    #endif\n}\n\n@end\n\n@export buildin.particle.fragment\n\nuniform sampler2D sprite;\nuniform sampler2D gradient;\nuniform vec3 color : [1.0, 1.0, 1.0];\nuniform float alpha : 1.0;\n\nvarying float v_Age;\n\n#ifdef UV_ANIMATION\nvarying vec2 v_Uv0;\nvarying vec2 v_Uv1;\n#endif\n\nvoid main() {\n    vec4 color = vec4(color, alpha);\n    #ifdef SPRITE_ENABLED\n        #ifdef UV_ANIMATION\n            color *= texture2D(sprite, mix(v_Uv0, v_Uv1, gl_PointCoord));\n        #else\n            color *= texture2D(sprite, gl_PointCoord);\n        #endif\n    #endif\n    #ifdef GRADIENT_ENABLED\n        color *= texture2D(gradient, vec2(v_Age, 0.5));\n    #endif\n\n    gl_FragColor = color;\n}\n\n@end';});
 
-define('qtek/particleSystem/ParticleSystem',['require','../Node','../math/Vector3','../DynamicGeometry','../Mesh','../Material','../Shader','glmatrix','./particle.essl'],function(require) {
+define('qtek/particleSystem/ParticleSystem',['require','../Node','../math/Vector3','../core/glenum','../StaticGeometry','../Mesh','../Material','../Shader','glmatrix','./particle.essl'],function(require) {
 
     
 
     var Node = require('../Node');
     var Vector3 = require('../math/Vector3');
+    var glenum = require("../core/glenum");
 
-    var DynamicGeometry = require('../DynamicGeometry');
+    var StaticGeometry = require('../StaticGeometry');
     var Mesh = require('../Mesh');
     var Material = require('../Material');
     var Shader = require('../Shader');
@@ -25471,27 +18751,40 @@ define('qtek/particleSystem/ParticleSystem',['require','../Node','../math/Vector
 
     Shader.import(require('./particle.essl'));
 
+    // TODO shader with uv animation
+    var particleShader = new Shader({
+        vertex : Shader.source('buildin.particle.vertex'),
+        fragment : Shader.source('buildin.particle.fragment')
+    });
+    particleShader.enableTexture('sprite');
+
     var ParticleSystem = Node.derive({
         
         loop : true,
 
+        oneshot : false,
+
         duration : 1,
+
+        // UV Animation
+        spriteAnimationTileX : 1,
+        spriteAnimationTileY : 1,
+        spriteAnimationRepeat : 0,
 
         geometry : null,
         material : null,
 
-        mode : Mesh.POINTS
+        mode : Mesh.POINTS,
+
+        _elapsedTime : 0,
+
+        _emitting : true
 
     }, function(){
 
-        this.geometry = new DynamicGeometry();
-
-        var particleShader = new Shader({
-            vertex : Shader.source('buildin.particle.vertex'),
-            fragment : Shader.source('buildin.particle.fragment')
+        this.geometry = new StaticGeometry({
+            hint : glenum.DYNAMIC_DRAW
         });
-        // particleShader.enableTexture('sprite');
-        // particleShader.enableTexture('gradient');
         
         if (!this.material) {
             this.material = new Material({
@@ -25506,9 +18799,20 @@ define('qtek/particleSystem/ParticleSystem',['require','../Node','../math/Vector
         this._fields = [];
         this._emitters = [];
 
+        this._renderInfo = new Mesh.RenderInfo();
+
     }, {
 
         visible : true,
+
+        culling : false,
+        cullFace : glenum.BACK,
+        frontFace : glenum.CCW,
+
+        frustumCulling : false,
+
+        castShadow : false,
+        receiveShadow : false,
 
         isRenderable : function() {
             return this.visible;
@@ -25531,12 +18835,20 @@ define('qtek/particleSystem/ParticleSystem',['require','../Node','../math/Vector
         },
 
         updateParticles : function(deltaTime) {
+
             // MS => Seconds
             deltaTime /= 1000;
+            this._elapsedTime += deltaTime;
+
             var particles = this._particles;
 
-            for (var i = 0; i < this._emitters.length; i++) {
-                this._emitters[i].emit(particles);
+            if (this._emitting) {
+                for (var i = 0; i < this._emitters.length; i++) {
+                    this._emitters[i].emit(particles);
+                }
+                if (this.oneshot) {
+                    this._emitting = false;
+                }
             }
 
             // Aging
@@ -25566,32 +18878,108 @@ define('qtek/particleSystem/ParticleSystem',['require','../Node','../math/Vector
             }
         },
 
-        render : function(_gl) {
+        _updateVertices : function() {
             var particles = this._particles;
             var geometry = this.geometry;
+            // If has uv animation
+            var animTileX = this.spriteAnimationTileX;
+            var animTileY = this.spriteAnimationTileY;
+            var animRepeat = this.spriteAnimationRepeat;
+            var nUvAnimFrame = animTileY * animTileX * animRepeat;
+            var hasUvAnimation = nUvAnimFrame > 1;
             var positions = geometry.attributes.position.value;
             // Put particle status in normal
             var normals = geometry.attributes.normal.value;
+            var uvs = geometry.attributes.texcoord0.value;
+            var uvs2 = geometry.attributes.texcoord1.value;
+
             var len = this._particles.length;
+            if (!positions || positions.length !== len * 3) {
+                // TODO Optimize
+                positions = geometry.attributes.position.value = new Float32Array(len * 3);
+                normals = geometry.attributes.normal.value = new Float32Array(len * 3);
+                if (hasUvAnimation) {
+                    uvs = geometry.attributes.texcoord0.value = new Float32Array(len * 2);
+                    uvs2 = geometry.attributes.texcoord1.value = new Float32Array(len * 2);
+                }
+            }
+
+            var invAnimTileX = 1 / animTileX;
             for (var i = 0; i < len; i++) {
                 var particle = this._particles[i];
-                positions[i] = particle.position._array;
-                if (!normals[i]) {
-                    normals[i] = [];
+                var offset = i * 3;
+                for (var j = 0; j < 3; j++) {
+                    positions[offset + j] = particle.position._array[j];
+                    normals[offset] = particle.age / particle.life;
+                    normals[offset + 1] = particle.rotation;
+                    normals[offset + 2] = particle.spriteSize;
                 }
-                normals[i][0] = particle.age / particle.life;
-                normals[i][1] = particle.rotation;
-                normals[i][2] = particle.spriteSize;
+                var offset2 = i * 2;
+                if (hasUvAnimation) {
+                    // TODO 
+                    var p = particle.age / particle.life;
+                    var stage = Math.round(p * (nUvAnimFrame - 1)) * animRepeat;
+                    var v = Math.floor(stage * invAnimTileX);
+                    var u = stage - v * animTileX;
+                    uvs[offset2] = u / animTileX;
+                    uvs[offset2 + 1] = 1 - v / animTileY;
+                    uvs2[offset2] = (u + 1) / animTileX;
+                    uvs2[offset2 + 1] = 1 - (v + 1) / animTileY;
+                }
             }
-            positions.length = len;
-            normals.length = len;
 
             geometry.dirty('position');
             geometry.dirty('normal');
-            
+
+            if (hasUvAnimation) {
+                geometry.dirty('texcoord0');
+                geometry.dirty('texcoord1');
+            }
+
+        },
+
+        render : function(_gl) {
+            this._updateVertices();
             return Mesh.prototype.render.call(this, _gl);
+        },
+
+        isFinished : function() {
+            return this._elapsedTime > this.duration && !this.loop;
+        },
+
+        dispose : function(_gl) {
+            // Put all the particles back
+            for (var i = 0; i < this._particles.length; i++) {
+                var p = this._particles[i];
+                p.emitter.kill(p);
+            }
+            this.geometry.dispose(_gl);
+            // TODO Dispose texture, shader ?
+        },
+
+        clone : function() {
+            var particleSystem = new ParticleSystem({
+                material : this.material
+            });
+            particleSystem.loop = this.loop;
+            particleSystem.duration = this.duration;
+            particleSystem.oneshot = this.oneshot;
+            particleSystem.spriteAnimationRepeat = this.spriteAnimationRepeat;
+            particleSystem.spriteAnimationTileY = this.spriteAnimationTileY;
+            particleSystem.spriteAnimationTileX = this.spriteAnimationTileX;
+
+            particleSystem.position.copy(this.position);
+            particleSystem.rotation.copy(this.rotation);
+            particleSystem.scale.copy(this.scale);
+
+            for (var i = 0; i < this._children.length; i++) {
+                particleSystem.add(this._children[i].clone());
+            }
+            return particleSystem;
         }
     });
+
+    
 
     return ParticleSystem;
 });
@@ -25707,6 +19095,7 @@ define('qtek/picking/Pixel',['require','../core/Base','../FrameBuffer','../textu
             var pixel = new Uint8Array(4);
             var _gl = renderer.gl;
             // TODO out of bounds ?
+            // preserveDrawingBuffer ?
             _gl.readPixels(x, y, 1, 1, _gl.RGBA, _gl.UNSIGNED_BYTE, pixel);
             this._frameBuffer.unbind(renderer);
             // Skip interpolated pixel because of anti alias
@@ -25922,6 +19311,162 @@ define('qtek/plugin/FirstPersonControl',['require','../core/Base','../math/Vecto
     }
 
     return FirstPersonControl;
+});
+define('qtek/plugin/InfinitePlane',['require','../Mesh','../DynamicGeometry','../math/Plane','../math/Vector3','../math/Matrix4','../math/Ray','../camera/Perspective','glmatrix'],function(require) {
+    
+    var Mesh = require('../Mesh');
+    var DynamicGeometry = require('../DynamicGeometry');
+    var Plane = require('../math/Plane');
+    var Vector3 = require('../math/Vector3');
+    var Matrix4 = require('../math/Matrix4');
+    var Ray = require('../math/Ray');
+
+    var PerspectiveCamera = require('../camera/Perspective');
+
+    var glMatrix = require('glmatrix');
+    var mat4 = glMatrix.mat4;
+    var vec3 = glMatrix.vec3;
+    var vec4 = glMatrix.vec4;
+
+    var uvs = [[0, 0], [0, 1], [1, 1], [1, 0]];
+    var tris = [0, 1, 2, 2, 3, 0];
+
+    var InfinitePlane = Mesh.derive({
+        
+        camera : null,
+
+        plane : null,
+
+        gridSize : 1,
+
+        maxGrid : 0,
+
+        // TODO
+        frustumCulling : false
+
+    }, function() {
+        if (!this.geometry) {
+            this.geometry = new DynamicGeometry();
+        }
+        if (!this.plane) {
+            this.plane = new Plane();
+        }
+    }, {
+
+        updateGeometry : function() {
+
+            var coords = this._unProjectGrid();
+            if (!coords) {
+                return;
+            }
+            var positions = this.geometry.attributes.position.value;
+            var normals = this.geometry.attributes.normal.value;
+            var texcoords = this.geometry.attributes.texcoord0.value;
+            var faces = this.geometry.faces;
+            var nVertices = 0;
+            var normal = vec3.clone(this.plane.normal._array);
+
+            // if (this.gridSize > 0) {
+                // TODO
+
+            // } else {
+            for (var i = 0; i < 6; i++) {
+                var idx = tris[i];
+                positions[nVertices] = coords[idx]._array;
+                normals[nVertices] = normal;
+                texcoords[nVertices] = uvs[idx];
+                nVertices++;
+            }
+            faces[0] = [0, 1, 2];
+            faces[1] = [3, 4, 5];
+            this.geometry.dirty();
+            // }
+        },
+
+        // http://fileadmin.cs.lth.se/graphics/theses/projects/projgrid/
+        _unProjectGrid : (function() {
+            
+            var planeViewSpace = new Plane();
+            var lines = [
+                0, 1, 0, 2, 1, 3, 2, 3,
+                4, 5, 4, 6, 5, 7, 6, 7,
+                0, 4, 1, 5, 2, 6, 3, 7
+            ];
+
+            var start = new Vector3();
+            var end = new Vector3();
+
+            var points = [];
+
+            // 1----2
+            // |    |
+            // 0----3
+            var coords = [];
+            for (var i = 0; i < 4; i++) {
+                coords[i] = new Vector3(0, 0);
+            }
+
+            var ray = new Ray();
+
+            return function() {
+                planeViewSpace.copy(this.plane);
+                planeViewSpace.applyTransform(this.camera.viewMatrix);
+
+                var frustumVertices = this.camera.frustum.vertices;
+
+                var nPoints = 0;
+                // Intersect with lines of frustum
+                for (var i = 0; i < 12; i++) {
+                    start._array = frustumVertices[lines[i * 2]];
+                    end._array = frustumVertices[lines[i * 2 + 1]];
+
+                    var point = planeViewSpace.intersectLine(start, end, points[nPoints]);
+                    if (point) {
+                        if (!points[nPoints]) {
+                            points[nPoints] = point;
+                        }
+                        nPoints++;
+                    }
+                }
+                if (nPoints == 0) {
+                    return;
+                }
+                for (var i = 0; i < nPoints; i++) {
+                    points[i].applyProjection(this.camera.projectionMatrix);
+                }
+                var minX = points[0]._array[0];
+                var minY = points[0]._array[1];
+                var maxX = points[0]._array[0];
+                var maxY = points[0]._array[1];
+                for (var i = 1; i < nPoints; i++) {
+                    maxX = Math.max(maxX, points[i]._array[0]);
+                    maxY = Math.max(maxY, points[i]._array[1]);
+                    minX = Math.min(minX, points[i]._array[0]);
+                    minY = Math.min(minY, points[i]._array[1]);
+                }
+                if (minX == maxX || minY == maxY) {
+                    return;
+                }
+                coords[0]._array[0] = minX;
+                coords[0]._array[1] = minY;
+                coords[1]._array[0] = minX;
+                coords[1]._array[1] = maxY;
+                coords[2]._array[0] = maxX;
+                coords[2]._array[1] = maxY;
+                coords[3]._array[0] = maxX;
+                coords[3]._array[1] = minY;
+
+                for (var i = 0; i < 4; i++) {
+                    this.camera.castRay(coords[i], ray);
+                    ray.intersectPlane(this.plane, coords[i])
+                }
+
+                return coords;
+            };
+        })()
+    });
+
+    return InfinitePlane;
 });
 define('qtek/plugin/OrbitControl',['require','../core/Base','../math/Vector3','../math/Matrix4','../math/Quaternion'],function(require) {
 
@@ -26141,9 +19686,13 @@ define('qtek/plugin/Skybox',['require','../Mesh','../geometry/Cube','../Shader',
             this.scene = scene;
             scene.on("beforerender", this._beforeRenderScene, this);
         },
-
+        
         detachScene : function(scene) {
             scene.off("beforerender", this._beforeRenderScene, this);  
+        },
+
+        dispose : function(_gl) {
+            this.detachScene(this.scene);
         }
     });
 
@@ -26297,9 +19846,9 @@ define('qtek/prePass/Reflection',['require','../core/Base','../math/Vector4'],fu
 
     return ReflectionPass;
 });
-define('qtek/prePass/shadowmap.essl',[],function () { return '\n@export buildin.sm.depth.vertex\n\nuniform mat4 worldViewProjection : WORLDVIEWPROJECTION;\n\nattribute vec3 position : POSITION;\n\n#ifdef SHADOW_TRANSPARENT \nattribute vec2 texcoord : TEXCOORD_0;\n#endif\n\n#ifdef SKINNING\nattribute vec3 weight : WEIGHT;\nattribute vec4 joint : JOINT;\n\nuniform mat4 skinMatrix[JOINT_NUMBER] : SKIN_MATRIX;\n#endif\n\nvarying vec4 v_ViewPosition;\n\n#ifdef SHADOW_TRANSPARENT\nvarying vec2 v_Texcoord;\n#endif\n\nvoid main(){\n    \n    vec3 skinnedPosition = position;\n    \n    #ifdef SKINNING\n\n        @import buildin.chunk.skin_matrix\n\n        skinnedPosition = (skinMatrixWS * vec4(position, 1.0)).xyz;\n    #endif\n\n    v_ViewPosition = worldViewProjection * vec4(skinnedPosition, 1.0);\n    gl_Position = v_ViewPosition;\n\n    #ifdef SHADOW_TRANSPARENT\n        v_Texcoord = texcoord;\n    #endif\n}\n@end\n\n@export buildin.sm.depth.fragment\n\nvarying vec4 v_ViewPosition;\n\n#ifdef SHADOW_TRANSPARENT\nvarying vec2 v_Texcoord;\n#endif\n\nuniform float bias : 0.001;\nuniform float slopeScale : 1.0;\n\n#ifdef SHADOW_TRANSPARENT\nuniform sampler2D transparentMap;\n#endif\n\n#extension GL_OES_standard_derivatives : enable\n\n@import buildin.util.encode_float\n\nvoid main(){\n    // Whats the difference between gl_FragCoord.z and this v_ViewPosition\n    // gl_FragCoord consider the polygon offset ?\n    float depth = v_ViewPosition.z / v_ViewPosition.w;\n    // float depth = gl_FragCoord.z / gl_FragCoord.w;\n\n    #ifdef USE_VSM\n        depth = depth * 0.5 + 0.5;\n        float moment1 = depth;\n        float moment2 = depth * depth;\n\n        // Adjusting moments using partial derivative\n        float dx = dFdx(depth);\n        float dy = dFdy(depth);\n        moment2 += 0.25*(dx*dx+dy*dy);\n\n        gl_FragColor = vec4(moment1, moment2, 0.0, 1.0);\n    #else\n        // Add slope scaled bias using partial derivative\n        float dx = dFdx(depth);\n        float dy = dFdy(depth);\n        depth += sqrt(dx*dx + dy*dy) * slopeScale + bias;\n\n        #ifdef SHADOW_TRANSPARENT\n            if (texture2D(transparentMap, v_Texcoord).a <= 0.1) {\n                // Hi-Z\n                gl_FragColor = encodeFloat(0.);\n                return;\n            }\n        #endif\n\n        gl_FragColor = encodeFloat(depth * 0.5 + 0.5);\n    #endif\n}\n@end\n\n@export buildin.sm.debug_depth\n\nuniform sampler2D depthMap;\nvarying vec2 v_Texcoord;\n\n@import buildin.util.decode_float\n\nvoid main() {\n    vec4 tex = texture2D(depthMap, v_Texcoord);\n    #ifdef USE_VSM\n        gl_FragColor = vec4(tex.rgb, 1.0);\n    #else\n        float depth = decodeFloat(tex);\n        gl_FragColor = vec4(depth, depth, depth, 1.0);\n    #endif\n}\n\n@end\n\n\n@export buildin.sm.distance.vertex\n\nuniform mat4 worldViewProjection : WORLDVIEWPROJECTION;\nuniform mat4 world : WORLD;\n\nattribute vec3 position : POSITION;\n\n#ifdef SKINNING\nattribute vec3 boneWeight;\nattribute vec4 boneIndex;\n\nuniform mat4 skinMatrix[JOINT_NUMBER] : SKIN_MATRIX;\n#endif\n\nvarying vec3 v_WorldPosition;\n\nvoid main(){\n\n    vec3 skinnedPosition = position;\n    #ifdef SKINNING\n        @import buildin.chunk.skin_matrix\n\n        skinnedPosition = (skinMatrixWS * vec4(position, 1.0)).xyz;\n    #endif\n\n    gl_Position = worldViewProjection * vec4(skinnedPosition , 1.0);\n    v_WorldPosition = (world * vec4(skinnedPosition, 1.0)).xyz;\n}\n\n@end\n\n@export buildin.sm.distance.fragment\n\nuniform vec3 lightPosition;\nuniform float range : 100;\n\nvarying vec3 v_WorldPosition;\n\n@import buildin.util.encode_float\n\nvoid main(){\n    float dist = distance(lightPosition, v_WorldPosition);\n    #ifdef USE_VSM\n        gl_FragColor = vec4(dist, dist * dist, 0.0, 0.0);\n    #else\n        dist = dist / range;\n        gl_FragColor = encodeFloat(dist);\n    #endif\n}\n@end\n\n@export buildin.plugin.compute_shadow_map\n\n#if defined(SPOT_LIGHT_SHADOWMAP_NUMBER) || defined(DIRECTIONAL_LIGHT_SHADOWMAP_NUMBER) || defined(POINT_LIGHT_SHADOWMAP_NUMBER)\n\n#ifdef SPOT_LIGHT_SHADOWMAP_NUMBER\nuniform sampler2D spotLightShadowMaps[SPOT_LIGHT_SHADOWMAP_NUMBER];\nuniform mat4 spotLightMatrices[SPOT_LIGHT_SHADOWMAP_NUMBER];\n#endif\n\n#ifdef DIRECTIONAL_LIGHT_SHADOWMAP_NUMBER\n#if defined(SHADOW_CASCADE)\nuniform sampler2D directionalLightShadowMaps[SHADOW_CASCADE];\nuniform mat4 directionalLightMatrices[SHADOW_CASCADE];\nuniform float shadowCascadeClipsNear[SHADOW_CASCADE];\nuniform float shadowCascadeClipsFar[SHADOW_CASCADE];\n#else\nuniform sampler2D directionalLightShadowMaps[DIRECTIONAL_LIGHT_SHADOWMAP_NUMBER];\nuniform mat4 directionalLightMatrices[DIRECTIONAL_LIGHT_SHADOWMAP_NUMBER];\n#endif\n#endif\n\n#ifdef POINT_LIGHT_SHADOWMAP_NUMBER\nuniform samplerCube pointLightShadowMaps[POINT_LIGHT_SHADOWMAP_NUMBER];\nuniform float pointLightRanges[POINT_LIGHT_SHADOWMAP_NUMBER];\n#endif\n\nuniform bool shadowEnabled : true;\n\n@import buildin.util.decode_float\n\n#if defined(DIRECTIONAL_LIGHT_NUMBER) || defined(SPOT_LIGHT_SHADOWMAP_NUMBER)\n\nfloat tapShadowMap(sampler2D map, vec2 uv, float z){\n    vec4 tex = texture2D(map, uv);\n    return decodeFloat(tex) * 2.0 - 1.0< z ? 0.0 : 1.0;\n}\n\nfloat pcf(sampler2D map, vec2 uv, float z){\n\n    float shadowContrib = tapShadowMap(map, uv, z);\n    float offset = 1.0/1024.0;\n    shadowContrib += tapShadowMap(map, uv+vec2(offset, 0.0), z);\n    shadowContrib += tapShadowMap(map, uv+vec2(offset, offset), z);\n    shadowContrib += tapShadowMap(map, uv+vec2(-offset, offset), z);\n    shadowContrib += tapShadowMap(map, uv+vec2(0.0, offset), z);\n    shadowContrib += tapShadowMap(map, uv+vec2(-offset, 0.0), z);\n    shadowContrib += tapShadowMap(map, uv+vec2(-offset, -offset), z);\n    shadowContrib += tapShadowMap(map, uv+vec2(offset, -offset), z);\n    shadowContrib += tapShadowMap(map, uv+vec2(0.0, -offset), z);\n\n    return shadowContrib / 9.0;\n}\nfloat chebyshevUpperBound(vec2 moments, float z){\n    float p = 0.0;\n    z = z * 0.5 + 0.5;\n    if (z <= moments.x) {\n        p = 1.0;\n    }\n    float variance = moments.y - moments.x * moments.x;\n    // http://fabiensanglard.net/shadowmappingVSM/\n    variance = max(variance, 0.0000001);\n    // Compute probabilistic upper bound. \n    float mD = moments.x - z;\n    float pMax = variance / (variance + mD * mD);\n    // Now reduce light-bleeding by removing the [0, x] tail and linearly rescaling (x, 1]\n    // TODO : bleedBias parameter ?\n    pMax = clamp((pMax-0.4)/(1.0-0.4), 0.0, 1.0);\n    return max(p, pMax);\n}\nfloat computeShadowContrib(sampler2D map, mat4 lightVPM, vec3 position){\n    \n    vec4 posInLightSpace = lightVPM * vec4(v_WorldPosition, 1.0);\n    posInLightSpace.xyz /= posInLightSpace.w;\n    float z = posInLightSpace.z;\n    // In frustum\n    if(all(greaterThan(posInLightSpace.xyz, vec3(-0.99, -0.99, -1.0))) &&\n        all(lessThan(posInLightSpace.xyz, vec3(0.99, 0.99, 1.0)))){\n        // To texture uv\n        vec2 uv = (posInLightSpace.xy+1.0) / 2.0;\n\n        #ifdef USE_VSM\n            vec2 moments = texture2D(map, uv).xy;\n            return chebyshevUpperBound(moments, z);\n        #else\n            return pcf(map, uv, z);\n        #endif\n    }\n    return 1.0;\n}\n\n#endif\n\n#ifdef POINT_LIGHT_SHADOWMAP_NUMBER\n\nfloat computeShadowOfCube(samplerCube map, vec3 direction, float range){\n    vec4 shadowTex = textureCube(map, direction);\n    float dist = length(direction);\n\n    #ifdef USE_VSM\n        vec2 moments = shadowTex.xy;\n        float variance = moments.y - moments.x * moments.x;\n        float mD = moments.x - dist;\n        float p = variance / (variance + mD * mD);\n        if(moments.x + 0.001 < dist){\n            return clamp(p, 0.0, 1.0);\n        }else{\n            return 1.0;\n        }\n    #else\n        if((decodeFloat(shadowTex) + 0.0002) * range < dist){\n            return 0.0;\n        }else{\n            return 1.0;\n        }\n    #endif\n}\n#endif\n\n#if defined(SPOT_LIGHT_SHADOWMAP_NUMBER)\n\nvoid computeShadowOfSpotLights(vec3 position, inout float shadowContribs[SPOT_LIGHT_NUMBER] ){\n    for(int i = 0; i < SPOT_LIGHT_SHADOWMAP_NUMBER; i++){\n        float shadowContrib = computeShadowContrib(spotLightShadowMaps[i], spotLightMatrices[i], position);\n        shadowContribs[i] = shadowContrib;\n    }\n    // set default fallof of rest lights\n    for(int i = SPOT_LIGHT_SHADOWMAP_NUMBER; i < SPOT_LIGHT_NUMBER; i++){\n        shadowContribs[i] = 1.0;\n    }\n}\n\n#endif\n\n\n#if defined(DIRECTIONAL_LIGHT_SHADOWMAP_NUMBER)\n\n#ifdef SHADOW_CASCADE\n\nvoid computeShadowOfDirectionalLights(vec3 position, inout float shadowContribs[DIRECTIONAL_LIGHT_NUMBER]){\n    // http://www.opengl.org/wiki/Compute_eye_space_from_window_space\n    float depth = (2.0 * gl_FragCoord.z - gl_DepthRange.near - gl_DepthRange.far)\n                    / (gl_DepthRange.far - gl_DepthRange.near);\n\n    for (int i = 0; i < SHADOW_CASCADE; i++) {\n        if (\n            depth >= shadowCascadeClipsNear[i] &&\n            depth <= shadowCascadeClipsFar[i]\n        ) {\n            float shadowContrib = computeShadowContrib(directionalLightShadowMaps[i], directionalLightMatrices[i], position);\n            // TODO Will get a sampler needs to be be uniform error in native gl\n            shadowContribs[0] = shadowContrib;\n        }\n    }\n    // set default fallof of rest lights\n    for(int i = DIRECTIONAL_LIGHT_SHADOWMAP_NUMBER; i < DIRECTIONAL_LIGHT_NUMBER; i++){\n        shadowContribs[i] = 1.0;\n    }\n}\n\n#else\n\nvoid computeShadowOfDirectionalLights(vec3 position, inout float shadowContribs[DIRECTIONAL_LIGHT_NUMBER]){\n    for(int i = 0; i < DIRECTIONAL_LIGHT_SHADOWMAP_NUMBER; i++){\n        float shadowContrib = computeShadowContrib(directionalLightShadowMaps[i], directionalLightMatrices[i], position);\n        shadowContribs[i] = shadowContrib;\n    }\n    // set default fallof of rest lights\n    for(int i = DIRECTIONAL_LIGHT_SHADOWMAP_NUMBER; i < DIRECTIONAL_LIGHT_NUMBER; i++){\n        shadowContribs[i] = 1.0;\n    }\n}\n#endif\n\n#endif\n\n\n#if defined(POINT_LIGHT_SHADOWMAP_NUMBER)\n\nvoid computeShadowOfPointLights(vec3 position, inout float shadowContribs[POINT_LIGHT_NUMBER] ){\n    for(int i = 0; i < POINT_LIGHT_SHADOWMAP_NUMBER; i++){\n        vec3 lightPosition = pointLightPosition[i];\n        vec3 direction = position - lightPosition;\n        shadowContribs[i] = computeShadowOfCube(pointLightShadowMaps[i], direction, pointLightRanges[i]);\n    }\n    for(int i = POINT_LIGHT_SHADOWMAP_NUMBER; i < POINT_LIGHT_NUMBER; i++){\n        shadowContribs[i] = 1.0;\n    }\n}\n\n#endif\n\n#endif\n\n@end';});
+define('qtek/prePass/shadowmap.essl',[],function () { return '\n@export buildin.sm.depth.vertex\n\nuniform mat4 worldViewProjection : WORLDVIEWPROJECTION;\n\nattribute vec3 position : POSITION;\n\n#ifdef SHADOW_TRANSPARENT \nattribute vec2 texcoord : TEXCOORD_0;\n#endif\n\n#ifdef SKINNING\nattribute vec3 weight : WEIGHT;\nattribute vec4 joint : JOINT;\n\nuniform mat4 skinMatrix[JOINT_NUMBER] : SKIN_MATRIX;\n#endif\n\nvarying vec4 v_ViewPosition;\n\n#ifdef SHADOW_TRANSPARENT\nvarying vec2 v_Texcoord;\n#endif\n\nvoid main(){\n    \n    vec3 skinnedPosition = position;\n    \n    #ifdef SKINNING\n\n        @import buildin.chunk.skin_matrix\n\n        skinnedPosition = (skinMatrixWS * vec4(position, 1.0)).xyz;\n    #endif\n\n    v_ViewPosition = worldViewProjection * vec4(skinnedPosition, 1.0);\n    gl_Position = v_ViewPosition;\n\n    #ifdef SHADOW_TRANSPARENT\n        v_Texcoord = texcoord;\n    #endif\n}\n@end\n\n@export buildin.sm.depth.fragment\n\nvarying vec4 v_ViewPosition;\n\n#ifdef SHADOW_TRANSPARENT\nvarying vec2 v_Texcoord;\n#endif\n\nuniform float bias : 0.001;\nuniform float slopeScale : 1.0;\n\n#ifdef SHADOW_TRANSPARENT\nuniform sampler2D transparentMap;\n#endif\n\n#extension GL_OES_standard_derivatives : enable\n\n@import buildin.util.encode_float\n\nvoid main(){\n    // Whats the difference between gl_FragCoord.z and this v_ViewPosition\n    // gl_FragCoord consider the polygon offset ?\n    float depth = v_ViewPosition.z / v_ViewPosition.w;\n    // float depth = gl_FragCoord.z / gl_FragCoord.w;\n\n    #ifdef USE_VSM\n        depth = depth * 0.5 + 0.5;\n        float moment1 = depth;\n        float moment2 = depth * depth;\n\n        // Adjusting moments using partial derivative\n        float dx = dFdx(depth);\n        float dy = dFdy(depth);\n        moment2 += 0.25*(dx*dx+dy*dy);\n\n        gl_FragColor = vec4(moment1, moment2, 0.0, 1.0);\n    #else\n        // Add slope scaled bias using partial derivative\n        float dx = dFdx(depth);\n        float dy = dFdy(depth);\n        depth += sqrt(dx*dx + dy*dy) * slopeScale + bias;\n\n        #ifdef SHADOW_TRANSPARENT\n            if (texture2D(transparentMap, v_Texcoord).a <= 0.1) {\n                // Hi-Z\n                gl_FragColor = encodeFloat(0.9999);\n                return;\n            }\n        #endif\n\n        gl_FragColor = encodeFloat(depth * 0.5 + 0.5);\n    #endif\n}\n@end\n\n@export buildin.sm.debug_depth\n\nuniform sampler2D depthMap;\nvarying vec2 v_Texcoord;\n\n@import buildin.util.decode_float\n\nvoid main() {\n    vec4 tex = texture2D(depthMap, v_Texcoord);\n    #ifdef USE_VSM\n        gl_FragColor = vec4(tex.rgb, 1.0);\n    #else\n        float depth = decodeFloat(tex);\n        gl_FragColor = vec4(depth, depth, depth, 1.0);\n    #endif\n}\n\n@end\n\n\n@export buildin.sm.distance.vertex\n\nuniform mat4 worldViewProjection : WORLDVIEWPROJECTION;\nuniform mat4 world : WORLD;\n\nattribute vec3 position : POSITION;\n\n#ifdef SKINNING\nattribute vec3 boneWeight;\nattribute vec4 boneIndex;\n\nuniform mat4 skinMatrix[JOINT_NUMBER] : SKIN_MATRIX;\n#endif\n\nvarying vec3 v_WorldPosition;\n\nvoid main(){\n\n    vec3 skinnedPosition = position;\n    #ifdef SKINNING\n        @import buildin.chunk.skin_matrix\n\n        skinnedPosition = (skinMatrixWS * vec4(position, 1.0)).xyz;\n    #endif\n\n    gl_Position = worldViewProjection * vec4(skinnedPosition , 1.0);\n    v_WorldPosition = (world * vec4(skinnedPosition, 1.0)).xyz;\n}\n\n@end\n\n@export buildin.sm.distance.fragment\n\nuniform vec3 lightPosition;\nuniform float range : 100;\n\nvarying vec3 v_WorldPosition;\n\n@import buildin.util.encode_float\n\nvoid main(){\n    float dist = distance(lightPosition, v_WorldPosition);\n    #ifdef USE_VSM\n        gl_FragColor = vec4(dist, dist * dist, 0.0, 0.0);\n    #else\n        dist = dist / range;\n        gl_FragColor = encodeFloat(dist);\n    #endif\n}\n@end\n\n@export buildin.plugin.compute_shadow_map\n\n#if defined(SPOT_LIGHT_SHADOWMAP_NUMBER) || defined(DIRECTIONAL_LIGHT_SHADOWMAP_NUMBER) || defined(POINT_LIGHT_SHADOWMAP_NUMBER)\n\n#ifdef SPOT_LIGHT_SHADOWMAP_NUMBER\nuniform sampler2D spotLightShadowMaps[SPOT_LIGHT_SHADOWMAP_NUMBER];\nuniform mat4 spotLightMatrices[SPOT_LIGHT_SHADOWMAP_NUMBER];\n#endif\n\n#ifdef DIRECTIONAL_LIGHT_SHADOWMAP_NUMBER\n#if defined(SHADOW_CASCADE)\nuniform sampler2D directionalLightShadowMaps[SHADOW_CASCADE];\nuniform mat4 directionalLightMatrices[SHADOW_CASCADE];\nuniform float shadowCascadeClipsNear[SHADOW_CASCADE];\nuniform float shadowCascadeClipsFar[SHADOW_CASCADE];\n#else\nuniform sampler2D directionalLightShadowMaps[DIRECTIONAL_LIGHT_SHADOWMAP_NUMBER];\nuniform mat4 directionalLightMatrices[DIRECTIONAL_LIGHT_SHADOWMAP_NUMBER];\n#endif\n#endif\n\n#ifdef POINT_LIGHT_SHADOWMAP_NUMBER\nuniform samplerCube pointLightShadowMaps[POINT_LIGHT_SHADOWMAP_NUMBER];\nuniform float pointLightRanges[POINT_LIGHT_SHADOWMAP_NUMBER];\n#endif\n\nuniform bool shadowEnabled : true;\n\n@import buildin.util.decode_float\n\n#if defined(DIRECTIONAL_LIGHT_NUMBER) || defined(SPOT_LIGHT_SHADOWMAP_NUMBER)\n\nfloat tapShadowMap(sampler2D map, vec2 uv, float z){\n    vec4 tex = texture2D(map, uv);\n    return decodeFloat(tex) * 2.0 - 1.0< z ? 0.0 : 1.0;\n}\n\nfloat pcf(sampler2D map, vec2 uv, float z){\n\n    float shadowContrib = tapShadowMap(map, uv, z);\n    float offset = 1.0 / 2048.0;\n    shadowContrib += tapShadowMap(map, uv+vec2(offset, 0.0), z);\n    shadowContrib += tapShadowMap(map, uv+vec2(offset, offset), z);\n    shadowContrib += tapShadowMap(map, uv+vec2(-offset, offset), z);\n    shadowContrib += tapShadowMap(map, uv+vec2(0.0, offset), z);\n    shadowContrib += tapShadowMap(map, uv+vec2(-offset, 0.0), z);\n    shadowContrib += tapShadowMap(map, uv+vec2(-offset, -offset), z);\n    shadowContrib += tapShadowMap(map, uv+vec2(offset, -offset), z);\n    shadowContrib += tapShadowMap(map, uv+vec2(0.0, -offset), z);\n\n    return shadowContrib / 9.0;\n}\nfloat chebyshevUpperBound(vec2 moments, float z){\n    float p = 0.0;\n    z = z * 0.5 + 0.5;\n    if (z <= moments.x) {\n        p = 1.0;\n    }\n    float variance = moments.y - moments.x * moments.x;\n    // http://fabiensanglard.net/shadowmappingVSM/\n    variance = max(variance, 0.0000001);\n    // Compute probabilistic upper bound. \n    float mD = moments.x - z;\n    float pMax = variance / (variance + mD * mD);\n    // Now reduce light-bleeding by removing the [0, x] tail and linearly rescaling (x, 1]\n    // TODO : bleedBias parameter ?\n    pMax = clamp((pMax-0.4)/(1.0-0.4), 0.0, 1.0);\n    return max(p, pMax);\n}\nfloat computeShadowContrib(sampler2D map, mat4 lightVPM, vec3 position){\n    \n    vec4 posInLightSpace = lightVPM * vec4(v_WorldPosition, 1.0);\n    posInLightSpace.xyz /= posInLightSpace.w;\n    float z = posInLightSpace.z;\n    // In frustum\n    if(all(greaterThan(posInLightSpace.xyz, vec3(-0.99, -0.99, -1.0))) &&\n        all(lessThan(posInLightSpace.xyz, vec3(0.99, 0.99, 1.0)))){\n        // To texture uv\n        vec2 uv = (posInLightSpace.xy+1.0) / 2.0;\n\n        #ifdef USE_VSM\n            vec2 moments = texture2D(map, uv).xy;\n            return chebyshevUpperBound(moments, z);\n        #else\n            return pcf(map, uv, z);\n        #endif\n    }\n    return 1.0;\n}\n\n#endif\n\n#ifdef POINT_LIGHT_SHADOWMAP_NUMBER\n\nfloat computeShadowOfCube(samplerCube map, vec3 direction, float range){\n    vec4 shadowTex = textureCube(map, direction);\n    float dist = length(direction);\n\n    #ifdef USE_VSM\n        vec2 moments = shadowTex.xy;\n        float variance = moments.y - moments.x * moments.x;\n        float mD = moments.x - dist;\n        float p = variance / (variance + mD * mD);\n        if(moments.x + 0.001 < dist){\n            return clamp(p, 0.0, 1.0);\n        }else{\n            return 1.0;\n        }\n    #else\n        if((decodeFloat(shadowTex) + 0.0002) * range < dist){\n            return 0.0;\n        }else{\n            return 1.0;\n        }\n    #endif\n}\n#endif\n\n#if defined(SPOT_LIGHT_SHADOWMAP_NUMBER)\n\nvoid computeShadowOfSpotLights(vec3 position, inout float shadowContribs[SPOT_LIGHT_NUMBER] ){\n    for(int i = 0; i < SPOT_LIGHT_SHADOWMAP_NUMBER; i++){\n        float shadowContrib = computeShadowContrib(spotLightShadowMaps[i], spotLightMatrices[i], position);\n        shadowContribs[i] = shadowContrib;\n    }\n    // set default fallof of rest lights\n    for(int i = SPOT_LIGHT_SHADOWMAP_NUMBER; i < SPOT_LIGHT_NUMBER; i++){\n        shadowContribs[i] = 1.0;\n    }\n}\n\n#endif\n\n\n#if defined(DIRECTIONAL_LIGHT_SHADOWMAP_NUMBER)\n\n#ifdef SHADOW_CASCADE\n\nvoid computeShadowOfDirectionalLights(vec3 position, inout float shadowContribs[DIRECTIONAL_LIGHT_NUMBER]){\n    // http://www.opengl.org/wiki/Compute_eye_space_from_window_space\n    float depth = (2.0 * gl_FragCoord.z - gl_DepthRange.near - gl_DepthRange.far)\n                    / (gl_DepthRange.far - gl_DepthRange.near);\n\n    for (int i = 0; i < SHADOW_CASCADE; i++) {\n        if (\n            depth >= shadowCascadeClipsNear[i] &&\n            depth <= shadowCascadeClipsFar[i]\n        ) {\n            float shadowContrib = computeShadowContrib(directionalLightShadowMaps[i], directionalLightMatrices[i], position);\n            // TODO Will get a sampler needs to be be uniform error in native gl\n            shadowContribs[0] = shadowContrib;\n        }\n    }\n    // set default fallof of rest lights\n    for(int i = DIRECTIONAL_LIGHT_SHADOWMAP_NUMBER; i < DIRECTIONAL_LIGHT_NUMBER; i++){\n        shadowContribs[i] = 1.0;\n    }\n}\n\n#else\n\nvoid computeShadowOfDirectionalLights(vec3 position, inout float shadowContribs[DIRECTIONAL_LIGHT_NUMBER]){\n    for(int i = 0; i < DIRECTIONAL_LIGHT_SHADOWMAP_NUMBER; i++){\n        float shadowContrib = computeShadowContrib(directionalLightShadowMaps[i], directionalLightMatrices[i], position);\n        shadowContribs[i] = shadowContrib;\n    }\n    // set default fallof of rest lights\n    for(int i = DIRECTIONAL_LIGHT_SHADOWMAP_NUMBER; i < DIRECTIONAL_LIGHT_NUMBER; i++){\n        shadowContribs[i] = 1.0;\n    }\n}\n#endif\n\n#endif\n\n\n#if defined(POINT_LIGHT_SHADOWMAP_NUMBER)\n\nvoid computeShadowOfPointLights(vec3 position, inout float shadowContribs[POINT_LIGHT_NUMBER] ){\n    for(int i = 0; i < POINT_LIGHT_SHADOWMAP_NUMBER; i++){\n        vec3 lightPosition = pointLightPosition[i];\n        vec3 direction = position - lightPosition;\n        shadowContribs[i] = computeShadowOfCube(pointLightShadowMaps[i], direction, pointLightRanges[i]);\n    }\n    for(int i = POINT_LIGHT_SHADOWMAP_NUMBER; i < POINT_LIGHT_NUMBER; i++){\n        shadowContribs[i] = 1.0;\n    }\n}\n\n#endif\n\n#endif\n\n@end';});
 
-define('qtek/prePass/ShadowMap',['require','../core/Base','../core/glenum','../math/Vector3','../math/BoundingBox','../math/Frustum','../math/Matrix4','../Renderer','../Shader','../Light','../Mesh','../light/Spot','../light/Directional','../light/Point','../shader/library','../Material','../FrameBuffer','../texture/Texture2D','../texture/TextureCube','../camera/Perspective','../camera/Orthographic','../compositor/Pass','../compositor/texturePool','glmatrix','_','./shadowmap.essl'],function(require) {
+define('qtek/prePass/ShadowMap',['require','../core/Base','../core/glenum','../math/Vector3','../math/BoundingBox','../math/Frustum','../math/Matrix4','../Renderer','../Shader','../Light','../Mesh','../light/Spot','../light/Directional','../light/Point','../shader/library','../Material','../FrameBuffer','../texture/Texture2D','../texture/TextureCube','../camera/Perspective','../camera/Orthographic','../compositor/Pass','../compositor/texturePool','glmatrix','./shadowmap.essl'],function(require) {
 
     var Base = require("../core/Base");
     var glenum = require("../core/glenum");
@@ -26329,8 +19878,6 @@ define('qtek/prePass/ShadowMap',['require','../core/Base','../core/glenum','../m
     var mat4 = glMatrix.mat4;
     var vec3 = glMatrix.vec3;
 
-    var _ = require("_");
-
     var frameBuffer = new FrameBuffer();
 
     Shader.import(require('./shadowmap.essl'));
@@ -26349,7 +19896,7 @@ define('qtek/prePass/ShadowMap',['require','../core/Base','../core/glenum','../m
         return {
             
             softShadow : ShadowMapPass.PCF,
-            blurSize : 1.0,
+            shadowBlur : 1.0,
 
             shadowCascade  : 1,
             cascadeSplitLogFactor : 0.2,
@@ -26380,8 +19927,8 @@ define('qtek/prePass/ShadowMap',['require','../core/Base','../core/glenum','../m
         this._gaussianPassV = new Pass({
             fragment : Shader.source('buildin.compositor.gaussian_blur_v')
         });
-        this._gaussianPassH.setUniform("blurSize", this.blurSize);
-        this._gaussianPassV.setUniform("blurSize", this.blurSize);
+        this._gaussianPassH.setUniform("blurSize", this.shadowBlur);
+        this._gaussianPassV.setUniform("blurSize", this.shadowBlur);
 
         this._outputDepthPass = new Pass({
             fragment : Shader.source('buildin.sm.debug_depth')
@@ -26400,9 +19947,9 @@ define('qtek/prePass/ShadowMap',['require','../core/Base','../core/glenum','../m
         renderDebug : function(renderer, size) {
             var prevClear = renderer.clear;
             renderer.clear = glenum.DEPTH_BUFFER_BIT
-            var viewportInfo = renderer.viewportInfo;
+            var viewport = renderer.viewport;
             var x = 0, y = 0;
-            var width = size || viewportInfo.width / 4;
+            var width = size || viewport.width / 4;
             var height = width;
             for (var name in this._textures) {
                 renderer.setViewport(x, y, width, height);
@@ -26410,7 +19957,7 @@ define('qtek/prePass/ShadowMap',['require','../core/Base','../core/glenum','../m
                 this._outputDepthPass.render(renderer);
                 x += width;
             }
-            renderer.setViewport(viewportInfo);
+            renderer.setViewport(viewport);
             renderer.clear = prevClear;
         },
 
@@ -26537,7 +20084,7 @@ define('qtek/prePass/ShadowMap',['require','../core/Base','../core/glenum','../m
             for (var i = 0; i < scene.transparentQueue.length; i++) {
                 // TODO Transparent object receive shadow will be very slow
                 // in stealth demo, still not find the reason
-                // this._updateCaster(scene.transparentQueue[i]);
+                this._updateCaster(scene.transparentQueue[i]);
             }
             for (var i = 0; i < scene.lights.length; i++) {
                 var light = scene.lights[i];
@@ -26764,12 +20311,10 @@ define('qtek/prePass/ShadowMap',['require','../core/Base','../core/glenum','../m
                     _gl.clear(_gl.COLOR_BUFFER_BIT | _gl.DEPTH_BUFFER_BIT);
 
                     // Set bias seperately for each cascade
-                    // TODO Simply divide 2 ?
+                    // TODO Simply divide 1.5 ?
                     for (var key in this._depthMaterials) {
                         this._depthMaterials[key].set('shadowBias', shadowBias);
                     }
-                    shadowBias /= 2;
-
 
                     renderer.renderQueue(casters, lightCamera);
 
@@ -26913,7 +20458,6 @@ define('qtek/prePass/ShadowMap',['require','../core/Base','../core/glenum','../m
                 };
             }
             var camera = this._lightCameras.point[target];
-            camera.worldTransform.copy(light.worldTransform);
 
             camera.far = light.range;
             camera.fov = 90;
@@ -26986,10 +20530,7 @@ define('qtek/prePass/ShadowMap',['require','../core/Base','../core/glenum','../m
                 camera.right = max[0];
                 camera.top = max[1];
                 camera.bottom = min[1];
-                camera.updateLocalTransform();
-                camera.updateWorldTransform();
-                camera.updateProjectionMatrix();
-                camera.frustum.setFromProjection(camera.projectionMatrix);
+                camera.update(true);
 
                 return camera;
             }
@@ -27005,6 +20546,7 @@ define('qtek/prePass/ShadowMap',['require','../core/Base','../core/glenum','../m
             camera.far = light.range;
             camera.worldTransform.copy(light.worldTransform);
             camera.updateProjectionMatrix();
+            mat4.invert(camera.viewMatrix._array, camera.worldTransform._array);
 
             return camera
         },
@@ -27392,7 +20934,7 @@ define('qtek/util/hdr',['require','../Texture','../texture/Texture2D'],function(
  *
  * @export{object} mesh
  */
-define('qtek/util/mesh',['require','../Geometry','../DynamicGeometry','../StaticGeometry','../Mesh','../Node','../Material','../Shader','glmatrix','../math/BoundingBox','_'],function(require) {
+define('qtek/util/mesh',['require','../Geometry','../DynamicGeometry','../StaticGeometry','../Mesh','../Node','../Material','../Shader','glmatrix','../math/BoundingBox'],function(require) {
     
     var Geometry = require("../Geometry");
     var DynamicGeometry = require("../DynamicGeometry");
@@ -27403,7 +20945,6 @@ define('qtek/util/mesh',['require','../Geometry','../DynamicGeometry','../Static
     var Shader = require("../Shader");
     var glMatrix = require("glmatrix");
     var BoundingBox = require('../math/BoundingBox');
-    var _ = require("_");
     var mat4 = glMatrix.mat4;
     var vec3 = glMatrix.vec3;
 
@@ -27436,10 +20977,7 @@ define('qtek/util/mesh',['require','../Geometry','../DynamicGeometry','../Static
                 var attr = templateGeo.attributes[name];
                 // Extend custom attributes
                 if (! geometry.attributes[name]) {
-                    geometry.attributes[name] = {
-                        value : isStatic ? null : [],
-                        type : attr.type
-                    }
+                    geometry.attributes[name] = attr.clone(false)
                 }
             }
 
@@ -27893,6 +21431,54 @@ define('qtek/util/texture',['require','../Texture','../texture/Texture2D','../te
                 onload : onsuccess,
                 onerror : onerror
             });
+        },
+
+        createChessboard : function(size, unitSize, color1, color2) {
+            size = size || 512;
+            unitSize = unitSize || 64;
+            color1 = color1 || 'black';
+            color2 = color2 || 'white';
+
+            var repeat = Math.ceil(size / unitSize);
+
+            var canvas = document.createElement('canvas');
+            canvas.width = size;
+            canvas.height = size;
+            var ctx = canvas.getContext('2d');
+            ctx.fillStyle = color2;
+            ctx.fillRect(0, 0, size, size);
+
+            ctx.fillStyle = color1;
+            for (var i = 0; i < repeat; i++) {
+                for (var j = 0; j < repeat; j++) {
+                    var isFill = j % 2 ? (i % 2) : (i % 2 - 1);
+                    if (isFill) {
+                        ctx.fillRect(i * unitSize, j * unitSize, unitSize, unitSize);
+                    }
+                }
+            }
+
+            var texture = new Texture2D({
+                image : canvas,
+                anisotropic : 8
+            });
+
+            return texture;
+        },
+
+        createBlank : function(color) {
+            var canvas = document.createElement('canvas');
+            canvas.width = 1;
+            canvas.height = 1;
+            var ctx = canvas.getContext('2d');
+            ctx.fillStyle = color;
+            ctx.fillRect(0, 0, 1, 1);
+
+            var texture = new Texture2D({
+                image : canvas
+            });
+
+            return texture;
         }
     }
 
